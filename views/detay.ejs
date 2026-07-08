@@ -1,0 +1,117 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">
+        <% if (tip == 'kaizen') { %>🔧 Kaizen Detayı<% } else { %>💡 Öneri Detayı<% } %>
+    </h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="<%= geri %>">← Listeye Dön</a>
+        <% if (admin) { %>
+            <% if (tip == 'oneri') { %>
+            <a class="btn primary" href="/oneri/duzenle?no=<%= encodeURIComponent(r.no) %>">Düzenle</a>
+            <% } else { %>
+            <a class="btn primary" href="/kaizen/duzenle?no=<%= encodeURIComponent(r.no) %>">Düzenle</a>
+            <% } %>
+        <% } %>
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-top">
+        <span class="mono badge"><%= r.no %></span>
+        <% if (tip == 'kaizen') { %><span class="tip-badge kaizen">KAIZEN</span>
+        <% } else { %><span class="tip-badge oneri">ÖNERİ</span><% } %>
+        <% const d = r.durum || 'Değerlendiriliyor'; %>
+        <% if (d == 'Onaylandı') { %><span class="durum-badge onay"><%= d %></span>
+        <% } else if (d == 'Reddedildi') { %><span class="durum-badge red"><%= d %></span>
+        <% } else if (d == 'Düzeltme İsteniyor') { %><span class="durum-badge revize"><%= d %></span>
+        <% } else { %><span class="durum-badge bekle"><%= d %></span><% } %>
+        <% if (r.puan !== null && r.puan !== '' && r.puan !== undefined) { %>
+            <span class="puan-badge">Puan: <%= r.puan %></span>
+        <% } %>
+    </div>
+
+    <% if (tip == 'oneri') { %>
+    <h2 class="detail-konu"><%= r.konu %></h2>
+    <div class="detail-grid">
+        <div><span class="dl">Öneri Sahibi</span><span class="dv"><%= r.sahibi %></span></div>
+        <div><span class="dl">Görevi</span><span class="dv"><%= r.gorevi %></span></div>
+        <div><span class="dl">Tarih</span><span class="dv"><%= trdate(r.tarih) %></span></div>
+        <div><span class="dl">Kayıt</span><span class="dv"><%= r.kayit_zamani %></span></div>
+    </div>
+
+    <div class="detail-block"><h3>Detay Açıklama</h3><p><%= r.detay || '—' %></p></div>
+    <div class="detail-block"><h3>Çözüm Önerisi</h3><p><%= r.cozum || '—' %></p></div>
+
+    <div class="katki-grid">
+        <div class="katki"><h4>1 · Kaliteye Katkısı</h4><p><%= r.kalite || '—' %></p></div>
+        <div class="katki"><h4>2 · Verimliliğe Katkısı</h4><p><%= r.verimlilik || '—' %></p></div>
+        <div class="katki"><h4>3 · İSG'ye Katkısı</h4><p><%= r.isg || '—' %></p></div>
+        <div class="katki"><h4>4 · Maliyete Katkısı</h4><p><%= r.maliyet || '—' %></p></div>
+    </div>
+    <div class="detail-block"><h3>Ek Açıklama</h3><p><%= r.ek || '—' %></p></div>
+
+    <% } else { %>
+    <h2 class="detail-konu"><%= r.konu %></h2>
+    <div class="detail-grid">
+        <div><span class="dl">Başlangıç</span><span class="dv"><%= trdate(r.baslangic) %></span></div>
+        <div><span class="dl">Bitiş</span><span class="dv"><%= trdate(r.bitis) || '—' %></span></div>
+        <div><span class="dl">Yapıldığı Bölüm</span><span class="dv"><%= r.bolum || '—' %></span></div>
+        <div><span class="dl">Kaizen Lideri</span><span class="dv"><%= r.lider || r.sorumlular || '—' %></span></div>
+        <div><span class="dl">Üyeler</span><span class="dv"><%= (r.uyeler && r.uyeler.length) ? r.uyeler.join(', ') : '—' %></span></div>
+        <div><span class="dl">Kayıt</span><span class="dv"><%= r.kayit_zamani %></span></div>
+    </div>
+
+    <% if (r.kazanclar && r.kazanclar.length) { %>
+    <div class="detail-block">
+        <h3>Kazanç Başlıkları</h3>
+        <div class="tags"><% for (const k of r.kazanclar) { %><span class="tag"><%= k %></span><% } %></div>
+    </div>
+    <% } %>
+
+    <div class="prepost-grid">
+        <div class="pp-col">
+            <div class="pp-label before">ÖNCEKİ DURUM</div>
+            <p><%= r.onceki || '—' %></p>
+            <% if (r.onceki_gorsel) { %>
+            <a href="/kaizen/gorsel/<%= encodeURIComponent(r.onceki_gorsel) %>" target="_blank">
+                <img loading="lazy" src="/kaizen/gorsel/<%= encodeURIComponent(r.onceki_gorsel) %>" alt="önce">
+            </a>
+            <% } %>
+        </div>
+        <div class="pp-col">
+            <div class="pp-label after">SONRAKİ DURUM</div>
+            <p><%= r.sonraki || '—' %></p>
+            <% if (r.sonraki_gorsel) { %>
+            <a href="/kaizen/gorsel/<%= encodeURIComponent(r.sonraki_gorsel) %>" target="_blank">
+                <img loading="lazy" src="/kaizen/gorsel/<%= encodeURIComponent(r.sonraki_gorsel) %>" alt="sonra">
+            </a>
+            <% } %>
+        </div>
+    </div>
+    <% } %>
+
+    <% if (r.puanlama) { const pz = r.puanlama;
+       const temel = ('temel' in pz) ? pz.temel : ((pz.form || 0) + (pz.komite || 0)); %>
+    <div class="detail-block">
+        <h3>Puanlama Kırılımı — <%= pz.toplam %>/100</h3>
+        <table class="puan-ozet-tablo">
+            <tr><td>Temel Şartlar</td><td><%= temel %> / 10</td></tr>
+            <tr><td>Etki Odağı<% if (pz.etki_odak) { %> <small>(<%= pz.etki_odak %>)</small><% } else if (pz.etki_label) { %> <small>(<%= pz.etki_label %>)</small><% } %></td><td><%= pz.etki || 0 %> / 40</td></tr>
+            <tr><td>Maliyet ve Yatırım<% if (pz.maliyet_label) { %> <small>(<%= pz.maliyet_label %>)</small><% } %></td><td><%= pz.maliyet || 0 %> / 20</td></tr>
+            <tr><td>Yaygınlaştırma<% if (pz.yaygin_label) { %> <small>(<%= pz.yaygin_label %>)</small><% } %></td><td><%= pz.yaygin || 0 %> / 15</td></tr>
+            <tr><td>Efor ve Sahiplenme<% if (pz.efor_label) { %> <small>(<%= pz.efor_label %>)</small><% } %></td><td><%= pz.efor || 0 %> / 15</td></tr>
+            <tr class="ozet-toplam"><td>TOPLAM</td><td><%= pz.toplam %> / 100</td></tr>
+        </table>
+    </div>
+    <% } %>
+
+    <% if (r.degerlendirme_notu) { %>
+    <div class="detail-block"><h3>Değerlendirme Notu</h3><p><%= r.degerlendirme_notu %></p></div>
+    <% } %>
+
+    <% if (r.guncelleme_zamani) { %>
+    <div class="kc-foot">Son güncelleme: <%= r.guncelleme_zamani %></div>
+    <% } %>
+</div>
+<%- include('partials/footer') %>

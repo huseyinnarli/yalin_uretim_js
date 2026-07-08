@@ -1,0 +1,18 @@
+{
+  "name": "yalin-uretim-uygulamalari",
+  "version": "1.0.0",
+  "description": "Öneri, Kaizen ve 5S süreçleri + personel puan/ödül sistemi (Node.js + Express + SQLite)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "import": "node scripts/import-json.js"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "cookie-session": "^2.1.0",
+    "ejs": "^3.1.10",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.2"
+  }
+}

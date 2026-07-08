@@ -1,0 +1,174 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">★ Puanlama</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/liste">← Listeye Dön</a>
+        <a class="btn ghost" href="/detay?tip=<%= tip %>&no=<%= encodeURIComponent(r.no) %>&geri=%2Fliste">Detayı Gör</a>
+    </div>
+</div>
+
+<% const items = (mevcut && mevcut.puan_items) || {};
+   function puanSec(nm, blok, maxv) {
+       const cur = items[nm] || 0;
+       let html = `<select class="madde-puan" name="${nm}" data-block="${blok}" data-max="${maxv}" title="Verilecek puan">`;
+       for (let v = 0; v <= maxv; v++) {
+           html += `<option value="${v}"${v === cur ? ' selected' : ''}>${v}</option>`;
+       }
+       html += `</select><span class="madde-max">/ ${maxv}</span>`;
+       return html;
+   } %>
+
+<div class="eval-card">
+    <div class="detail-top">
+        <span class="mono badge"><%= r.no %></span>
+        <% if (tip == 'kaizen') { %><span class="tip-badge kaizen">KAIZEN</span>
+        <% } else { %><span class="tip-badge oneri">ÖNERİ</span><% } %>
+    </div>
+    <h2 class="detail-konu"><%= r.konu %></h2>
+    <p class="blok-not">Her maddenin <strong>sağındaki kutudan</strong> uygun gördüğünüz puanı seçin.
+       Gösterilen sayı o maddenin <strong>en fazla</strong> verebileceğiniz puandır — daha azını da verebilirsiniz.</p>
+
+    <form method="post" action="/degerlendir/puan" id="puanForm"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+        <input type="hidden" name="tip" value="<%= tip %>">
+        <input type="hidden" name="no" value="<%= r.no %>">
+
+        <!-- 1) TEMEL ŞARTLAR -->
+        <fieldset class="puan-blok">
+            <legend>1 · Temel Şartlar <span class="blok-max">(<b class="blok-skor" data-block="temel">0</b> / <%= puan_max.temel %>)</span></legend>
+            <p class="blok-alt-not">İki madde de aynı anda puanlanabilir.</p>
+            <div class="puan-maddeler">
+                <% for (const t of puan_temel) { %>
+                <div class="puan-madde">
+                    <span class="ps-govde"><b><%= t.ad %></b><small><%= t.aciklama %></small></span>
+                    <%- puanSec('p_' + t.key, 'temel', t.puan) %>
+                </div>
+                <% } %>
+            </div>
+        </fieldset>
+
+        <!-- 2) ETKİ ODAĞI -->
+        <fieldset class="puan-blok">
+            <legend>2 · Etki Odağı <span class="blok-max">(<b class="blok-skor" data-block="etki">0</b> / <%= puan_max.etki %>)</span></legend>
+            <p class="blok-alt-not">⚠ Yalnızca <strong>tek bir odaktan tek bir seviyeye</strong> puan verilir. Başka bir maddeye puan girerseniz öncekiler sıfırlanır.</p>
+            <div class="puan-maddeler">
+                <% puan_etki.forEach(function (odak, oi) { %>
+                <div class="odak-grup">
+                    <div class="odak-baslik"><%= odak.odak %></div>
+                    <% odak.seviyeler.forEach(function (s, si) { %>
+                    <div class="puan-madde">
+                        <span class="ps-govde"><b><%= s.ad %></b><small><%= s.aciklama %></small></span>
+                        <%- puanSec('p_etki_' + oi + '_' + si, 'etki', s.puan) %>
+                    </div>
+                    <% }); %>
+                </div>
+                <% }); %>
+            </div>
+        </fieldset>
+
+        <!-- 3) MALİYET VE YATIRIM -->
+        <fieldset class="puan-blok">
+            <legend>3 · Maliyet ve Yatırım <span class="blok-max">(<b class="blok-skor" data-block="maliyet">0</b> / <%= puan_max.maliyet %>)</span></legend>
+            <p class="blok-alt-not">Tek bir maddeye puan verilir.</p>
+            <div class="puan-maddeler">
+                <% puan_maliyet.forEach(function (m, i) { %>
+                <div class="puan-madde">
+                    <span class="ps-govde"><b><%= m.ad %></b><small><%= m.aciklama %></small></span>
+                    <%- puanSec('p_maliyet_' + i, 'maliyet', m.puan) %>
+                </div>
+                <% }); %>
+            </div>
+        </fieldset>
+
+        <!-- 4) YAYGINLAŞTIRMA -->
+        <fieldset class="puan-blok">
+            <legend>4 · Yaygınlaştırma <span class="blok-max">(<b class="blok-skor" data-block="yaygin">0</b> / <%= puan_max.yaygin %>)</span></legend>
+            <p class="blok-alt-not">Tek bir maddeye puan verilir.</p>
+            <div class="puan-maddeler">
+                <% puan_yaygin.forEach(function (y, i) { %>
+                <div class="puan-madde">
+                    <span class="ps-govde"><b><%= y.ad %></b><small><%= y.aciklama %></small></span>
+                    <%- puanSec('p_yaygin_' + i, 'yaygin', y.puan) %>
+                </div>
+                <% }); %>
+            </div>
+        </fieldset>
+
+        <!-- 5) EFOR VE SAHİPLENME -->
+        <fieldset class="puan-blok">
+            <legend>5 · Efor ve Sahiplenme <span class="blok-max">(<b class="blok-skor" data-block="efor">0</b> / <%= puan_max.efor %>)</span></legend>
+            <p class="blok-alt-not">Tek bir maddeye puan verilir.</p>
+            <div class="puan-maddeler">
+                <% puan_efor.forEach(function (e, i) { %>
+                <div class="puan-madde">
+                    <span class="ps-govde"><b><%= e.ad %></b><small><%= e.aciklama %></small></span>
+                    <%- puanSec('p_efor_' + i, 'efor', e.puan) %>
+                </div>
+                <% }); %>
+            </div>
+        </fieldset>
+
+        <!-- Sonuç -->
+        <fieldset class="puan-blok sonuc-blok">
+            <div class="field">
+                <label>Değerlendirme Notu</label>
+                <textarea name="degerlendirme_notu" rows="2"
+                          placeholder="Puanlama gerekçesi / komite notu"><%= r.degerlendirme_notu || '' %></textarea>
+            </div>
+        </fieldset>
+
+        <div class="toplam-bar">
+            <span>TOPLAM SKOR</span>
+            <span class="toplam-deger"><strong id="toplam">0</strong> / 100</span>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn primary">Puanlamayı Kaydet</button>
+            <a class="btn ghost" href="/liste">İptal</a>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    var form = document.getElementById('puanForm');
+    var out = document.getElementById('toplam');
+    var BLOK_MAX = <%- JSON.stringify(puan_max) %>;
+    var TEKLI = { etki: 1, maliyet: 1, yaygin: 1, efor: 1 };
+
+    function deger(el) { return parseInt(el.value, 10) || 0; }
+
+    function hesapla() {
+        var t = 0;
+        Object.keys(BLOK_MAX).forEach(function (k) {
+            var arr = [];
+            form.querySelectorAll('.madde-puan[data-block="' + k + '"]').forEach(function (el) { arr.push(deger(el)); });
+            var ham = TEKLI[k]
+                ? (arr.length ? Math.max.apply(null, arr) : 0)
+                : arr.reduce(function (a, b) { return a + b; }, 0);
+            var v = Math.min(ham, BLOK_MAX[k]);
+            t += v;
+            var lbl = form.querySelector('.blok-skor[data-block="' + k + '"]');
+            if (lbl) { lbl.textContent = v; lbl.classList.toggle('asildi', ham > BLOK_MAX[k]); }
+        });
+        out.textContent = t;
+        out.parentElement.classList.toggle('tam', t >= 80);
+    }
+
+    form.querySelectorAll('.madde-puan').forEach(function (el) {
+        el.addEventListener('change', function () {
+            var b = el.dataset.block;
+            if (TEKLI[b] && deger(el) > 0) {
+                form.querySelectorAll('.madde-puan[data-block="' + b + '"]').forEach(function (o) {
+                    if (o !== el) { o.value = '0'; o.closest('.puan-madde').classList.remove('secili'); }
+                });
+            }
+            el.closest('.puan-madde').classList.toggle('secili', deger(el) > 0);
+            hesapla();
+        });
+        el.closest('.puan-madde').classList.toggle('secili', deger(el) > 0);
+    });
+    hesapla();
+})();
+</script>
+<%- include('partials/footer') %>

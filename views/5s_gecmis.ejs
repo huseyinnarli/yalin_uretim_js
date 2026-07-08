@@ -1,0 +1,27 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">📁 5S — Geçmiş Denetimler</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/5s">← 5S</a>
+    </div>
+</div>
+
+<% if (turlar.length) { %>
+<% for (const t of turlar) { %>
+<div class="ay-blok">
+    <h2 class="bolum-baslik">
+        <% if (t.ad) { %><%= t.ad %> — <% } %><%= trdate(t.tarih) %>
+        <% if (!t.tamam) { %><span class="durum-badge bekle">Devam ediyor</span><% } %>
+    </h2>
+    <% if (t.siralama.length) { %>
+    <%- include('partials/odul_siralama', { siralama: t.siralama, geri: '/5s/gecmis', sil_uyari: '' }) %>
+    <% } else { %>
+    <p class="bos-not">Bu turda henüz puanlanmış denetim yok.</p>
+    <% } %>
+</div>
+<% } %>
+<% } else { %>
+<div class="empty">Henüz denetim yapılmamış.</div>
+<% } %>
+<%- include('partials/footer') %>

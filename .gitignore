@@ -1,0 +1,9 @@
+# Bağımlılıklar
+node_modules/
+
+# Canlı veri — veritabanı, yüklenen görseller, otomatik yedekler
+data/
+
+# Günlükler / geçici
+*.log
+npm-debug.log*

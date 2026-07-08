@@ -1,0 +1,79 @@
+<%- include('partials/header') %>
+<% let fotoSayisi = 0;
+   for (const fl of Object.values(d.fotolar || {})) fotoSayisi += fl.length; %>
+
+<div class="list-head">
+    <h1 class="page-title">📋 5S Denetim Formu</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="<%= geri %>">← Geri</a>
+        <% if (b) { %><a class="btn ghost" href="/5s/bolum/<%= b.id %>">🏭 Bölüm</a><% } %>
+        <% if (admin) { %>
+        <% if (fotoSayisi) { %>
+        <a class="btn primary" href="/5s/denetim/<%= d.id %>/fotolar.zip">⬇ Tüm Fotoğraflar (<%= fotoSayisi %>)</a>
+        <% } %>
+        <a class="btn ghost" href="/5s/denetim/<%= d.id %>/excel">⬇ Form Excel</a>
+        <form method="post" action="/5s/denetim/<%= d.id %>/sil" style="display:inline"
+              onsubmit="return confirm('Bu denetim kalıcı olarak silinsin mi? Dağıtılmış 5S ödül puanı varsa geri alınır.');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+            <input type="hidden" name="geri" value="/5s">
+            <button type="submit" class="btn ghost del">🗑 Denetimi Sil</button>
+        </form>
+        <% } %>
+    </div>
+</div>
+
+<div class="detail-card">
+    <div class="detail-grid">
+        <% if (d.tur_adi) { %><div><span class="dl">Denetim</span><span class="dv"><%= d.tur_adi %></span></div><% } %>
+        <div><span class="dl">Bölüm</span><span class="dv"><%= b ? b.ad : '—' %></span></div>
+        <div><span class="dl">Ekip Lideri</span><span class="dv"><%= (b && b.sorumlu) ? b.sorumlu : '—' %></span></div>
+        <div><span class="dl">Tarih</span><span class="dv"><%= trdate(gosterilen_tarih || d.tarih) %></span></div>
+        <div><span class="dl">Skor</span><span class="dv"><span class="skor-rozet <%= d.puan >= 80 ? 'iyi' : (d.puan >= 60 ? 'orta' : 'dusuk') %>"><%= d.puan %>/100</span></span></div>
+        <div><span class="dl">Denetmen</span><span class="dv"><%= d.denetmen || '—' %><% if (d.planlanan_denetmen && d.planlanan_denetmen != d.denetmen) { %> <small>(planlanan: <%= d.planlanan_denetmen %>)</small><% } %></span></div>
+        <% if (d.misafir_denetmen) { %><div><span class="dl">Misafir Denetmen</span><span class="dv">🎫 <%= d.misafir_denetmen %></span></div><% } %>
+        <div><span class="dl">Kayıt</span><span class="dv"><%= d.kayit_zamani %></span></div>
+    </div>
+
+    <% for (const s of bess) { %>
+    <fieldset class="puan-blok">
+        <legend><%= s.ad %></legend>
+        <% for (const kr of s.kriterler) { const kp = kriter_puanlari[kr.k] || 0; %>
+        <div class="puan-satir denetim-sonuc <%= kp == kriter_puan ? 'uygun' : (kp == 0 ? 'uygunsuz' : 'kismi') %>">
+            <span class="durum-ikon"><%= kp %></span>
+            <span class="ps-acik"><%= kr.m %></span>
+            <span class="ps-puan"><%= kp %>/<%= kriter_puan %></span>
+        </div>
+        <% const krfotolar = (d.fotolar || {})[kr.k] || []; %>
+        <% if (krfotolar.length) { %>
+        <div class="foto-satir goster">
+            <% for (const fn of krfotolar) { %>
+            <a href="/5s/gorsel/<%= encodeURIComponent(fn) %>" target="_blank">
+                <img loading="lazy" class="foto-mini" src="/5s/gorsel/<%= encodeURIComponent(fn) %>" alt="foto">
+            </a>
+            <% } %>
+        </div>
+        <% } %>
+        <% const kracik = (d.aciklamalar || {})[kr.k]; %>
+        <% if (kracik) { %>
+        <div class="kriter-aciklama-goster">📝 <%= kracik %></div>
+        <% } %>
+        <% for (const a of (aksiyon_map[kr.k] || [])) { %>
+        <div class="kriter-aksiyon-goster <%= a.durum %>">
+            <div class="ka-ust">
+                <span class="ka-rozet <%= a.durum %>">⚑ Aksiyon <%= a.durum == 'kapali' ? '✔ Kapalı' : '● Açık' %></span>
+                <span class="ka-metin"><%= a.aksiyon %></span>
+            </div>
+            <div class="ka-meta">
+                <% if (a.sorumlu) { %><span>👤 Sorumlu: <%= a.sorumlu %></span><% } %>
+                <% if (a.termin) { %><span>⏳ Termin: <%= trdate(a.termin) %></span><% } %>
+            </div>
+        </div>
+        <% } %>
+        <% } %>
+    </fieldset>
+    <% } %>
+
+    <% if (d.not) { %>
+    <div class="detail-block"><h3>Denetim Notu</h3><p><%= d.not %></p></div>
+    <% } %>
+</div>
+<%- include('partials/footer') %>

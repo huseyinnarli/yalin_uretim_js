@@ -1,0 +1,52 @@
+<%# Tek aksiyon kartı — locals: a %>
+<div class="aksiyon-kart <%= a.durum == 'kapali' ? 'kapali' : 'acik' %>" id="a-<%= a.id %>">
+    <div class="ak-ust">
+        <span class="ak-durum-rozet <%= a.durum %>"><%= a.durum == 'kapali' ? '✔ Kapalı' : '● Açık' %></span>
+        <span class="ak-kriter"><%= a.kriter_m %></span>
+        <% if (admin) { %>
+        <form method="post" action="/5s/aksiyon/<%= a.id %>/sil" style="display:inline"
+              onsubmit="return confirm('Bu aksiyon silinsin mi?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+            <button type="submit" class="btn-mini del">Sil</button>
+        </form>
+        <% } %>
+    </div>
+    <p class="ak-aksiyon"><%= a.aksiyon %></p>
+    <div class="ak-meta">
+        <% if (a.sorumlu) { %><span>👤 <%= a.sorumlu %></span><% } %>
+        <% if (a._atanan) { %><span>🎯 Kapatabilir: <%= a._atanan %></span><% } %>
+        <% if (a.termin) { %><span>⏳ Termin: <%= trdate(a.termin) %></span><% } %>
+        <span class="ak-olusturma">Oluşturma: <%= a.olusturma_zamani %></span>
+    </div>
+
+    <% if (a.durum == 'kapali') { %>
+    <div class="ak-kapatma">
+        <strong>✔ Kapatıldı<% if (a.kapatma && a.kapatma.kapatan) { %> — <%= a.kapatma.kapatan %><% } %>
+            <% if (a.kapatma) { %>· <%= a.kapatma.kapatma_zamani %><% } %></strong>
+        <% if (a.kapatma && a.kapatma.aciklama) { %><p><%= a.kapatma.aciklama %></p><% } %>
+        <% if (a.kapatma && a.kapatma.fotolar && a.kapatma.fotolar.length) { %>
+        <div class="ak-fotolar">
+            <% for (const fn of a.kapatma.fotolar) { %>
+            <a href="/5s/aksiyon-gorsel/<%= encodeURIComponent(fn) %>" target="_blank">
+                <img loading="lazy" class="foto-mini" src="/5s/aksiyon-gorsel/<%= encodeURIComponent(fn) %>" alt="kapatma foto">
+            </a>
+            <% } %>
+        </div>
+        <% } %>
+    </div>
+    <% } else if (a._kapatabilir) { %>
+    <details class="ak-kapat-ac">
+        <summary>✔ Aksiyonu Kapat</summary>
+        <form method="post" action="/5s/aksiyon/<%= a.id %>/kapat"
+              enctype="multipart/form-data" class="ak-kapat-form"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+            <textarea name="aciklama" rows="2" required
+                      placeholder="Yapılan iş / açıklama — zorunlu"></textarea>
+            <label class="file-label">📷 Fotoğraf — zorunlu (en fazla 5)</label>
+            <input type="file" name="foto" accept="image/*" multiple required>
+            <button type="submit" class="btn primary">Aksiyonu Kapat</button>
+        </form>
+    </details>
+    <% } else { %>
+    <p class="ak-kilitli">🔒 Bu aksiyonu <strong><%= a._atanan || 'bölüm ekip lideri' %></strong> kapatabilir
+        (o kişi denetmen olarak giriş yapmalı).</p>
+    <% } %>
+</div>

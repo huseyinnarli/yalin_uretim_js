@@ -1,0 +1,95 @@
+<%- include('partials/header') %>
+<h1 class="page-title">🔧 <%= duzenle ? "Kaizen Düzenle" : "Yeni Kaizen Formu" %></h1>
+<% if (duzenle) { %>
+<p class="subtitle">Kaizen No: <strong class="mono"><%= kayit.no %></strong> (numara değişmez).</p>
+<% } else { %>
+<p class="subtitle">Kaizen numarası kayıt sırasında otomatik atanır (örn. ÖSKFR2606-01).</p>
+<% } %>
+
+<form class="form-card" method="post" action="<%= action_url %>" enctype="multipart/form-data" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <div class="row">
+        <div class="field small">
+            <label>Başlangıç Tarihi *</label>
+            <input type="date" name="baslangic" value="<%= kayit.baslangic || bugun %>" required>
+        </div>
+        <div class="field small">
+            <label>Bitiş Tarihi</label>
+            <input type="date" name="bitis" value="<%= kayit.bitis || '' %>">
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="field">
+            <label>Kaizen Konusu *</label>
+            <input type="text" name="konu" required value="<%= kayit.konu || '' %>" placeholder="Örn. Montaj hattı setup süresinin kısaltılması">
+        </div>
+        <div class="field small" style="max-width:260px">
+            <label>Yapıldığı Bölüm</label>
+            <input type="text" name="bolum" value="<%= kayit.bolum || '' %>" placeholder="Örn. Montaj Hattı 2">
+        </div>
+    </div>
+
+    <fieldset class="ekip">
+        <legend>Ekip (en fazla 3 kişi)</legend>
+        <div class="row">
+            <div class="field">
+                <label>Kaizen Lideri (Ad Soyad) * <small>(puanın %50'si)</small></label>
+                <input type="text" name="lider" required value="<%= kayit.lider || '' %>" placeholder="Örn. Ahmet Yılmaz">
+            </div>
+            <div class="field">
+                <label>Üye 2 (Ad Soyad) <small>(puanın %25'i)</small></label>
+                <input type="text" name="uye1" value="<%= (kayit.uyeler && kayit.uyeler[0]) || '' %>" placeholder="Opsiyonel">
+            </div>
+            <div class="field">
+                <label>Üye 3 (Ad Soyad) <small>(puanın %25'i)</small></label>
+                <input type="text" name="uye2" value="<%= (kayit.uyeler && kayit.uyeler[1]) || '' %>" placeholder="Opsiyonel">
+            </div>
+        </div>
+    </fieldset>
+
+    <fieldset class="kazanc">
+        <legend>Kazanç Başlıkları (bir veya birkaçını seçin)</legend>
+        <div class="checkbox-grid">
+            <% for (const k of kazanc_basliklari) { %>
+            <label class="chk">
+                <input type="checkbox" name="kazanclar" value="<%= k %>"
+                    <%= (kayit.kazanclar && kayit.kazanclar.includes(k)) ? 'checked' : '' %>>
+                <span><%= k %></span>
+            </label>
+            <% } %>
+        </div>
+    </fieldset>
+
+    <div class="row prepost">
+        <div class="field">
+            <label>Önceki Durum (Açıklama) *</label>
+            <textarea name="onceki" rows="4" required placeholder="İyileştirme öncesi durumu açıklayın"><%= kayit.onceki || '' %></textarea>
+            <label class="file-label">Önceki Durum Görseli</label>
+            <% if (kayit.onceki_gorsel) { %>
+            <div class="mevcut-gorsel">
+                <img loading="lazy" src="/kaizen/gorsel/<%= encodeURIComponent(kayit.onceki_gorsel) %>" alt="mevcut önce">
+                <span>Mevcut görsel. Değiştirmek için yeni dosya seçin.</span>
+            </div>
+            <% } %>
+            <input type="file" name="onceki_gorsel" accept="image/*">
+        </div>
+        <div class="field">
+            <label>Sonraki Durum (Açıklama) *</label>
+            <textarea name="sonraki" rows="4" required placeholder="İyileştirme sonrası durumu açıklayın"><%= kayit.sonraki || '' %></textarea>
+            <label class="file-label">Sonraki Durum Görseli</label>
+            <% if (kayit.sonraki_gorsel) { %>
+            <div class="mevcut-gorsel">
+                <img loading="lazy" src="/kaizen/gorsel/<%= encodeURIComponent(kayit.sonraki_gorsel) %>" alt="mevcut sonra">
+                <span>Mevcut görsel. Değiştirmek için yeni dosya seçin.</span>
+            </div>
+            <% } %>
+            <input type="file" name="sonraki_gorsel" accept="image/*">
+        </div>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn primary"><%= duzenle ? "Değişiklikleri Kaydet" : "Kaizeni Kaydet" %></button>
+        <a class="btn ghost" href="<%= duzenle ? '/liste' : '/' %>">İptal</a>
+    </div>
+</form>
+<%- include('partials/footer') %>

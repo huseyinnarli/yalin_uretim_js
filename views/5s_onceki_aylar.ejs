@@ -1,0 +1,31 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">📁 5S — Denetim Listesi (Önceki Aylar)</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/5s">← 5S</a>
+    </div>
+</div>
+
+<% if (gecmis.length) { %>
+<% for (const ay of gecmis) { %>
+<div class="ay-blok">
+    <h2 class="bolum-baslik">Denetim Turu: <%= trdate(ay.tarih) %></h2>
+    <% for (const k of ay.kazananlar) { %>
+    <details class="kazanan-detay">
+        <summary>
+            <span class="os-sira"><% if (k.sira == 1) { %>🥇<% } else if (k.sira == 2) { %>🥈<% } else if (k.sira == 3) { %>🥉<% } else { %><%= k.sira %>.<% } %></span>
+            <span class="os-ad"><%= k.bolum_ad %></span>
+            <span class="os-odul">+<%= k.puan %> puan / kişi</span>
+        </summary>
+        <div class="kazanan-kisiler">
+            <% for (const ad of k.kisiler) { %><span class="kisi-cip"><%= ad %></span><% } %>
+        </div>
+    </details>
+    <% } %>
+</div>
+<% } %>
+<% } else { %>
+<div class="empty">Henüz arşive geçmiş (önceki) tur yok. İlk turun sonuçları "güncel" olarak 5S sayfasında görünür.</div>
+<% } %>
+<%- include('partials/footer') %>

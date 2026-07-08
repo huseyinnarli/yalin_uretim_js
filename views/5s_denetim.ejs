@@ -1,0 +1,160 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">📋 5S Denetim — <%= b.ad %></h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/5s#plan">← Geri</a>
+        <a class="btn ghost" href="/5s/bolum/<%= b.id %>">🏭 Bölüm</a>
+    </div>
+</div>
+
+<p class="subtitle">
+    <% if (bekleyen) { %>Denetleme tarihi: <strong><%= trdate(bekleyen.tarih) %></strong>.<% } %>
+    Her madde varsayılan <strong>uygun</strong>dur (puan 100). Uygun olmayanı işareti kaldırın — her uygunsuzluk −<%= kriter_puan %> puan.
+</p>
+
+<form method="post" action="/5s/bolum/<%= b.id %>/denetim" enctype="multipart/form-data" id="denetimForm"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <div class="row">
+        <div class="field small" style="max-width:240px">
+            <label>Ekip Lideri</label>
+            <input type="text" value="<%= b.sorumlu || '—' %>" readonly tabindex="-1" class="otomatik-ad">
+        </div>
+        <% if (bekleyen && bekleyen.misafir_denetmen) { %>
+        <div class="field small" style="max-width:240px">
+            <label>Misafir Denetmen</label>
+            <input type="text" value="🎫 <%= bekleyen.misafir_denetmen %>" readonly tabindex="-1" class="otomatik-ad">
+        </div>
+        <% } %>
+        <% if (!bekleyen) { %>
+        <div class="field small" style="max-width:200px">
+            <label>Denetim Tarihi</label>
+            <input type="date" name="tarih" value="<%= bugun %>">
+        </div>
+        <% } %>
+        <div class="field" style="max-width:280px">
+            <label>Denetmen <% if (bekleyen && bekleyen.planlanan_denetmen) { %><small>(planlanan: <%= bekleyen.planlanan_denetmen %>)</small><% } %></label>
+            <% if (denetmen_adi) { %>
+            <input type="text" value="<%= denetmen_adi %>" readonly tabindex="-1" class="otomatik-ad"
+                   title="Denetmen adı oturumunuzdan otomatik alınır">
+            <% } else { %>
+            <input type="text" name="denetmen"
+                   value="<%= bekleyen ? (bekleyen.denetmen || bekleyen.planlanan_denetmen) : '' %>"
+                   placeholder="Denetimi yapan kişi">
+            <% } %>
+        </div>
+    </div>
+
+    <% const mevcut = (bekleyen && bekleyen.fotolar) || {};
+       const aciklamalar = (bekleyen && bekleyen.aciklamalar) || {}; %>
+    <% for (const s of bess) { %>
+    <fieldset class="puan-blok">
+        <legend><%= s.ad %></legend>
+        <% for (const kr of s.kriterler) { const varolan = mevcut[kr.k] || []; %>
+        <div class="bess-kriter">
+            <div class="kriter-satir">
+                <select class="bess-puan" name="puan_<%= kr.k %>" title="Puan">
+                    <% for (let v = 0; v <= kriter_puan; v++) { %>
+                    <option value="<%= v %>" <%= v == kriter_puan ? 'selected' : '' %>><%= v %></option>
+                    <% } %>
+                </select>
+                <span class="ps-acik"><%= kr.m %></span>
+                <span class="ps-puan">/ <%= kriter_puan %></span>
+            </div>
+            <div class="kriter-aciklama-satir">
+                <textarea class="kriter-aciklama" name="aciklama_<%= kr.k %>" rows="2"
+                          placeholder="Açıklama / bulgu..."><%= aciklamalar[kr.k] || '' %></textarea>
+                <button type="button" class="btn-mini aksiyon-ata-btn" data-k="<%= kr.k %>">⚑ Aksiyon Ata</button>
+            </div>
+            <% for (const slot of [1, 2]) { %>
+            <div class="aksiyon-alan" id="aksiyon-<%= kr.k %>-<%= slot %>" hidden>
+                <span class="aksiyon-slot-no"><%= slot %>.</span>
+                <div class="aksiyon-grid">
+                    <input type="text" name="aksiyon_<%= kr.k %>_<%= slot %>" placeholder="Aksiyon (yapılacak iş)">
+                    <input type="text" name="aksiyon_sorumlu_<%= kr.k %>_<%= slot %>"
+                           value="<%= b.sorumlu %>" placeholder="Sorumlu kişi (varsayılan: ekip lideri)">
+                    <input type="date" name="aksiyon_termin_<%= kr.k %>_<%= slot %>" min="<%= denetim_gunu %>"
+                           title="Termin (denetim tarihinden sonra olmalı)">
+                </div>
+                <button type="button" class="btn-mini del aksiyon-kaldir" data-k="<%= kr.k %>" data-slot="<%= slot %>"
+                        title="Bu aksiyonu kaldır">✕</button>
+            </div>
+            <% } %>
+            <div class="kriter-foto">
+                <span class="foto-label">📷 Fotoğraf (en fazla 3)</span>
+                <div class="foto-butonlar">
+                    <% for (const fn of varolan) { %>
+                    <img loading="lazy" class="foto-mini" src="/5s/gorsel/<%= encodeURIComponent(fn) %>" alt="foto">
+                    <% } %>
+                    <% for (let i = 0; i < 3 - varolan.length; i++) { %>
+                    <input type="file" name="foto_<%= kr.k %>" accept="image/*" class="foto-input">
+                    <% } %>
+                </div>
+            </div>
+        </div>
+        <% } %>
+    </fieldset>
+    <% } %>
+
+    <fieldset class="puan-blok sonuc-blok">
+        <div class="field">
+            <label>Denetim Notu / Bulgular</label>
+            <textarea name="not" rows="3" placeholder="Tespitler, açılması gereken aksiyonlar..."></textarea>
+        </div>
+    </fieldset>
+
+    <div class="toplam-bar">
+        <span>5S SKORU</span>
+        <span class="toplam-deger"><strong id="skor">100</strong> / 100</span>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn primary">Denetimi Kaydet</button>
+        <a class="btn ghost" href="/5s/bolum/<%= b.id %>">İptal</a>
+    </div>
+</form>
+
+<script>
+(function () {
+    var form = document.getElementById('denetimForm');
+    var out = document.getElementById('skor');
+    function hesapla() {
+        var skor = 0;
+        form.querySelectorAll('.bess-puan').forEach(function (el) { skor += parseInt(el.value, 10) || 0; });
+        out.textContent = skor;
+        out.parentElement.classList.toggle('tam', skor >= 80);
+    }
+    form.querySelectorAll('.bess-puan').forEach(function (el) { el.addEventListener('change', hesapla); });
+    hesapla();
+
+    function slotlar(k) {
+        return [document.getElementById('aksiyon-' + k + '-1'),
+                document.getElementById('aksiyon-' + k + '-2')];
+    }
+    function butonGuncelle(k) {
+        var btn = form.querySelector('.aksiyon-ata-btn[data-k="' + k + '"]');
+        if (!btn) return;
+        var acikSayisi = slotlar(k).filter(function (s) { return s && !s.hasAttribute('hidden'); }).length;
+        btn.disabled = acikSayisi >= 2;
+        btn.textContent = acikSayisi === 0 ? '⚑ Aksiyon Ata'
+                        : (acikSayisi === 1 ? '⚑ 2. Aksiyon Ekle' : '⚑ 2 aksiyon eklendi');
+        btn.classList.toggle('aktif', acikSayisi > 0);
+    }
+    form.querySelectorAll('.aksiyon-ata-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var bos = slotlar(btn.dataset.k).find(function (s) { return s && s.hasAttribute('hidden'); });
+            if (bos) bos.removeAttribute('hidden');
+            butonGuncelle(btn.dataset.k);
+        });
+    });
+    form.querySelectorAll('.aksiyon-kaldir').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var alan = document.getElementById('aksiyon-' + btn.dataset.k + '-' + btn.dataset.slot);
+            if (!alan) return;
+            alan.querySelectorAll('input').forEach(function (i) { i.value = ''; });
+            alan.setAttribute('hidden', '');
+            butonGuncelle(btn.dataset.k);
+        });
+    });
+})();
+</script>
+<%- include('partials/footer') %>

@@ -1,0 +1,70 @@
+<%- include('partials/header') %>
+<h1 class="page-title">💡 <%= duzenle ? "Öneri Düzenle" : "Yeni Öneri Formu" %></h1>
+<% if (duzenle) { %>
+<p class="subtitle">Öneri No: <strong class="mono"><%= kayit.no %></strong> (numara değişmez).</p>
+<% } else { %>
+<p class="subtitle">Öneri numarası kayıt sırasında otomatik atanır (örn. ÖNFR2606-01).</p>
+<% } %>
+
+<form class="form-card" method="post" action="<%= action_url %>" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <div class="row">
+        <div class="field">
+            <label>Öneri Sahibi (Ad Soyad) *</label>
+            <input type="text" name="sahibi" required value="<%= kayit.sahibi || '' %>" placeholder="Örn. Ahmet Yılmaz">
+        </div>
+        <div class="field">
+            <label>Görevi *</label>
+            <input type="text" name="gorevi" required value="<%= kayit.gorevi || '' %>" placeholder="Örn. Üretim Operatörü">
+        </div>
+        <div class="field small">
+            <label>Tarih *</label>
+            <input type="date" name="tarih" value="<%= kayit.tarih || bugun %>" required>
+        </div>
+    </div>
+
+    <div class="field">
+        <label>Öneri / Bildirim Konusu (Kısaca) *</label>
+        <input type="text" name="konu" required value="<%= kayit.konu || '' %>" placeholder="Konuyu tek cümleyle özetleyin">
+    </div>
+
+    <div class="field">
+        <label>Detay Açıklama *</label>
+        <textarea name="detay" rows="4" required placeholder="Mevcut durumu / problemi detaylıca açıklayın"><%= kayit.detay || '' %></textarea>
+    </div>
+
+    <div class="field">
+        <label>Çözüm Önerisi</label>
+        <textarea name="cozum" rows="4" placeholder="Önerdiğiniz çözümü açıklayın"><%= kayit.cozum || '' %></textarea>
+    </div>
+
+    <fieldset class="catkilar">
+        <legend>Önerinin Sağlayacağı Katkılar</legend>
+        <div class="field">
+            <label>1 · Kaliteye ne sağlar?</label>
+            <textarea name="kalite" rows="2"><%= kayit.kalite || '' %></textarea>
+        </div>
+        <div class="field">
+            <label>2 · Verimliliğe ne sağlar?</label>
+            <textarea name="verimlilik" rows="2"><%= kayit.verimlilik || '' %></textarea>
+        </div>
+        <div class="field">
+            <label>3 · İSG'ye (İş Sağlığı &amp; Güvenliği) ne sağlar?</label>
+            <textarea name="isg" rows="2"><%= kayit.isg || '' %></textarea>
+        </div>
+        <div class="field">
+            <label>4 · Maliyet konusunda ne sağlar?</label>
+            <textarea name="maliyet" rows="2"><%= kayit.maliyet || '' %></textarea>
+        </div>
+    </fieldset>
+
+    <div class="field">
+        <label>Ek Açıklama</label>
+        <textarea name="ek" rows="3" placeholder="Eklemek istediğiniz diğer bilgiler"><%= kayit.ek || '' %></textarea>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn primary"><%= duzenle ? "Değişiklikleri Kaydet" : "Öneriyi Kaydet" %></button>
+        <a class="btn ghost" href="<%= duzenle ? '/liste' : '/' %>">İptal</a>
+    </div>
+</form>
+<%- include('partials/footer') %>

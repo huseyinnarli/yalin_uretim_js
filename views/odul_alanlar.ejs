@@ -1,0 +1,49 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">🎁 Ödül Alanlar</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/puan-durumu">← Puan Listesi</a>
+        <% if (admin) { %>
+        <a class="btn ghost" href="/odul-alanlar/excel">⬇ Excel İndir</a>
+        <% } %>
+    </div>
+</div>
+
+<% if (ozet.length) { %>
+<h2 class="bolum-baslik">Özet</h2>
+<div class="odul-ozet">
+    <% for (const [ad, adet] of ozet) { %>
+    <span class="odul-ozet-kart"><%= ad %> <b>×<%= adet %></b></span>
+    <% } %>
+</div>
+
+<h2 class="bolum-baslik">Ödül Geçmişi</h2>
+<div class="table-wrap">
+<table class="data-table">
+    <thead><tr><th>Personel</th><th>Tarih</th><th>Düşülen Puan</th><% if (admin) { %><th>İşlem</th><% } %></tr></thead>
+    <tbody>
+        <% for (const r of arsiv) { %>
+        <tr>
+            <td data-label="Personel"><%= r.ad %></td>
+            <td data-label="Tarih"><%= trdate(r.tarih) %></td>
+            <td data-label="Düşülen Puan">−<%= r.puan %></td>
+            <% if (admin) { %>
+            <td data-label="İşlem" class="nowrap">
+                <form method="post" action="/odul-alanlar/sil" style="display:inline"
+                      onsubmit="return confirm('<%= r.ad %> ödül kaydı silinecek — <%= r.puan %> puan net puanına GERİ eklenir. Devam?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                    <input type="hidden" name="ad" value="<%= r.ad %>">
+                    <input type="hidden" name="zaman" value="<%= r.zaman %>">
+                    <button type="submit" class="btn-mini del">Sil</button>
+                </form>
+            </td>
+            <% } %>
+        </tr>
+        <% } %>
+    </tbody>
+</table>
+</div>
+<% } else { %>
+<div class="empty">Henüz ödül alan kimse yok. Bir personelin net puanı eşiğe ulaşınca Puan Listesi'nden ödül verebilirsiniz.</div>
+<% } %>
+<%- include('partials/footer') %>

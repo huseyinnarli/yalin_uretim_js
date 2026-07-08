@@ -1,0 +1,84 @@
+// Web yardımcıları: flash mesajları, CSRF, hız limiti, yetki middleware'leri.
+const crypto = require("crypto");
+const S = require("./sabitler");
+const C = require("./cekirdek");
+
+// --- Flash (oturumda taşınır, bir kez gösterilir) ---
+function flash(req, kategori, mesaj) {
+  if (!req.session.flash) req.session.flash = [];
+  req.session.flash.push([kategori, mesaj]);
+}
+
+// --- IP hız limiti (bellek içi kayan pencere) ---
+const _hizGecmisi = new Map(); // "kova|ip" -> [zaman...]
+function hizLimitAsildi(req, kova, limit, pencereSn) {
+  const anahtar = `${kova}|${req.ip || "?"}`;
+  const simdi = Date.now() / 1000;
+  const eski = (_hizGecmisi.get(anahtar) || []).filter((t) => simdi - t < pencereSn);
+  if (eski.length >= limit) { _hizGecmisi.set(anahtar, eski); return true; }
+  eski.push(simdi);
+  _hizGecmisi.set(anahtar, eski);
+  return false;
+}
+
+// --- Form alanı oku + kırp + uzunluk sınırı ---
+function alan(req, ad) {
+  return String((req.body || {})[ad] || "").trim().slice(0, S.ALAN_MAX);
+}
+
+// --- Ortak locals + flash tüketimi + CSRF üretimi ---
+function ortakLocals(req, res, next) {
+  if (!req.session.csrf) req.session.csrf = crypto.randomBytes(16).toString("hex");
+  const d = C.aktifDenetmen(req.session);
+  res.locals.session = req.session;
+  res.locals.admin = Boolean(req.session.admin);
+  res.locals.denetmen_adi = d ? d.ad : null;
+  res.locals.csrf_token = req.session.csrf;
+  res.locals.marka_adi = S.MARKA_ADI;
+  res.locals.marka_logo = C.logoBul();
+  res.locals.trdate = C.trdate;
+  res.locals.puanfmt = C.puanfmt;
+  res.locals.mesajlar = req.session.flash || [];
+  delete req.session.flash;
+  next();
+}
+
+// --- CSRF doğrulama (tüm POST'larda) ---
+function csrfDogrula(req, res, next) {
+  if (req.method !== "POST") return next();
+  const token = (req.body || {}).csrf_token;
+  if (!token || token !== req.session.csrf) {
+    return res.status(400).send("CSRF doğrulaması başarısız — sayfayı yenileyip tekrar deneyin.");
+  }
+  next();
+}
+
+// --- Güvenlik başlıkları ---
+function guvenlikBasliklari(req, res, next) {
+  res.set("X-Content-Type-Options", "nosniff");
+  res.set("X-Frame-Options", "DENY");
+  res.set("Referrer-Policy", "same-origin");
+  res.set("Content-Security-Policy",
+    "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; " +
+    "script-src 'self' 'unsafe-inline'; frame-ancestors 'none'");
+  next();
+}
+
+// --- Yetki ---
+function adminRequired(req, res, next) {
+  if (!req.session.admin) {
+    return res.redirect("/yonetici/giris?next=" + encodeURIComponent(req.originalUrl));
+  }
+  next();
+}
+function denetciRequired(req, res, next) {
+  if (!req.session.admin && !C.aktifDenetmen(req.session)) {
+    return res.redirect("/yonetici/giris?next=" + encodeURIComponent(req.originalUrl));
+  }
+  next();
+}
+
+module.exports = {
+  flash, hizLimitAsildi, alan, ortakLocals, csrfDogrula,
+  guvenlikBasliklari, adminRequired, denetciRequired,
+};

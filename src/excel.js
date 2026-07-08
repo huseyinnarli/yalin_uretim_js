@@ -1,0 +1,236 @@
+// Excel rapor üretimi (exceljs) — talep anında veritabanından üretilir.
+const path = require("path");
+const fs = require("fs");
+const ExcelJS = require("exceljs");
+const S = require("./sabitler");
+const P = require("./puanlama");
+const C = require("./cekirdek");
+const { db, oneriRow, kaizenRow } = require("./db");
+
+const HEADER_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2E5C8A" } };
+const HEADER_FONT = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+const THIN = { style: "thin", color: { argb: "FFBBBBBB" } };
+const BORDER = { left: THIN, right: THIN, top: THIN, bottom: THIN };
+const WRAP = { wrapText: true, vertical: "top", horizontal: "left" };
+const CENTER = { horizontal: "center", vertical: "middle", wrapText: true };
+
+function styleHeader(ws, ncol) {
+  const row = ws.getRow(1);
+  for (let c = 1; c <= ncol; c++) {
+    const cell = row.getCell(c);
+    cell.fill = HEADER_FILL;
+    cell.font = HEADER_FONT;
+    cell.alignment = CENTER;
+    cell.border = BORDER;
+  }
+  row.height = 28;
+  ws.views = [{ state: "frozen", ySplit: 1 }];
+}
+
+function govdeStil(ws, ncol, hizala = WRAP) {
+  ws.eachRow((row, i) => {
+    if (i === 1) return;
+    for (let c = 1; c <= ncol; c++) {
+      row.getCell(c).alignment = hizala;
+      row.getCell(c).border = BORDER;
+    }
+  });
+}
+
+async function generateOneriExcel() {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Öneriler");
+  const headers = ["Öneri No", "Tarih", "Öneri Sahibi", "Görevi", "Konu (Kısa)",
+    "Detay Açıklama", "Çözüm Önerisi", "Kaliteye Katkısı", "Verimliliğe Katkısı",
+    "İSG'ye Katkısı", "Maliyete Katkısı", "Ek Açıklama", "Durum", "Puan",
+    "Puan Detayı", "Kayıt Zamanı"];
+  ws.addRow(headers);
+  styleHeader(ws, headers.length);
+  [16, 12, 22, 18, 30, 40, 40, 28, 28, 28, 28, 30, 16, 8, 50, 18]
+    .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  for (const r of db.prepare("SELECT * FROM oneriler").all().map(oneriRow)) {
+    ws.addRow([r.no, r.tarih, r.sahibi, r.gorevi, r.konu, r.detay, r.cozum,
+      r.kalite, r.verimlilik, r.isg, r.maliyet, r.ek,
+      r.durum || S.VARSAYILAN_DURUM, r.puan ?? "",
+      P.puanlamaOzet(r.puanlama), r.kayit_zamani]);
+  }
+  govdeStil(ws, headers.length);
+  return wb.xlsx.writeBuffer();
+}
+
+async function generateKaizenExcel() {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Kaizenler");
+  const headers = ["Kaizen No", "Başlangıç", "Bitiş", "Kaizen Konusu", "Bölüm",
+    "Sorumlular", "Kazançlar", "Önceki Durum", "Sonraki Durum",
+    "Önceki Görsel", "Sonraki Görsel", "Durum", "Puan", "Puan Detayı", "Kayıt Zamanı"];
+  ws.addRow(headers);
+  styleHeader(ws, headers.length);
+  [18, 12, 12, 28, 20, 22, 30, 38, 38, 22, 22, 16, 8, 50, 18]
+    .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  for (const r of db.prepare("SELECT * FROM kaizenler").all().map(kaizenRow)) {
+    ws.addRow([r.no, r.baslangic, r.bitis, r.konu, r.bolum, r.sorumlular,
+      (r.kazanclar || []).join(", "), r.onceki, r.sonraki,
+      r.onceki_gorsel || "", r.sonraki_gorsel || "",
+      r.durum || S.VARSAYILAN_DURUM, r.puan ?? "",
+      P.puanlamaOzet(r.puanlama), r.kayit_zamani]);
+    const rowIdx = ws.rowCount;
+    let hasImg = false;
+    for (const [fname, col] of [[r.onceki_gorsel, 10], [r.sonraki_gorsel, 11]]) {
+      if (!fname) continue;
+      const fpath = path.join(S.KAIZEN_IMG_DIR, fname);
+      if (!fs.existsSync(fpath)) continue;
+      const ext = path.extname(fname).slice(1).toLowerCase();
+      if (!["png", "jpeg", "jpg", "gif"].includes(ext)) continue;
+      try {
+        const imgId = wb.addImage({ filename: fpath, extension: ext === "jpg" ? "jpeg" : ext });
+        ws.addImage(imgId, {
+          tl: { col: col - 1, row: rowIdx - 1 },
+          ext: { width: 160, height: 120 },
+        });
+        hasImg = true;
+      } catch { /* bozuk görsel raporu düşürmesin */ }
+    }
+    if (hasImg) ws.getRow(rowIdx).height = 95;
+  }
+  govdeStil(ws, headers.length);
+  return wb.xlsx.writeBuffer();
+}
+
+async function generate5sExcel() {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("5S Denetimler");
+  const kritKodlar = P.BESS.flatMap((s) => s.kriterler.map((kr) => kr.k.toUpperCase()));
+  const headers = ["Bölüm", "Tarih", "Skor", "Durum", ...kritKodlar, "Foto Sayısı", "Not"];
+  ws.addRow(headers);
+  styleHeader(ws, headers.length);
+  [22, 12, 8, 12, ...kritKodlar.map(() => 7), 11, 40]
+    .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  const denetimler = C.loadDenetimler()
+    .sort((a, b) => ((b.tarih || "") + (b.kayit_zamani || "")).localeCompare((a.tarih || "") + (a.kayit_zamani || "")));
+  for (const d of denetimler) {
+    if (d.puan === null) continue;
+    const b = C.bolumById(d.bolum_id);
+    const kp = C.denetimKriterPuanlari(d);
+    const row = [b ? b.ad : "?", d.tarih || "", d.puan, "Yapıldı"];
+    for (const s of P.BESS) for (const kr of s.kriterler) row.push(kp[kr.k] || 0);
+    row.push(C.denetimFotolari(d).length, d.not || "");
+    ws.addRow(row);
+  }
+  govdeStil(ws, headers.length);
+  return wb.xlsx.writeBuffer();
+}
+
+async function generate5sFormExcel(d, b) {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("5S Denetim");
+  ws.addRow(["5S DENETİM FORMU"]).getCell(1).font = { bold: true, size: 13, color: { argb: "FF2E5C8A" } };
+  ws.addRow(["Bölüm", b ? b.ad : "—"]);
+  ws.addRow(["Tarih", d.tarih || ""]);
+  ws.addRow(["Skor", `${d.puan ?? ""}/100`]);
+  ws.addRow(["Denetmen", d.denetmen || d.planlanan_denetmen || ""]);
+  ws.addRow(["Kayıt", d.kayit_zamani || ""]);
+  ws.addRow([]);
+  const basRow = ws.addRow(["Kategori", "Kriter", "Puan (0-5)", "Açıklama"]);
+  basRow.eachCell((c) => { c.font = HEADER_FONT; c.fill = HEADER_FILL; c.alignment = CENTER; });
+  const bas = basRow.number;
+  const kp = C.denetimKriterPuanlari(d);
+  const aciklamalar = d.aciklamalar || {};
+  for (const s of P.BESS) {
+    for (const kr of s.kriterler) {
+      ws.addRow([s.ad, kr.m, kp[kr.k] || 0, aciklamalar[kr.k] || ""]);
+    }
+  }
+  ws.addRow([]);
+  ws.addRow(["Not", d.not || ""]);
+  [28, 50, 14, 40].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  for (let i = bas; i <= ws.rowCount; i++) {
+    ws.getRow(i).eachCell((c) => { c.alignment = WRAP; });
+  }
+  return wb.xlsx.writeBuffer();
+}
+
+async function generateAksiyonExcel() {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Aksiyonlar");
+  const headers = ["Denetim", "Tarih", "Bölüm", "Kriter", "Aksiyon", "Sorumlu",
+    "Termin", "Durum", "Kapatan", "Kapatma Açıklaması", "Kapatma Zamanı",
+    "Fotoğraf Sayısı", "Oluşturma"];
+  ws.addRow(headers);
+  styleHeader(ws, headers.length);
+  [22, 12, 22, 32, 40, 18, 12, 10, 16, 40, 16, 12, 16]
+    .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  for (const a of C.loadAksiyonlar()) {
+    const kap = a.kapatma || {};
+    ws.addRow([a.tur_adi || C.turAdiUret(a.tarih || ""), C.trdate(a.tarih || ""),
+      a.bolum_ad || "", a.kriter_m || "", a.aksiyon || "", a.sorumlu || "",
+      C.trdate(a.termin || ""), a.durum === "kapali" ? "Kapalı" : "Açık",
+      kap.kapatan || "", kap.aciklama || "", kap.kapatma_zamani || "",
+      (kap.fotolar || []).length, a.olusturma_zamani || ""]);
+  }
+  govdeStil(ws, headers.length);
+  return wb.xlsx.writeBuffer();
+}
+
+async function generatePuanExcel() {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Puan Listesi");
+  const headers = ["Sıra", "Personel", "Öneri", "Kaizen", "5S", "Kazanılan", "Net", "Ödül Sayısı"];
+  ws.addRow(headers);
+  styleHeader(ws, headers.length);
+  [8, 26, 12, 12, 12, 14, 12, 12].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  C.puanDurumu().forEach((k, i) => {
+    ws.addRow([i + 1, k.ad, k.oneri, k.kaizen, k.bes_s, k.kazanilan, k.net, k.odul_sayisi]);
+  });
+  govdeStil(ws, headers.length, undefined);
+  return wb.xlsx.writeBuffer();
+}
+
+async function generateOdulExcel() {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Ödül Alanlar");
+  const headers = ["Personel", "Tarih", "Düşülen Puan", "Zaman"];
+  ws.addRow(headers);
+  styleHeader(ws, headers.length);
+  [26, 14, 14, 18].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  const arsiv = db.prepare("SELECT * FROM odul_arsiv ORDER BY tarih DESC").all();
+  for (const r of arsiv) ws.addRow([r.ad, r.tarih, r.puan, r.zaman]);
+  govdeStil(ws, headers.length, undefined);
+  return wb.xlsx.writeBuffer();
+}
+
+async function generateTrendExcel() {
+  const [basliklar, satirlar] = C.besSTrendTablo();
+  if (!basliklar.length) return null;
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("5S Trend");
+  const headers = ["Bölüm", ...basliklar.map((b) => `${b.ad} (${C.trdate(b.tarih)})`)];
+  ws.addRow(headers);
+  styleHeader(ws, headers.length);
+  ws.getColumn(1).width = 32;
+  for (let i = 2; i <= headers.length; i++) ws.getColumn(i).width = 24;
+  const kirmizi = { bold: true, color: { argb: "FFC0392B" } };
+  const yesil = { bold: true, color: { argb: "FF1E8449" } };
+  for (const s of satirlar) {
+    const hucreDegerleri = s.hucreler.map((h) => {
+      if (!h) return "—";
+      if (h.fark === null) return `${h.puan}`;
+      const isaret = h.fark > 0 ? "+" : "";
+      return `${h.puan} (${isaret}${h.fark})`;
+    });
+    const row = ws.addRow([s.ad, ...hucreDegerleri]);
+    s.hucreler.forEach((h, i) => {
+      const cell = row.getCell(i + 2);
+      cell.alignment = CENTER;
+      cell.border = BORDER;
+      if (h && h.fark !== null && h.fark !== 0) cell.font = h.fark < 0 ? kirmizi : yesil;
+    });
+    row.getCell(1).border = BORDER;
+  }
+  return wb.xlsx.writeBuffer();
+}
+
+module.exports = {
+  generateOneriExcel, generateKaizenExcel, generate5sExcel, generate5sFormExcel,
+  generateAksiyonExcel, generatePuanExcel, generateOdulExcel, generateTrendExcel,
+};

@@ -1,0 +1,23 @@
+<%# Bir denetim turunun bölüm sıralaması — locals: siralama, geri, (ops.) sil_uyari %>
+<div class="odul-siralama">
+    <% for (const s of siralama) { %>
+    <div class="odul-satir <%= s.odul > 0 ? 'odullu' : '' %>">
+        <span class="os-sira"><% if (s.sira == 1) { %>🥇<% } else if (s.sira == 2) { %>🥈<% } else if (s.sira == 3) { %>🥉<% } else { %><%= s.sira %>.<% } %></span>
+        <span class="os-ad"><%= s.ad %><% if (s.aksiyon) { %>
+            <a class="aksiyon-rozet <%= s.aksiyon_acik ? 'acik' : 'kapali' %>"
+               href="/5s/aksiyonlar" title="Aksiyonları gör">⚑ <%= s.aksiyon %> aksiyon<% if (s.aksiyon_acik) { %> · <%= s.aksiyon_acik %> açık<% } %></a><% } %></span>
+        <span class="os-skor"><%= s.skor %>/100</span>
+        <span class="os-odul"><% if (s.odul > 0) { %>+<%= s.odul %> puan<% } else { %>—<% } %></span>
+        <span class="os-islem">
+            <a class="btn-mini eval" href="/5s/denetim/<%= s.denetim_id %>?geri=<%= encodeURIComponent(geri) %>">Formu Gör</a>
+            <% if (admin) { %>
+            <form method="post" action="/5s/denetim/<%= s.denetim_id %>/sil" style="display:inline"
+                  onsubmit="return confirm('“<%= s.ad %>” denetimi silinsin mi?<%= typeof sil_uyari !== 'undefined' ? sil_uyari : '' %>');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                <input type="hidden" name="geri" value="<%= geri %>">
+                <button type="submit" class="btn-mini del">Sil</button>
+            </form>
+            <% } %>
+        </span>
+    </div>
+    <% } %>
+</div>

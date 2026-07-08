@@ -1,0 +1,86 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">⚑ 5S Aksiyonlar</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/5s">← 5S</a>
+        <% if (admin) { %>
+        <a class="btn ghost" href="/5s/aksiyonlar/excel">⬇ Aksiyon Excel</a>
+        <a class="btn ghost" href="/5s/aksiyonlar/fotolar.zip">⬇ Fotoğraflar (ZIP)</a>
+        <% } %>
+    </div>
+</div>
+
+<% if (acik_gruplar.length || kapali_gruplar.length) { %>
+
+<h2 class="bolum-baslik aksiyon-bolum-baslik acik">● Açık Aksiyonlar
+    <span class="rozet-acik"><%= toplam_acik %></span></h2>
+<% if (acik_gruplar.length) { %>
+<div class="aksiyon-gruplar">
+    <% for (const g of acik_gruplar) { %>
+    <details class="tur-blok aksiyon-tur">
+        <summary class="tur-summary">
+            <span class="tur-ok">▸</span>
+            <span class="ag-durum acik-var"></span>
+            <span class="tur-ad"><%= g.tur_adi %></span>
+            <span class="tur-bolum-sayisi"><%= g.bolumler.length %> bölüm · <%= g.toplam %> aksiyon</span>
+        </summary>
+        <div class="aksiyon-grup-icerik">
+            <% for (const bl of g.bolumler) { %>
+            <div class="aksiyon-bolum">
+                <h4 class="aksiyon-bolum-ad">🏭 <%= bl.ad %> <span class="tur-bolum-sayisi"><%= bl.aksiyonlar.length %></span></h4>
+                <% for (const a of bl.aksiyonlar) { %><%- include('partials/aksiyon_kart', { a: a }) %><% } %>
+            </div>
+            <% } %>
+        </div>
+    </details>
+    <% } %>
+</div>
+<% } else { %>
+<p class="bos-not">🎉 Açık aksiyon yok — tüm aksiyonlar kapatılmış.</p>
+<% } %>
+
+<h2 class="bolum-baslik aksiyon-bolum-baslik kapali">✔ Kapalı Aksiyonlar
+    <span class="rozet-kapali"><%= toplam_kapali %></span></h2>
+<% if (kapali_gruplar.length) { %>
+<div class="aksiyon-gruplar">
+    <% for (const g of kapali_gruplar) { %>
+    <details class="tur-blok aksiyon-tur">
+        <summary class="tur-summary">
+            <span class="tur-ok">▸</span>
+            <span class="ag-durum temiz"></span>
+            <span class="tur-ad"><%= g.tur_adi %></span>
+            <span class="tur-bolum-sayisi"><%= g.bolumler.length %> bölüm · <%= g.toplam %> aksiyon</span>
+        </summary>
+        <div class="aksiyon-grup-icerik">
+            <% for (const bl of g.bolumler) { %>
+            <div class="aksiyon-bolum">
+                <h4 class="aksiyon-bolum-ad">🏭 <%= bl.ad %> <span class="tur-bolum-sayisi"><%= bl.aksiyonlar.length %></span></h4>
+                <% for (const a of bl.aksiyonlar) { %><%- include('partials/aksiyon_kart', { a: a }) %><% } %>
+            </div>
+            <% } %>
+        </div>
+    </details>
+    <% } %>
+</div>
+<% } else { %>
+<p class="bos-not">Henüz kapatılmış aksiyon yok.</p>
+<% } %>
+
+<% } else { %>
+<div class="empty">Henüz atanmış aksiyon yok. Denetim formunda her madde için <strong>⚑ Aksiyon Ata</strong> ile aksiyon oluşturabilirsiniz.</div>
+<% } %>
+
+<script>
+(function () {
+    if (location.hash) {
+        var el = document.querySelector(location.hash);
+        if (el) {
+            var grp = el.closest('details.aksiyon-tur');
+            if (grp) grp.open = true;
+            el.scrollIntoView({ block: 'center' });
+        }
+    }
+})();
+</script>
+<%- include('partials/footer') %>

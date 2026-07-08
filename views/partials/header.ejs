@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof title !== 'undefined' && title ? title : marka_adi %></title>
+    <link rel="stylesheet" href="/static/vendor/flatpickr/flatpickr.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="/">
+            <% if (marka_logo) { %><img class="brand-logo" src="/static/<%= marka_logo %>" alt="<%= marka_adi %>"><% } else { %>🏭<% } %>
+            <span><%= marka_adi %></span>
+        </a>
+        <nav>
+            <a href="/yardim">📖 Kılavuz</a>
+            <% if (admin) { %>
+                <a class="nav-admin" href="/yonetici">Yönetici Paneli</a>
+                <a href="/yonetici/cikis">Çıkış</a>
+            <% } else if (denetmen_adi) { %>
+                <span class="nav-kisi">👤 <%= denetmen_adi %> <small>denetmen</small></span>
+                <a href="/yonetici/cikis">Çıkış</a>
+            <% } else { %>
+                <a class="nav-admin" href="/yonetici/giris">Giriş</a>
+            <% } %>
+        </nav>
+    </header>
+
+    <main class="container">
+        <% for (const [kategori, msg] of mesajlar) { %>
+            <div class="flash <%= kategori %>"><%= msg %></div>
+        <% } %>

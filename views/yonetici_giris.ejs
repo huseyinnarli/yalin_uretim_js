@@ -1,0 +1,17 @@
+<%- include('partials/header') %>
+<div class="login-wrap">
+    <div class="login-card">
+        <div class="login-icon">🔒</div>
+        <h1>Giriş</h1>
+        <p class="subtitle">Yönetici veya denetmen şifrenizi girin — sistem sizi otomatik tanır.</p>
+        <form method="post"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+            <div class="field">
+                <label>Şifre</label>
+                <input type="password" name="sifre" required autofocus placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn primary block">Giriş Yap</button>
+        </form>
+        <a class="back-link" href="/">← Listeye dön</a>
+    </div>
+</div>
+<%- include('partials/footer') %>

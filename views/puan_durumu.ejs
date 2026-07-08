@@ -1,0 +1,119 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">🏆 Puan Listesi</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/liste">💡🔧 Öneri &amp; Kaizen</a>
+        <a class="btn ghost" href="/5s">🧹 5S</a>
+        <a class="btn ghost" href="/odul-alanlar">🎁 Ödül Alanlar</a>
+        <% if (admin) { %>
+        <a class="btn ghost" href="/puan-durumu/excel">⬇ Liste Excel</a>
+        <% } %>
+    </div>
+</div>
+
+<div class="kural-kutu">
+    <strong>Puan dağıtımı:</strong>
+    Öneri → sahibi puanın <b>%10</b>'u ·
+    Kaizen → lider <b>%50</b>, her üye <b>%25</b> ·
+    5S → 1./2./3. bölüm = 100/75/50.
+    <br><strong>Ödül:</strong> Net puan <b><%= esik %></b>'e ulaşan kişiye yönetici ödül verir; <%= esik %> puan düşülür.
+</div>
+
+<% if (siralama.length) { const sutun = admin ? 8 : 7; %>
+<div class="table-wrap">
+<table class="data-table puan-tablo">
+    <thead>
+        <tr>
+            <th>#</th><th>Personel</th>
+            <th>Öneri</th><th>Kaizen</th><th>5S</th>
+            <th>Kazanılan</th><th>Net</th>
+            <% if (admin) { %><th>İşlem</th><% } %>
+        </tr>
+    </thead>
+    <tbody>
+        <% siralama.forEach(function (k, i) { const idx = i + 1; %>
+        <tr class="puan-satir-ana <%= idx <= 3 ? 'lider-satir' : '' %>" data-detay="detay-<%= idx %>">
+            <td class="sira" data-label="Sıra">
+                <% if (idx == 1) { %>🥇<% } else if (idx == 2) { %>🥈<% } else if (idx == 3) { %>🥉<% } else { %><%= idx %><% } %>
+            </td>
+            <td class="personel" data-label="Personel">
+                <button type="button" class="detay-ac" aria-label="Puan dağılımı">▸</button>
+                <%= k.ad %>
+                <% if (k.odul_sayisi) { %><span class="odul-rozet" title="Aldığı ödül">🎁 <%= k.odul_sayisi %></span><% } %>
+            </td>
+            <td data-label="Öneri"><%= puanfmt(k.oneri) %></td>
+            <td data-label="Kaizen"><%= puanfmt(k.kaizen) %></td>
+            <td data-label="5S"><%= puanfmt(k.bes_s) %></td>
+            <td data-label="Kazanılan"><%= puanfmt(k.kazanilan) %></td>
+            <td class="toplam-puan" data-label="Net"><%= puanfmt(k.net) %></td>
+            <% if (admin) { %>
+            <td data-label="İşlem" class="nowrap">
+                <% if (k.net >= esik) { %>
+                <form method="post" action="/odul-ver" style="display:inline"
+                      onsubmit="return confirm('<%= k.ad %> ödül aldı olarak işaretlenecek ve net puanından <%= esik %> düşülecek. Devam?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                    <input type="hidden" name="ad" value="<%= k.ad %>">
+                    <button type="submit" class="btn-mini onay">🎁 Ödül Ver (−<%= esik %>)</button>
+                </form>
+                <% } else { %>
+                <span class="kalan-not"><%= puanfmt(esik - k.net) %> puan kaldı</span>
+                <% } %>
+                <form method="post" action="/puan/sil" style="display:inline"
+                      onsubmit="return confirm('“<%= k.ad %>” puan listesinden kaldırılacak. Devam?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                    <input type="hidden" name="ad" value="<%= k.ad %>">
+                    <button type="submit" class="btn-mini del">Sil</button>
+                </form>
+            </td>
+            <% } %>
+        </tr>
+        <tr class="detay-satir" id="detay-<%= idx %>" hidden>
+            <td colspan="<%= sutun %>">
+                <div class="puan-detay">
+                    <strong class="puan-detay-baslik"><%= k.ad %> — puan kaynakları</strong>
+                    <% if (k.detay.length) { %>
+                    <ul class="puan-detay-liste">
+                        <% for (const d of k.detay) { %>
+                        <li class="pd-<%= d.tip %>">
+                            <span class="pd-rozet"><% if (d.tip == 'oneri') { %>💡 Öneri<% } else if (d.tip == 'kaizen') { %>🔧 Kaizen<% } else { %>🧹 5S<% } %></span>
+                            <span class="pd-etiket"><% if (d.no) { %><span class="mono"><%= d.no %></span> · <% } %><%= d.etiket %></span>
+                            <span class="pd-puan">+<%= puanfmt(d.puan) %></span>
+                        </li>
+                        <% } %>
+                    </ul>
+                    <% if (k.harcanan) { %>
+                    <p class="pd-harcanan">🎁 Verilen ödül(ler): −<%= puanfmt(k.harcanan) %> · <strong>Net: <%= puanfmt(k.net) %></strong></p>
+                    <% } %>
+                    <% } else { %>
+                    <p class="bos-not">Kaynak detayı bulunamadı.</p>
+                    <% } %>
+                </div>
+            </td>
+        </tr>
+        <% }); %>
+    </tbody>
+</table>
+</div>
+<script>
+(function () {
+    document.querySelectorAll('.puan-satir-ana').forEach(function (row) {
+        var hedef = document.getElementById(row.dataset.detay);
+        if (!hedef) return;
+        function topla() {
+            var ac = hedef.hasAttribute('hidden');
+            if (ac) { hedef.removeAttribute('hidden'); } else { hedef.setAttribute('hidden', ''); }
+            row.classList.toggle('acik', ac);
+            var ok = row.querySelector('.detay-ac');
+            if (ok) ok.textContent = ac ? '▾' : '▸';
+        }
+        row.querySelectorAll('td').forEach(function (td) {
+            if (td.classList.contains('nowrap')) return;
+            td.style.cursor = 'pointer';
+            td.addEventListener('click', topla);
+        });
+    });
+})();
+</script>
+<% } else { %>
+<div class="empty">Henüz puan alan personel yok. Öneri/kaizen puanlandıkça ve 5S ödülleri işlendikçe burada görünür.</div>
+<% } %>
+<%- include('partials/footer') %>

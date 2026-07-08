@@ -1,0 +1,61 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">📖 Kullanım Kılavuzu</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/">← Anasayfa</a>
+    </div>
+</div>
+
+<div class="form-card">
+    <h2 class="bolum-baslik">Uygulama ne işe yarar?</h2>
+    <p>Fabrika içi <strong>Öneri</strong>, <strong>Kaizen</strong> ve <strong>5S denetim</strong> süreçlerini tek yerde yönetir.
+       Çalışanlar öneri/kaizen girer, yöneticiler onaylayıp puanlar, 5S denetimleri yapılır ve tüm bu puanlar
+       <strong>personel ödül sistemine</strong> dönüşür.</p>
+
+    <h2 class="bolum-baslik">💡 Öneri &amp; 🔧 Kaizen</h2>
+    <ul>
+        <li>Herkes giriş yapmadan öneri ve kaizen ekleyebilir; numara otomatik atanır (örn. <span class="mono">ÖNFR2606-01</span>, <span class="mono">ÖSKFR2606-01</span>) ve her ay sıfırlanır.</li>
+        <li>Kaizen formunda ekip en fazla 3 kişidir: 1 lider + 2 üye. Önce/sonra açıklaması ve fotoğrafı eklenebilir.</li>
+        <li>Kayıtlar birleşik listede tarihe göre sıralanır; tür / dönem / arama filtreleri vardır.</li>
+        <li><strong>Yönetici</strong> kayıtları Onaylar / Reddeder / Revize ister. Onaylanan kayıt <strong>★ Puanla</strong> ile 100 üzerinden puanlanır
+            (Temel 10 · Etki 40 · Maliyet 20 · Yaygınlaştırma 15 · Efor 15).</li>
+    </ul>
+
+    <h2 class="bolum-baslik">🧹 5S Denetim</h2>
+    <ul>
+        <li><strong>Bölümler</strong> sekmesinde bölüm ekleyip her bölüme ekip lideri (1 veya 2 kişi) ve üyeler tanımlanır.</li>
+        <li><strong>Denetim Planı</strong>: tarih aralığı seçilince tüm bölümler için denetim açılır; denetmen, gün ve saat atanır.
+            Toplu dağıtım: <em>Herkes kendi bölümüne</em> ya da <em>Çapraz</em> (kimse kendi bölümüne denk gelmez). Misafir denetmenler dengeli dağıtılır.</li>
+        <li>Denetim formu: 5 kategori × 4 kriter = 20 kriter, her biri 0–5 puan (toplam 100). Kriter başına 3 fotoğraf,
+            açıklama ve en fazla 2 <strong>düzeltici aksiyon</strong> eklenebilir.</li>
+        <li>Bir tur tüm bölümlerde tamamlanınca yönetici <strong>Ödülleri İşle</strong> der: 1./2./3. bölümün tüm ekibine
+            100 / 75 / 50 puan kalıcı eklenir.</li>
+        <li><strong>Aksiyonlar</strong> sayfasında açık/kapalı aksiyonlar tur → bölüm kırılımıyla listelenir.
+            Aksiyonu yalnızca açıldığı bölümün ekip lideri (denetmen girişli) veya yönetici kapatabilir; açıklama + en az 1 fotoğraf zorunludur.</li>
+    </ul>
+
+    <h2 class="bolum-baslik">🏆 Puan Listesi &amp; Ödül</h2>
+    <ul>
+        <li>Öneri → sahibine puanın <strong>%10</strong>'u · Kaizen → lider <strong>%50</strong>, her üye <strong>%25</strong> · 5S → turda ilk 3 bölümün ekibine <strong>100/75/50</strong>.</li>
+        <li>Net puanı <strong><%= esik %></strong>'e ulaşan kişiye yönetici <strong>🎁 Ödül Ver</strong> der; <%= esik %> puan düşülür ve kişi <strong>Ödül Alanlar</strong> listesine geçer.</li>
+        <li>Ödül kaydı silinirse düşülen puan kişinin net puanına geri döner.</li>
+    </ul>
+
+    <h2 class="bolum-baslik">🔐 Giriş ve Roller</h2>
+    <ul>
+        <li>Tek giriş ekranı vardır: girilen şifre yöneticininkiyse <strong>yönetici</strong>, bir denetmeninkiyse o <strong>denetmen</strong> olarak oturum açılır.</li>
+        <li>Denetmenler yalnızca bölüm ekip liderleri arasından belirlenir; şifreleri Yönetici Paneli'nden atanır.</li>
+        <li>Denetmen yalnızca kendisine planlanan bölümün denetimini yapabilir; adı forma otomatik yazılır.</li>
+        <li>Onay/red/puanlama, düzenleme/silme, Excel/ZIP indirme ve panel yalnızca yönetici yetkisindedir.</li>
+    </ul>
+
+    <h2 class="bolum-baslik">🛠️ Yönetici Paneli</h2>
+    <ul>
+        <li>📊 Öneri/kaizen istatistikleri (bu ay, son 6 ay, bu yıl, tüm zamanlar).</li>
+        <li>🧹 Bölümlerin 5S trend tablosu (düşüş kırmızı, artış yeşil; Excel'e aktarılır).</li>
+        <li>👥 Denetmen şifreleri, 🎫 misafir denetmenler, 🔑 yönetici şifre değişikliği.</li>
+        <li>İlk kurulum şifresi <span class="mono">admin123</span>'tür — ilk girişten sonra hemen değiştirin.</li>
+    </ul>
+</div>
+<%- include('partials/footer') %>
