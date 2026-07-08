@@ -1,22 +1,121 @@
-# Yalın Üretim Uygulamaları (Node.js + SQLite)
+# Yalın Üretim Uygulamaları
 
-Fabrika içi **Öneri**, **Kaizen** ve **5S denetim** süreçleri + **personel puan/ödül sistemi**.
-Python/Flask sürümünün JavaScript ile sıfırdan yazılmış hâlidir; veri artık JSON dosyaları yerine
-**SQLite veritabanında** tutulur.
+Üretim/fabrika ortamı için **Öneri**, **Kaizen** ve **5S denetim** süreçlerini tek yerde yöneten,
+bu süreçlerden doğan puanları **personel ödül sistemine** dönüştüren web uygulaması.
 
-## Teknolojiler
+Çalışanlar giriş yapmadan öneri ve kaizen girer; yöneticiler kayıtları onaylayıp 100 üzerinden
+puanlar; bölümler periyodik 5S denetimlerinden geçer; biriken puanlar personel sıralamasına ve
+ödüllere dönüşür. Tüm raporlar tek tıkla Excel olarak alınır.
 
-| Katman | Teknoloji |
+> **Giriş modeli:** Tek giriş ekranı vardır. Girilen şifre yöneticininkiyse **yönetici**, bir
+> denetmeninkiyse o **denetmen** olarak oturum açılır — sistem kişiyi şifreden tanır.
+> İlk kurulum şifresi `admin123`'tür; ilk girişten sonra panelden hemen değiştirin
+> (varsayılan şifre kullanıldığında sistem uyarı gösterir).
+
+---
+
+## Genel Akış
+
+```
+Çalışan öneri/kaizen girer  ──►  Yönetici ONAYLAR  ──►  PUANLAR (0–100)
+                                                              │
+5S: bölümler denetlenir ──► ilk 3 bölüm ödül alır ───────────┤
+                                                              ▼
+                                              PUAN LİSTESİ (personel sıralaması)
+                                                              │
+                                          Net 300'e ulaşan ──►  ÖDÜL VERİLİR (arşive geçer)
+```
+
+Anasayfada 3 kutu: **🏆 Puan Listesi · 💡🔧 Öneri & Kaizen · 🧹 5S**
+
+---
+
+## 1) Öneri & Kaizen
+
+### Öneri Formu (No: `ÖNFR2607-01`)
+Numara otomatik atanır: `ÖNFR` + yıl + ay + o ayki sıra (her ay sıfırlanır).
+Alanlar: öneri sahibi, görevi, tarih, konu, detay açıklama, çözüm önerisi,
+4 katkı sorusu (Kalite / Verimlilik / İSG / Maliyet), ek açıklama.
+
+### Kaizen Formu (No: `ÖSKFR2607-01`)
+Başlangıç–bitiş tarihi, kazanç başlıkları (Makine, İşçilik, Kalite, İSG, Ergonomi, Setup,
+Stok, 5S… çoklu seçim), konu, yapıldığı bölüm, **ekip** (1 lider + en fazla 2 üye),
+önceki/sonraki durum açıklaması **+ önce/sonra fotoğrafı**.
+
+### Birleşik Liste ve Değerlendirme
+- Öneri + kaizen tek listede tarihe göre sıralanır; **Tür / Dönem (ay) / arama** filtreleri.
+- Satıra tıklayınca detay sayfası (kaizen'de önce/sonra görseller, puan kırılımı).
+- **Yönetici akışı:** Onay / Red / Revize → onaylanan kayıtta **★ Puanla** →
+  100 üzerinden rubrik puanlama:
+  - Temel Şartlar (0–10) · Etki Odağı (0–40, 6 odaktan tek seviye) · Maliyet (0–20) ·
+    Yaygınlaştırma (0–15) · Efor (0–15)
+  - Her maddeye 0–maksimum arası serbest puan verilir; toplam canlı hesaplanır.
+  - Bir kez onaylanan kayıt artık reddedilemez.
+
+---
+
+## 2) 5S Denetim
+
+`/5s` sayfası — sekmeler: **Son Denetimler · Bölümler · Denetim Planı** + Geçmiş Denetimler ve Aksiyonlar sayfaları.
+
+- **Bölümler:** bölüm ekle/sil; her bölüme 1 veya 2 **ekip lideri** + üye listesi.
+- **Denetim Planı:** tarih aralığı seçilince tüm bölümler için denetim açılır
+  (tur adı aydan otomatik: "Temmuz 2026 Denetimi"). Her bölüme gün + saat + denetmen atanır.
+  - **Toplu dağıtım:** *Herkes kendi bölümüne* ya da *Çapraz* — her bölüm başka bir bölümce
+    denetlenir, kimse kendi (veya ortak lider olduğu) bölümüne denk gelmez.
+    Misafir denetmenler dengeli rastgele dağıtılır.
+- **Denetim formu:** 5 kategori (1S–5S) × 4 kriter = 20 kriter, her biri **0–5 puan**
+  (toplam 100, canlı hesaplanır). Kriter başına 3 fotoğraf + açıklama + en fazla 2
+  **düzeltici aksiyon** (sorumlu + termin). Denetmen girişliyse adı oturumdan otomatik yazılır;
+  denetmen yalnızca **kendisine planlanan** bölümü denetleyebilir.
+- **Ödüllendirme:** tur tüm bölümlerde tamamlanınca yönetici **"Ödülleri İşle"** der →
+  1./2./3. bölümün **tüm ekibine 100 / 75 / 50 puan** kalıcı eklenir.
+- **Aksiyonlar:** açık/kapalı aksiyonlar tur → bölüm kırılımıyla listelenir. Aksiyonu yalnızca
+  açıldığı bölümün ekip lideri (denetmen girişli) veya yönetici kapatabilir;
+  **açıklama + en az 1 fotoğraf zorunlu**. Fotoğraflar ZIP, liste Excel olarak indirilebilir.
+
+---
+
+## 3) Puan Listesi & Ödül Sistemi
+
+| Kaynak | Dağıtım |
 |---|---|
-| Sunucu | Node.js + Express |
-| Veritabanı | SQLite (`node:sqlite`, WAL modu) — `data/yalin.db` |
-| Arayüz | EJS şablonları + `static/style.css` (sunucu tarafı render) |
-| Excel | exceljs (talep anında üretilir) |
-| ZIP | archiver (fotoğraf paketleri) |
-| Yükleme | multer (bellek içi → doğrulama → disk) |
-| Oturum | cookie-session (imzalı çerez, 12 saat) |
+| **Öneri** | sahibine, önerinin puanının **%10**'u |
+| **Kaizen** | **lider %50**, her üye **%25** (en fazla 3 kişi) |
+| **5S** | turda 1./2./3. bölümün **tüm ekibine 100 / 75 / 50** |
+
+- Sütunlar: Öneri · Kaizen · 5S · Kazanılan · **Net** (net = kazanılan − verilen ödüller).
+- Kişi satırına tıklayınca puanın hangi kayıtlardan geldiği açılır.
+- Net puanı **300**'e ulaşan kişiye yönetici **🎁 Ödül Ver** der → 300 düşülür, kişi
+  **Ödül Alanlar** listesine geçer. Ödül kaydı silinirse puan geri döner.
+
+---
+
+## 4) Yönetici Paneli
+
+- **📊 İstatistikler:** Bu Ay / Son 6 Ay / Bu Yıl / Tüm Zamanlar — öneri-kaizen sayısı + durum dağılımı.
+- **🧹 5S Trendi:** bölüm × tur skor tablosu (düşüş kırmızı ▼, artış yeşil ▲; Excel'e aktarılır).
+- **👥 Denetmenler:** bölüm ekip liderleri otomatik listelenir; yönetici yalnızca şifre belirler.
+- **🎫 Misafir denetmenler:** plan dağıtımında kullanılan harici kişiler.
+- **🔑 Şifre değiştir.**
+
+---
+
+## Roller ve Erişim
+
+| | Genel kullanıcı | Denetmen (girişli) | Yönetici (girişli) |
+|---|---|---|---|
+| Öneri/kaizen ekleme, tüm listeleri görüntüleme | ✅ | ✅ | ✅ |
+| Kendisine planlanan bölümün 5S denetimi | ❌ | ✅ | ✅ |
+| Kendi bölümünün aksiyonunu kapatma | ❌ | ✅ | ✅ |
+| Onay/red/puanlama, düzenle/sil, 5S yönetimi | ❌ | ❌ | ✅ |
+| Excel/ZIP indirme, yönetici paneli | ❌ | ❌ | ✅ |
+
+---
 
 ## Kurulum ve Çalıştırma
+
+**Gereksinim:** Node.js **24 LTS** (veya 23.4+ — veritabanı için yerleşik `node:sqlite` kullanılır).
 
 ```bash
 npm install
@@ -24,53 +123,55 @@ npm start
 ```
 
 - Bu bilgisayar: **http://127.0.0.1:5000**
-- Aynı ağdaki cihazlar: **http://<PC-IP>:5000** (0.0.0.0 dinler)
-- İlk yönetici şifresi: **admin123** — girişten sonra Yönetici Paneli → Şifre Değiştir'den hemen değiştirin.
+- Aynı ağdaki cihazlar: **http://<PC-IP>:5000** (uygulama `0.0.0.0` dinler)
 
-## Eski (Flask/JSON) veriyi aktarma
+### Yapılandırma (ortam değişkenleri)
 
-Eski uygulamanın `data/` klasöründeki tüm kayıtları (öneri, kaizen, 5S, denetmenler, ödüller)
-ve görselleri yeni veritabanına aktarır. **Eski veriye yalnızca okuma yapılır.**
+| Değişken | Varsayılan | Açıklama |
+|---|---|---|
+| `PORT` | `5000` | Dinlenen port |
+| `YALIN_DATA_DIR` | `./data` | Veri klasörü (veritabanı + görseller) — prod'da kod dışına taşınabilir |
+
+### Marka / Logo
+
+Sol üstteki başlık [src/sabitler.js](src/sabitler.js) içindeki `MARKA_ADI` ile ayarlanır.
+`static/` klasörüne adında "logo" geçen bir görsel (`logo.png` vb.) koyarsanız otomatik kullanılır.
+
+---
+
+## Veri ve Yedekleme
+
+- Tüm kayıtlar **SQLite** veritabanında tutulur: `data/yalin.db` (WAL modu).
+- Yüklenen fotoğraflar diskte (`data/kaizen_gorseller/`, `data/bes_s_gorseller/`,
+  `data/aksiyon_gorseller/`), adları veritabanında.
+- **Otomatik yedek:** açılışta + 6 saatte bir `data/_yedek_otomatik/` altına tutarlı veritabanı
+  kopyası alınır (son 15 tutulur).
+- Excel raporları saklanmaz; her indirmede güncel veriden üretilir.
+
+### Eski sistemden veri aktarma
+
+JSON dosyalarıyla çalışan önceki sürümden tüm kayıtları ve görselleri aktarır
+(kaynağa yalnızca okuma yapılır):
 
 ```bash
-node scripts/import-json.js "C:\...\yalin_uretim_uygulamalari\data"
+node scripts/import-json.js "<eski-uygulama>/data"
 ```
 
-Eski hash'li şifreler (werkzeug pbkdf2/scrypt) aynen çalışır — yönetici ve denetmenler
-mevcut şifreleriyle giriş yapabilir.
+Eski hash'li şifreler (pbkdf2/scrypt) aynen tanınır — yönetici ve denetmenler mevcut
+şifreleriyle giriş yapmaya devam eder.
 
-## Klasör Yapısı
+---
 
-```
-server.js            # Express kurulumu + middleware + rota kaydı
-src/
-  sabitler.js        # yollar, sabitler, TR saat yardımcıları
-  puanlama.js        # öneri/kaizen puan rubriği + 5S kriterleri (saf)
-  db.js              # SQLite şema + satır dönüşümleri + otomatik yedek
-  cekirdek.js        # iş mantığı (numara, puan durumu, 5S, aksiyonlar, kimlik)
-  web.js             # flash, CSRF, hız limiti, yetki middleware'leri
-  excel.js           # exceljs raporları
-  rotalar/           # genel / oneri / kaizen / bes_s / admin
-views/               # EJS şablonları (partials/header+footer)
-static/              # style.css, takvim.js, flatpickr, logo
-scripts/import-json.js  # eski JSON verisini aktarma
-data/                # yalin.db + görsel klasörleri + _yedek_otomatik/ (çalışınca oluşur)
-```
+## Güvenlik Özeti
 
-## Güvenlik
+- Şifreler **pbkdf2 (600.000 iterasyon)** ile hash'lenir; düz metin saklanmaz.
+- Tüm POST isteklerinde **CSRF token** doğrulaması.
+- Girişte **kaba kuvvet koruması** (IP başına 10 dakikada 8 deneme); herkese açık yazma
+  uçlarında hız limiti.
+- Yüklenen dosyalar uzantı **+ dosya imzası (magic bytes)** ile doğrulanır; görsel servis
+  uçları path-traversal korumalıdır.
+- Güvenlik başlıkları (CSP, nosniff, X-Frame-Options DENY); oturum çerezi
+  HttpOnly + SameSite=Lax, imza anahtarı veritabanında tutulur (koda gömülü değildir).
 
-- Şifreler pbkdf2 (werkzeug uyumlu format) ile hash'lenir; eski hash'ler doğrulanır.
-- Tüm POST'larda CSRF token; güvenlik başlıkları (nosniff, X-Frame-Options, CSP).
-- Girişte kaba kuvvet koruması (IP başına 10 dk'da 8 deneme), yazma uçlarında hız limiti.
-- Yüklenen dosyalar uzantı + dosya imzası (magic bytes) ile doğrulanır; path-traversal korumalı servis.
-- Oturum çerezi HttpOnly + SameSite=Lax; imza anahtarı veritabanında (koda gömülü değil).
-- Otomatik yedek: açılışta + 6 saatte bir `data/_yedek_otomatik/` altına veritabanı kopyası (son 15).
-
-## Veri Modeli (SQLite tabloları)
-
-`oneriler`, `kaizenler`, `bolumler`, `denetimler`, `aksiyonlar`,
-`odul_islenen`, `odul_kayitlari` (5S ödül defteri — kişi 5S puanlarının tek kaynağı),
-`odul_arsiv` (300'lük ödüller), `silinen_kisiler`, `denetmenler`, `misafirler`, `config`.
-
-Liste/nesne alanları (üyeler, kazançlar, kriter puanları, fotoğraflar, kapatma bilgisi)
-JSON kolonlarında saklanır. Görseller diskte (`data/*_gorseller/`), adları veritabanında.
+Ayrıntılar için: **[TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md)** (mimari ve iç işleyiş) ·
+**[IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md)** (kod inceleme raporu: riskler ve iyileştirme planı).
