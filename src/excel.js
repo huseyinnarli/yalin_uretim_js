@@ -5,7 +5,7 @@ const ExcelJS = require("exceljs");
 const S = require("./sabitler");
 const P = require("./puanlama");
 const C = require("./cekirdek");
-const { db, oneriRow, kaizenRow } = require("./db");
+const { sorgu, oneriRow, kaizenRow } = require("./db");
 
 const HEADER_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2E5C8A" } };
 const HEADER_FONT = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
@@ -48,7 +48,7 @@ async function generateOneriExcel() {
   styleHeader(ws, headers.length);
   [16, 12, 22, 18, 30, 40, 40, 28, 28, 28, 28, 30, 16, 8, 50, 18]
     .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
-  for (const r of db.prepare("SELECT * FROM oneriler").all().map(oneriRow)) {
+  for (const r of (await sorgu("SELECT * FROM oneriler")).map(oneriRow)) {
     ws.addRow([r.no, r.tarih, r.sahibi, r.gorevi, r.konu, r.detay, r.cozum,
       r.kalite, r.verimlilik, r.isg, r.maliyet, r.ek,
       r.durum || S.VARSAYILAN_DURUM, r.puan ?? "",
@@ -68,7 +68,7 @@ async function generateKaizenExcel() {
   styleHeader(ws, headers.length);
   [18, 12, 12, 28, 20, 22, 30, 38, 38, 22, 22, 16, 8, 50, 18]
     .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
-  for (const r of db.prepare("SELECT * FROM kaizenler").all().map(kaizenRow)) {
+  for (const r of (await sorgu("SELECT * FROM kaizenler")).map(kaizenRow)) {
     ws.addRow([r.no, r.baslangic, r.bitis, r.konu, r.bolum, r.sorumlular,
       (r.kazanclar || []).join(", "), r.onceki, r.sonraki,
       r.onceki_gorsel || "", r.sonraki_gorsel || "",
@@ -106,11 +106,12 @@ async function generate5sExcel() {
   styleHeader(ws, headers.length);
   [22, 12, 8, 12, ...kritKodlar.map(() => 7), 11, 40]
     .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
-  const denetimler = C.loadDenetimler()
+  const bolumlar = await C.bolumMap();
+  const denetimler = (await C.loadDenetimler())
     .sort((a, b) => ((b.tarih || "") + (b.kayit_zamani || "")).localeCompare((a.tarih || "") + (a.kayit_zamani || "")));
   for (const d of denetimler) {
     if (d.puan === null) continue;
-    const b = C.bolumById(d.bolum_id);
+    const b = bolumlar[d.bolum_id];
     const kp = C.denetimKriterPuanlari(d);
     const row = [b ? b.ad : "?", d.tarih || "", d.puan, "Yapıldı"];
     for (const s of P.BESS) for (const kr of s.kriterler) row.push(kp[kr.k] || 0);
@@ -160,7 +161,7 @@ async function generateAksiyonExcel() {
   styleHeader(ws, headers.length);
   [22, 12, 22, 32, 40, 18, 12, 10, 16, 40, 16, 12, 16]
     .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
-  for (const a of C.loadAksiyonlar()) {
+  for (const a of await C.loadAksiyonlar()) {
     const kap = a.kapatma || {};
     ws.addRow([a.tur_adi || C.turAdiUret(a.tarih || ""), C.trdate(a.tarih || ""),
       a.bolum_ad || "", a.kriter_m || "", a.aksiyon || "", a.sorumlu || "",
@@ -179,7 +180,7 @@ async function generatePuanExcel() {
   ws.addRow(headers);
   styleHeader(ws, headers.length);
   [8, 26, 12, 12, 12, 14, 12, 12].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
-  C.puanDurumu().forEach((k, i) => {
+  (await C.puanDurumu()).forEach((k, i) => {
     ws.addRow([i + 1, k.ad, k.oneri, k.kaizen, k.bes_s, k.kazanilan, k.net, k.odul_sayisi]);
   });
   govdeStil(ws, headers.length, undefined);
@@ -193,14 +194,15 @@ async function generateOdulExcel() {
   ws.addRow(headers);
   styleHeader(ws, headers.length);
   [26, 14, 14, 18].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
-  const arsiv = db.prepare("SELECT * FROM odul_arsiv ORDER BY tarih DESC").all();
-  for (const r of arsiv) ws.addRow([r.ad, r.tarih, r.puan, r.zaman]);
+  for (const r of await sorgu("SELECT * FROM odul_arsiv ORDER BY tarih DESC")) {
+    ws.addRow([r.ad, r.tarih, r.puan, r.zaman]);
+  }
   govdeStil(ws, headers.length, undefined);
   return wb.xlsx.writeBuffer();
 }
 
 async function generateTrendExcel() {
-  const [basliklar, satirlar] = C.besSTrendTablo();
+  const [basliklar, satirlar] = await C.besSTrendTablo();
   if (!basliklar.length) return null;
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("5S Trend");

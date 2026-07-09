@@ -3,6 +3,12 @@ const crypto = require("crypto");
 const S = require("./sabitler");
 const C = require("./cekirdek");
 
+// Async rota sarıcı: reddedilen promise'i Express hata zincirine iletir
+// (Express 4 async hataları kendiliğinden yakalamaz).
+function sar(fn) {
+  return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+}
+
 // --- Flash (oturumda taşınır, bir kez gösterilir) ---
 function flash(req, kategori, mesaj) {
   if (!req.session.flash) req.session.flash = [];
@@ -20,6 +26,15 @@ function hizLimitAsildi(req, kova, limit, pencereSn) {
   _hizGecmisi.set(anahtar, eski);
   return false;
 }
+// Saatte bir süresi dolmuş hız-limit girdilerini süpür (bellek büyümesini önler)
+setInterval(() => {
+  const simdi = Date.now() / 1000;
+  for (const [k, zamanlar] of _hizGecmisi) {
+    const kalan = zamanlar.filter((t) => simdi - t < 600);
+    if (kalan.length) _hizGecmisi.set(k, kalan);
+    else _hizGecmisi.delete(k);
+  }
+}, 3600 * 1000).unref();
 
 // --- Form alanı oku + kırp + uzunluk sınırı ---
 function alan(req, ad) {
@@ -27,9 +42,9 @@ function alan(req, ad) {
 }
 
 // --- Ortak locals + flash tüketimi + CSRF üretimi ---
-function ortakLocals(req, res, next) {
+const ortakLocals = sar(async (req, res, next) => {
   if (!req.session.csrf) req.session.csrf = crypto.randomBytes(16).toString("hex");
-  const d = C.aktifDenetmen(req.session);
+  const d = await C.aktifDenetmen(req.session);
   res.locals.session = req.session;
   res.locals.admin = Boolean(req.session.admin);
   res.locals.denetmen_adi = d ? d.ad : null;
@@ -41,7 +56,7 @@ function ortakLocals(req, res, next) {
   res.locals.mesajlar = req.session.flash || [];
   delete req.session.flash;
   next();
-}
+});
 
 // --- CSRF doğrulama (tüm POST'larda) ---
 function csrfDogrula(req, res, next) {
@@ -71,14 +86,14 @@ function adminRequired(req, res, next) {
   }
   next();
 }
-function denetciRequired(req, res, next) {
-  if (!req.session.admin && !C.aktifDenetmen(req.session)) {
+const denetciRequired = sar(async (req, res, next) => {
+  if (!req.session.admin && !(await C.aktifDenetmen(req.session))) {
     return res.redirect("/yonetici/giris?next=" + encodeURIComponent(req.originalUrl));
   }
   next();
-}
+});
 
 module.exports = {
-  flash, hizLimitAsildi, alan, ortakLocals, csrfDogrula,
+  sar, flash, hizLimitAsildi, alan, ortakLocals, csrfDogrula,
   guvenlikBasliklari, adminRequired, denetciRequired,
 };

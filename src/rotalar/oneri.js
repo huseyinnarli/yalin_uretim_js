@@ -2,8 +2,8 @@
 const S = require("../sabitler");
 const C = require("../cekirdek");
 const X = require("../excel");
-const { db, js } = require("../db");
-const { flash, adminRequired, alan, hizLimitAsildi } = require("../web");
+const { calistir } = require("../db");
+const { sar, flash, adminRequired, alan, hizLimitAsildi } = require("../web");
 const { xlsxGonder } = require("./genel");
 
 function formToDict(req) {
@@ -21,7 +21,7 @@ module.exports = function register(app) {
       action_url: "/oneri/yeni", duzenle: false });
   });
 
-  app.post("/oneri/yeni", (req, res) => {
+  app.post("/oneri/yeni", sar(async (req, res) => {
     if (hizLimitAsildi(req, "oneri", 30, 300)) {
       flash(req, "error", "Çok fazla gönderim algılandı — birkaç dakika sonra tekrar deneyin.");
       return res.redirect("/oneri/yeni");
@@ -32,42 +32,35 @@ module.exports = function register(app) {
       return res.render("oneri_form", { title: "Yeni Öneri", bugun: S.bugunIso(), kayit: k,
         action_url: "/oneri/yeni", duzenle: false });
     }
-    // Numara üretimi + ekleme tek transaction'da (mükerrer numara yarışı yok)
-    let no;
-    db.exec("BEGIN IMMEDIATE");
-    try {
-      no = C.nextNumber("oneriler", "ÖNFR");
-      db.prepare(`INSERT INTO oneriler(no, tarih, sahibi, gorevi, konu, detay, cozum,
+    // Numara atomik sayaçtan gelir — eşzamanlı gönderimde mükerrer numara oluşmaz
+    const no = await C.nextNumber("oneriler", "ÖNFR");
+    await calistir(
+      `INSERT INTO oneriler(\`no\`, tarih, sahibi, gorevi, konu, detay, cozum,
         kalite, verimlilik, isg, maliyet, ek, durum, puan, puanlama, kayit_zamani)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?)`)
-        .run(no, k.tarih, k.sahibi, k.gorevi, k.konu, k.detay, k.cozum,
-          k.kalite, k.verimlilik, k.isg, k.maliyet, k.ek, S.VARSAYILAN_DURUM, S.zamanTr());
-      db.exec("COMMIT");
-    } catch (e) {
-      db.exec("ROLLBACK");
-      throw e;
-    }
+       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?)`,
+      [no, k.tarih, k.sahibi, k.gorevi, k.konu, k.detay, k.cozum,
+        k.kalite, k.verimlilik, k.isg, k.maliyet, k.ek, S.VARSAYILAN_DURUM, S.zamanTr()]);
     flash(req, "success", `Öneri kaydedildi: ${no}`);
     res.redirect("/liste");
-  });
+  }));
 
-  app.get("/oneri/duzenle", adminRequired, (req, res) => {
-    const rec = C.getRecord("oneri", req.query.no || "");
+  app.get("/oneri/duzenle", adminRequired, sar(async (req, res) => {
+    const rec = await C.getRecord("oneri", req.query.no || "");
     if (!rec) return res.status(404).send("Kayıt bulunamadı.");
     res.render("oneri_form", { title: "Öneri Düzenle", bugun: "", kayit: rec,
       action_url: "/oneri/duzenle?no=" + encodeURIComponent(rec.no), duzenle: true });
-  });
+  }));
 
-  app.post("/oneri/duzenle", adminRequired, (req, res) => {
+  app.post("/oneri/duzenle", adminRequired, sar(async (req, res) => {
     const no = req.query.no || "";
-    const rec = C.getRecord("oneri", no);
+    const rec = await C.getRecord("oneri", no);
     if (!rec) return res.status(404).send("Kayıt bulunamadı.");
-    C.updateRecord("oneri", no, formToDict(req));
+    await C.updateRecord("oneri", no, formToDict(req));
     flash(req, "success", `Öneri güncellendi: ${no}`);
     res.redirect("/liste");
-  });
+  }));
 
-  app.get("/oneri/excel", adminRequired, async (req, res) => {
+  app.get("/oneri/excel", adminRequired, sar(async (req, res) => {
     xlsxGonder(res, await X.generateOneriExcel(), "oneriler.xlsx");
-  });
+  }));
 };

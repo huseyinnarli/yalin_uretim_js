@@ -115,7 +115,7 @@ Stok, 5S… çoklu seçim), konu, yapıldığı bölüm, **ekip** (1 lider + en 
 
 ## Kurulum ve Çalıştırma
 
-**Gereksinim:** Node.js **24 LTS** (veya 23.4+ — veritabanı için yerleşik `node:sqlite` kullanılır).
+**Gereksinimler:** Node.js **20+** (24 LTS önerilir) ve **MySQL 8** sunucusu.
 
 ```bash
 npm install
@@ -125,12 +125,35 @@ npm start
 - Bu bilgisayar: **http://127.0.0.1:5000**
 - Aynı ağdaki cihazlar: **http://<PC-IP>:5000** (uygulama `0.0.0.0` dinler)
 
+### Veritabanı bağlantısı
+
+Bağlantı ayarları öncelik sırasıyla **ortam değişkenlerinden** veya
+**`data/db-config.json`** dosyasından okunur:
+
+```json
+{ "host": "127.0.0.1", "port": 3306, "user": "yalin", "password": "...", "database": "yalin_uretim" }
+```
+
+Veritabanı ve kullanıcıyı bir kez oluşturmak yeterlidir (tablolar uygulama açılışında
+kendiliğinden kurulur):
+
+```sql
+CREATE DATABASE yalin_uretim CHARACTER SET utf8mb4 COLLATE utf8mb4_turkish_ci;
+CREATE USER 'yalin'@'localhost' IDENTIFIED BY '<şifre>';
+GRANT ALL PRIVILEGES ON yalin_uretim.* TO 'yalin'@'localhost';
+```
+
 ### Yapılandırma (ortam değişkenleri)
 
 | Değişken | Varsayılan | Açıklama |
 |---|---|---|
 | `PORT` | `5000` | Dinlenen port |
-| `YALIN_DATA_DIR` | `./data` | Veri klasörü (veritabanı + görseller) — prod'da kod dışına taşınabilir |
+| `YALIN_DATA_DIR` | `./data` | Veri klasörü (görseller, yedekler, db-config.json) |
+| `YALIN_DB_HOST` | `127.0.0.1` | MySQL sunucu adresi |
+| `YALIN_DB_PORT` | `3306` | MySQL portu |
+| `YALIN_DB_USER` | `yalin` | MySQL kullanıcısı |
+| `YALIN_DB_PASSWORD` | — | MySQL şifresi |
+| `YALIN_DB_DATABASE` | `yalin_uretim` | Veritabanı adı |
 
 ### Marka / Logo
 
@@ -141,21 +164,37 @@ Sol üstteki başlık [src/sabitler.js](src/sabitler.js) içindeki `MARKA_ADI` i
 
 ## Veri ve Yedekleme
 
-- Tüm kayıtlar **SQLite** veritabanında tutulur: `data/yalin.db` (WAL modu).
+- Tüm kayıtlar **MySQL** veritabanında tutulur (`yalin_uretim`, utf8mb4 + Türkçe collation).
 - Yüklenen fotoğraflar diskte (`data/kaizen_gorseller/`, `data/bes_s_gorseller/`,
   `data/aksiyon_gorseller/`), adları veritabanında.
-- **Otomatik yedek:** açılışta + 6 saatte bir `data/_yedek_otomatik/` altına tutarlı veritabanı
-  kopyası alınır (son 15 tutulur).
+- **Uygulama içi otomatik yedek:** açılışta + 6 saatte bir tüm tablolar
+  `data/_yedek_otomatik/yedek_*.json.gz` olarak dökülür (son 15 tutulur).
+  Tam sunucu yedeği için ayrıca `mysqldump` önerilir:
+  `mysqldump -u yalin -p yalin_uretim > yedek.sql`
 - Excel raporları saklanmaz; her indirmede güncel veriden üretilir.
 
-### Eski sistemden veri aktarma
-
-JSON dosyalarıyla çalışan önceki sürümden tüm kayıtları ve görselleri aktarır
-(kaynağa yalnızca okuma yapılır):
+### Testler
 
 ```bash
-node scripts/import-json.js "<eski-uygulama>/data"
+npm test
 ```
+
+Uçtan uca test paketi ayrı bir veritabanı (`yalin_e2e`) ve geçici veri klasörü kullanır —
+canlı veriye dokunmaz. (Bir kez `CREATE DATABASE yalin_e2e` + GRANT gerekir.)
+
+### Eski sistemlerden veri aktarma
+
+- **JSON tabanlı ilk sürümden** (kaynağa yalnızca okuma yapılır):
+
+  ```bash
+  node scripts/import-json.js "<eski-uygulama>/data"
+  ```
+
+- **SQLite tabanlı sürümden** (`data/yalin.db`):
+
+  ```bash
+  npm run migrate
+  ```
 
 Eski hash'li şifreler (pbkdf2/scrypt) aynen tanınır — yönetici ve denetmenler mevcut
 şifreleriyle giriş yapmaya devam eder.

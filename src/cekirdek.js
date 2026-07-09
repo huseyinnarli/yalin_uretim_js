@@ -1,5 +1,6 @@
 // Çekirdek iş mantığı: numara üretimi, puan durumu, 5S denetim/aksiyon/ödül,
-// kimlik doğrulama yardımcıları ve güvenli dosya işlemleri.
+// kimlik doğrulama yardımcıları ve güvenli dosya işlemleri. (MySQL — tüm veri
+// erişimi asenkrondur; saf yardımcılar senkron kalır.)
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -7,12 +8,12 @@ const path = require("path");
 const S = require("./sabitler");
 const P = require("./puanlama");
 const {
-  db, js, configGet, configSet,
+  sorgu, tek, calistir, transaction, js, configGet, configSet,
   oneriRow, kaizenRow, bolumRow, denetimRow, aksiyonRow, odulKayitRow,
 } = require("./db");
 
 // ---------------------------------------------------------------------------
-// Şifre (werkzeug uyumlu: eski JSON verisindeki pbkdf2/scrypt hash'leri de doğrular)
+// Şifre (werkzeug uyumlu: eski verideki pbkdf2/scrypt hash'leri de doğrular)
 // ---------------------------------------------------------------------------
 function hashPassword(sifre) {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -46,29 +47,29 @@ function checkPassword(kayitli, sifre) {
   } catch { return false; }
 }
 
-function getAdminPassword() {
-  return configGet("admin_password") || S.ADMIN_PASSWORD;
+async function getAdminPassword() {
+  return (await configGet("admin_password")) || S.ADMIN_PASSWORD;
 }
-function adminSifreDogru(sifre) {
-  return checkPassword(getAdminPassword(), sifre);
+async function adminSifreDogru(sifre) {
+  return checkPassword(await getAdminPassword(), sifre);
 }
-function setAdminPassword(yeni) {
-  configSet("admin_password", hashPassword(yeni));
+async function setAdminPassword(yeni) {
+  await configSet("admin_password", hashPassword(yeni));
 }
 // Açılışta düz metin şifreleri hash'e çevir (ilk kurulum / eski aktarım)
-function sifreleriHashle() {
-  const kayitli = getAdminPassword();
-  if (!hashMi(kayitli)) setAdminPassword(kayitli);
-  for (const d of db.prepare("SELECT * FROM denetmenler").all()) {
+async function sifreleriHashle() {
+  const kayitli = await getAdminPassword();
+  if (!hashMi(kayitli)) await setAdminPassword(kayitli);
+  for (const d of await sorgu("SELECT * FROM denetmenler")) {
     if (d.sifre && !hashMi(d.sifre)) {
-      db.prepare("UPDATE denetmenler SET sifre = ? WHERE id = ?").run(hashPassword(d.sifre), d.id);
+      await calistir("UPDATE denetmenler SET sifre = ? WHERE id = ?", [hashPassword(d.sifre), d.id]);
     }
   }
 }
 // Oturum imza anahtarı config'de tutulur (koda gömülü değil)
-function getSecretKey() {
-  let k = configGet("secret_key");
-  if (!k) { k = crypto.randomBytes(32).toString("hex"); configSet("secret_key", k); }
+async function getSecretKey() {
+  let k = await configGet("secret_key");
+  if (!k) { k = crypto.randomBytes(32).toString("hex"); await configSet("secret_key", k); }
   return k;
 }
 
@@ -77,18 +78,21 @@ function getSecretKey() {
 // ---------------------------------------------------------------------------
 function uid() { return crypto.randomBytes(4).toString("hex"); }
 
-// ÖNFR2606-01 benzeri numara — sıra her ay sıfırlanır. Ekleme transaction
-// içinden çağrılır (eşzamanlı istekte mükerrer numara yarışı yok).
-function nextNumber(tablo, prefix) {
+// ÖNFR2607-01 benzeri numara — sıra her ay sıfırlanır. `sayaclar` tablosunda
+// atomik sayaç (LAST_INSERT_ID hilesi) kullanılır: eşzamanlı isteklerde mükerrer
+// numara oluşmaz. Sayaç yoksa mevcut kayıtların en büyüğünden tohumlanır.
+async function nextNumber(tablo, prefix) {
   const d = S.nowTr();
   const yymm = String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, "0");
   const fullPrefix = `${prefix}${yymm}-`;
-  let maxSeq = 0;
-  for (const r of db.prepare(`SELECT no FROM ${tablo} WHERE no LIKE ?`).all(fullPrefix + "%")) {
-    const seq = parseInt(String(r.no).split("-").pop(), 10);
-    if (!Number.isNaN(seq)) maxSeq = Math.max(maxSeq, seq);
-  }
-  return `${fullPrefix}${String(maxSeq + 1).padStart(2, "0")}`;
+  await calistir(
+    `INSERT IGNORE INTO sayaclar(onek, sayac)
+     SELECT ?, COALESCE(MAX(CAST(SUBSTRING_INDEX(\`no\`, '-', -1) AS UNSIGNED)), 0)
+     FROM ${tablo} WHERE \`no\` LIKE ?`,
+    [fullPrefix, fullPrefix + "%"]);
+  const r = await calistir(
+    "UPDATE sayaclar SET sayac = LAST_INSERT_ID(sayac + 1) WHERE onek = ?", [fullPrefix]);
+  return `${fullPrefix}${String(r.insertId).padStart(2, "0")}`;
 }
 
 function safeName(no) {
@@ -150,29 +154,32 @@ function gorselKaydet(file, hedefYol) {
 // ---------------------------------------------------------------------------
 // Öneri / Kaizen
 // ---------------------------------------------------------------------------
-function getRecord(tip, no) {
-  if (tip === "oneri") return oneriRow(db.prepare("SELECT * FROM oneriler WHERE no = ?").get(no));
-  return kaizenRow(db.prepare("SELECT * FROM kaizenler WHERE no = ?").get(no));
+async function getRecord(tip, no) {
+  if (tip === "oneri") {
+    return oneriRow(await tek("SELECT * FROM oneriler WHERE `no` = ?", [no]));
+  }
+  return kaizenRow(await tek("SELECT * FROM kaizenler WHERE `no` = ?", [no]));
 }
 
-function updateRecord(tip, no, fields) {
+async function updateRecord(tip, no, fields) {
   const tablo = tip === "oneri" ? "oneriler" : "kaizenler";
   const f = { ...fields, guncelleme_zamani: S.zamanTr() };
   if ("puanlama" in f) f.puanlama = js(f.puanlama);
-  const keys = Object.keys(f);
+  const keys = Object.keys(f); // alan adları koddan gelir, kullanıcı girdisi değil
   const set = keys.map((k) => `${k} = ?`).join(", ");
-  const r = db.prepare(`UPDATE ${tablo} SET ${set} WHERE no = ?`).run(...keys.map((k) => f[k]), no);
-  return r.changes > 0;
+  const r = await calistir(`UPDATE ${tablo} SET ${set} WHERE \`no\` = ?`,
+    [...keys.map((k) => f[k]), no]);
+  return r.affectedRows > 0;
 }
 
 // Öneri + kaizen birleşik, tarihe göre yeni->eski
-function combinedRecords() {
+async function combinedRecords() {
   const out = [];
-  for (const r of db.prepare("SELECT * FROM oneriler").all().map(oneriRow)) {
+  for (const r of (await sorgu("SELECT * FROM oneriler")).map(oneriRow)) {
     out.push({ ...r, sort_date: r.tarih || "", baslik: r.konu || "", kisi: r.sahibi || "",
       durum: r.durum || S.VARSAYILAN_DURUM });
   }
-  for (const r of db.prepare("SELECT * FROM kaizenler").all().map(kaizenRow)) {
+  for (const r of (await sorgu("SELECT * FROM kaizenler")).map(kaizenRow)) {
     out.push({ ...r, sort_date: r.baslangic || "", baslik: r.konu || "", kisi: r.sorumlular || "",
       durum: r.durum || S.VARSAYILAN_DURUM });
   }
@@ -201,7 +208,7 @@ function mevcutAylar(records) {
 // ---------------------------------------------------------------------------
 // Puan durumu (öneri %10, kaizen lider %50 / üye %25, 5S ödül defteri)
 // ---------------------------------------------------------------------------
-function puanDurumu() {
+async function puanDurumu() {
   const tablo = {};
   const detaylar = {};
 
@@ -217,14 +224,14 @@ function puanDurumu() {
     (detaylar[ad] = detaylar[ad] || []).push({ tip, etiket, no, puan: Math.round(puan * 100) / 100 });
   }
 
-  for (const r of db.prepare("SELECT * FROM oneriler WHERE puan IS NOT NULL").all().map(oneriRow)) {
+  for (const r of (await sorgu("SELECT * FROM oneriler WHERE puan IS NOT NULL")).map(oneriRow)) {
     const p = parseFloat(r.puan);
     if (!p) continue;
     const pay = Math.round(p * 10) / 100;
     puanEkle(r.sahibi, "oneri", pay);
     detayEkle(r.sahibi, "oneri", r.konu || "Öneri", pay, r.no);
   }
-  for (const r of db.prepare("SELECT * FROM kaizenler WHERE puan IS NOT NULL").all().map(kaizenRow)) {
+  for (const r of (await sorgu("SELECT * FROM kaizenler WHERE puan IS NOT NULL")).map(kaizenRow)) {
     const p = parseFloat(r.puan);
     if (!p) continue;
     const liderPay = Math.round(p * 50) / 100;
@@ -236,7 +243,7 @@ function puanDurumu() {
       detayEkle(u, "kaizen", (r.konu || "Kaizen") + " (Üye)", uyePay, r.no);
     }
   }
-  for (const k of db.prepare("SELECT * FROM odul_kayitlari").all().map(odulKayitRow)) {
+  for (const k of (await sorgu("SELECT * FROM odul_kayitlari")).map(odulKayitRow)) {
     let etiket = k.tur_adi || "5S Denetim";
     etiket = `${etiket} — ${k.bolum_ad || ""} (${k.sira ?? "?"}.)`;
     for (const ad of k.kisiler || []) {
@@ -246,10 +253,10 @@ function puanDurumu() {
   }
 
   const harcanan = {};
-  for (const r of db.prepare("SELECT * FROM odul_arsiv").all()) {
+  for (const r of await sorgu("SELECT * FROM odul_arsiv")) {
     harcanan[r.ad] = (harcanan[r.ad] || 0) + (r.puan || S.ODUL_ESIK);
   }
-  const silinen = new Set(db.prepare("SELECT ad FROM silinen_kisiler").all().map((r) => r.ad));
+  const silinen = new Set((await sorgu("SELECT ad FROM silinen_kisiler")).map((r) => r.ad));
 
   const sonuc = [];
   for (const k of Object.values(tablo)) {
@@ -279,8 +286,8 @@ function sayDurum(records) {
   return d;
 }
 
-function dashboardIstatistik() {
-  const recs = combinedRecords();
+async function dashboardIstatistik() {
+  const recs = await combinedRecords();
   const now = S.nowTr();
   const p = (n) => String(n).padStart(2, "0");
   const buAy = `${now.getFullYear()}-${p(now.getMonth() + 1)}`;
@@ -298,45 +305,51 @@ function dashboardIstatistik() {
 // ---------------------------------------------------------------------------
 // 5S — bölümler, denetimler, ödüller
 // ---------------------------------------------------------------------------
-function loadBolumler() {
-  return db.prepare("SELECT * FROM bolumler ORDER BY ad").all().map(bolumRow);
+async function loadBolumler() {
+  return (await sorgu("SELECT * FROM bolumler ORDER BY ad")).map(bolumRow);
 }
-function bolumById(bid) {
-  return bolumRow(db.prepare("SELECT * FROM bolumler WHERE id = ?").get(bid));
+async function bolumById(bid) {
+  return bolumRow(await tek("SELECT * FROM bolumler WHERE id = ?", [bid]));
 }
-function loadDenetimler() {
-  return db.prepare("SELECT * FROM denetimler").all().map(denetimRow);
+// id -> bölüm haritası (döngülerde N+1 sorguyu önler)
+async function bolumMap() {
+  const m = {};
+  for (const b of await loadBolumler()) m[b.id] = b;
+  return m;
 }
-function denetimById(did) {
-  return denetimRow(db.prepare("SELECT * FROM denetimler WHERE id = ?").get(did));
+async function loadDenetimler() {
+  return (await sorgu("SELECT * FROM denetimler")).map(denetimRow);
 }
-function loadAksiyonlar() {
-  return db.prepare("SELECT * FROM aksiyonlar").all().map(aksiyonRow);
+async function denetimById(did) {
+  return denetimRow(await tek("SELECT * FROM denetimler WHERE id = ?", [did]));
 }
-function aksiyonById(aid) {
-  return aksiyonRow(db.prepare("SELECT * FROM aksiyonlar WHERE id = ?").get(aid));
+async function loadAksiyonlar() {
+  return (await sorgu("SELECT * FROM aksiyonlar")).map(aksiyonRow);
 }
-function loadDenetmenler() {
-  return db.prepare("SELECT * FROM denetmenler ORDER BY ad").all();
+async function aksiyonById(aid) {
+  return aksiyonRow(await tek("SELECT * FROM aksiyonlar WHERE id = ?", [aid]));
 }
-function loadMisafirler() {
-  return db.prepare("SELECT * FROM misafirler ORDER BY ad").all();
+async function loadDenetmenler() {
+  return sorgu("SELECT * FROM denetmenler ORDER BY ad");
 }
-function odulIslenenler() {
-  return db.prepare("SELECT tarih FROM odul_islenen").all().map((r) => r.tarih);
+async function loadMisafirler() {
+  return sorgu("SELECT * FROM misafirler ORDER BY ad");
 }
-function odulKayitlari() {
-  return db.prepare("SELECT * FROM odul_kayitlari").all().map(odulKayitRow);
+async function odulIslenenler() {
+  return (await sorgu("SELECT tarih FROM odul_islenen")).map((r) => r.tarih);
+}
+async function odulKayitlari() {
+  return (await sorgu("SELECT * FROM odul_kayitlari")).map(odulKayitRow);
 }
 
-function bolumDenetimleri(bid) {
-  const ds = loadDenetimler().filter((d) => d.bolum_id === bid);
+async function bolumDenetimleri(bid) {
+  const ds = (await sorgu("SELECT * FROM denetimler WHERE bolum_id = ?", [bid])).map(denetimRow);
   ds.sort((a, b) => ((b.tarih || "") + (b.kayit_zamani || ""))
     .localeCompare((a.tarih || "") + (a.kayit_zamani || "")));
   return ds;
 }
-function sonDenetim(bid) {
-  return bolumDenetimleri(bid)[0] || null;
+async function sonDenetim(bid) {
+  return (await bolumDenetimleri(bid))[0] || null;
 }
 
 // Bir denetimin kriter bazlı puanları (0-5). Eski 'checked' formatıyla uyumlu.
@@ -368,37 +381,34 @@ function turAdiUret(tarih) {
   return ay ? `${ay} ${y} Denetimi` : "Denetim";
 }
 
-function besSTurAdi(tarih) {
-  const r = db.prepare(
-    "SELECT tur_adi FROM denetimler WHERE tarih = ? AND tur_adi IS NOT NULL AND TRIM(tur_adi) != '' LIMIT 1"
-  ).get(tarih);
+async function besSTurAdi(tarih) {
+  const r = await tek(
+    "SELECT tur_adi FROM denetimler WHERE tarih = ? AND tur_adi IS NOT NULL AND TRIM(tur_adi) != '' LIMIT 1",
+    [tarih]);
   return r ? r.tur_adi.trim() : "";
 }
 
-function besSTurlar() {
-  return db.prepare("SELECT DISTINCT tarih FROM denetimler WHERE tarih IS NOT NULL AND tarih != '' ORDER BY tarih DESC")
-    .all().map((r) => r.tarih);
+async function besSTurlar() {
+  return (await sorgu(
+    "SELECT DISTINCT tarih FROM denetimler WHERE tarih IS NOT NULL AND tarih != '' ORDER BY tarih DESC"
+  )).map((r) => r.tarih);
 }
 
-function besSPlanTur() {
-  for (const t of besSTurlar()) {
-    const r = db.prepare("SELECT 1 FROM denetimler WHERE tarih = ? AND puan IS NULL LIMIT 1").get(t);
-    if (r) return t;
-  }
-  return null;
+async function besSPlanTur() {
+  const r = await tek(
+    "SELECT tarih FROM denetimler WHERE puan IS NULL AND tarih != '' ORDER BY tarih DESC LIMIT 1");
+  return r ? r.tarih : null;
 }
 
-function besSSonSonucTur() {
-  for (const t of besSTurlar()) {
-    const r = db.prepare("SELECT 1 FROM denetimler WHERE tarih = ? AND puan IS NOT NULL LIMIT 1").get(t);
-    if (r) return t;
-  }
-  return null;
+async function besSSonSonucTur() {
+  const r = await tek(
+    "SELECT tarih FROM denetimler WHERE puan IS NOT NULL AND tarih != '' ORDER BY tarih DESC LIMIT 1");
+  return r ? r.tarih : null;
 }
 
-function aksiyonSayilari() {
+async function aksiyonSayilari() {
   const say = {};
-  for (const a of loadAksiyonlar()) {
+  for (const a of await sorgu("SELECT denetim_id, durum FROM aksiyonlar")) {
     const s = (say[a.denetim_id] = say[a.denetim_id] || { toplam: 0, acik: 0 });
     s.toplam += 1;
     if (a.durum === "acik") s.acik += 1;
@@ -406,13 +416,16 @@ function aksiyonSayilari() {
   return say;
 }
 
-// Bir turdaki bölümlerin skor sıralaması + alacakları ödül (önizleme)
-function besSTurSiralama(tarih) {
-  const ds = loadDenetimler().filter((d) => d.tarih === tarih && d.puan !== null);
+// Bir turdaki bölümlerin skor sıralaması + alacakları ödül (önizleme).
+// ctx verilirse (denetimler/bolumlar/aksiyonSay) tekrar sorgu atılmaz.
+async function besSTurSiralama(tarih, ctx = null) {
+  const denetimler = ctx ? ctx.denetimler : await loadDenetimler();
+  const bolumlar = ctx ? ctx.bolumlar : await bolumMap();
+  const aks = ctx ? ctx.aksiyonSay : await aksiyonSayilari();
+  const ds = denetimler.filter((d) => d.tarih === tarih && d.puan !== null);
   ds.sort((a, b) => b.puan - a.puan);
-  const aks = aksiyonSayilari();
   return ds.map((d, i) => {
-    const b = bolumById(d.bolum_id);
+    const b = bolumlar[d.bolum_id];
     const ak = aks[d.id] || { toplam: 0, acik: 0 };
     return { sira: i + 1, ad: b ? b.ad : "?", skor: d.puan, odul: S.ODUL_MAP[i] || 0,
       denetim_id: d.id, bolum_id: d.bolum_id, tarih: denetimTarihi(d),
@@ -420,16 +433,18 @@ function besSTurSiralama(tarih) {
   });
 }
 
-function besSTurTamam(tarih) {
-  const ds = loadDenetimler().filter((d) => d.tarih === tarih);
+async function besSTurTamam(tarih, denetimler = null) {
+  const ds = (denetimler || await loadDenetimler()).filter((d) => d.tarih === tarih);
   return ds.length > 0 && ds.every((d) => d.puan !== null);
 }
 
-function besSTurEksikler(tarih) {
+async function besSTurEksikler(tarih, ctx = null) {
+  const denetimler = ctx ? ctx.denetimler : await loadDenetimler();
+  const bolumlar = ctx ? ctx.bolumlar : await bolumMap();
   const eksik = [];
-  for (const d of loadDenetimler()) {
+  for (const d of denetimler) {
     if (d.tarih === tarih && d.puan === null) {
-      const b = bolumById(d.bolum_id);
+      const b = bolumlar[d.bolum_id];
       if (b) eksik.push(b.ad);
     }
   }
@@ -437,53 +452,77 @@ function besSTurEksikler(tarih) {
 }
 
 // Bir turun ödüllerini kalıcı deftere işler (ilk 3 bölüm ekibine 100/75/50).
-function besSIsle(tarih) {
-  if (odulIslenenler().includes(tarih)) return [false, "Bu tur zaten işlenmiş."];
-  if (!besSTurTamam(tarih)) {
-    return [false, `Tüm bölümler denetlenmeden ödül dağıtılamaz. Eksik: ${besSTurEksikler(tarih).join(", ")}`];
+// Tamamı tek transaction'dadır.
+async function besSIsle(tarih) {
+  if ((await odulIslenenler()).includes(tarih)) return [false, "Bu tur zaten işlenmiş."];
+  const denetimler = await loadDenetimler();
+  if (!(await besSTurTamam(tarih, denetimler))) {
+    const eksik = await besSTurEksikler(tarih, { denetimler, bolumlar: await bolumMap() });
+    return [false, `Tüm bölümler denetlenmeden ödül dağıtılamaz. Eksik: ${eksik.join(", ")}`];
   }
-  const turdaki = loadDenetimler().filter((d) => d.tarih === tarih && d.puan !== null);
+  const turdaki = denetimler.filter((d) => d.tarih === tarih && d.puan !== null);
   if (!turdaki.length) return [false, "Bu turda puanlanmış denetim yok."];
   turdaki.sort((a, b) => b.puan - a.puan);
+  const turAdi = await besSTurAdi(tarih);
+  const bolumlar = await bolumMap();
   const now = S.zamanTr();
-  const ins = db.prepare(`INSERT INTO odul_kayitlari(tarih, tur_adi, bolum_id, bolum_ad, sira, puan, kisiler, islenme_zamani)
-                          VALUES(?,?,?,?,?,?,?,?)`);
-  const tx = db.prepare("INSERT INTO odul_islenen(tarih) VALUES(?)");
-  for (let sira = 0; sira < Math.min(3, turdaki.length); sira++) {
-    const b = bolumById(turdaki[sira].bolum_id);
-    if (!b) continue;
-    const kisiler = [b.sorumlu || "", ...(b.kisiler || [])].map((x) => (x || "").trim()).filter(Boolean);
-    ins.run(tarih, besSTurAdi(tarih), b.id, b.ad, sira + 1, S.ODUL_MAP[sira], js(kisiler), now);
-  }
-  tx.run(tarih);
+  await transaction(async (conn) => {
+    for (let sira = 0; sira < Math.min(3, turdaki.length); sira++) {
+      const b = bolumlar[turdaki[sira].bolum_id];
+      if (!b) continue;
+      const kisiler = [b.sorumlu || "", ...(b.kisiler || [])].map((x) => (x || "").trim()).filter(Boolean);
+      await calistir(
+        `INSERT INTO odul_kayitlari(tarih, tur_adi, bolum_id, bolum_ad, sira, puan, kisiler, islenme_zamani)
+         VALUES(?,?,?,?,?,?,?,?)`,
+        [tarih, turAdi, b.id, b.ad, sira + 1, S.ODUL_MAP[sira], js(kisiler), now], conn);
+    }
+    await calistir("INSERT INTO odul_islenen(tarih) VALUES(?)", [tarih], conn);
+  });
   return [true, `${tarih} turu işlendi.`];
 }
 
-function besSTurKazananlar(tarih) {
-  return odulKayitlari().filter((k) => k.tarih === tarih).sort((a, b) => (a.sira || 9) - (b.sira || 9));
+async function besSTurKazananlar(tarih) {
+  const ks = (await sorgu("SELECT * FROM odul_kayitlari WHERE tarih = ?", [tarih])).map(odulKayitRow);
+  return ks.sort((a, b) => (a.sira || 9) - (b.sira || 9));
 }
 
 // İşlenmiş ödül turları (en yenisi hariç) — geçmiş aylar
-function besSArsivAylar() {
-  const islenen = odulIslenenler().sort().reverse();
+async function besSArsivAylar() {
+  const islenen = (await odulIslenenler()).sort().reverse();
   const guncel = islenen[0] || null;
-  const gecmis = islenen.filter((t) => t !== guncel)
-    .map((tarih) => ({ tarih, kazananlar: besSTurKazananlar(tarih) }));
+  const gecmis = [];
+  for (const tarih of islenen) {
+    if (tarih === guncel) continue;
+    gecmis.push({ tarih, kazananlar: await besSTurKazananlar(tarih) });
+  }
   return [guncel, gecmis];
 }
 
-function besSGecmisTurlar() {
-  return besSTurlar().map((t) => ({
-    tarih: t, ad: besSTurAdi(t), siralama: besSTurSiralama(t), tamam: besSTurTamam(t),
-  }));
+async function besSGecmisTurlar() {
+  const ctx = {
+    denetimler: await loadDenetimler(),
+    bolumlar: await bolumMap(),
+    aksiyonSay: await aksiyonSayilari(),
+  };
+  const out = [];
+  for (const t of await besSTurlar()) {
+    out.push({
+      tarih: t,
+      ad: await besSTurAdi(t),
+      siralama: await besSTurSiralama(t, ctx),
+      tamam: await besSTurTamam(t, ctx.denetimler),
+    });
+  }
+  return out;
 }
 
 // Plan tablosu satırları; aktifDenetmenAd verilirse `benim` işaretlenir.
-function besSPlanSatirlari(tarih, aktifDenetmenAd) {
+async function besSPlanSatirlari(tarih, aktifDenetmenAd) {
+  const bolumlar = await bolumMap();
   const out = [];
-  for (const d of loadDenetimler()) {
+  for (const d of await loadDenetimler()) {
     if (d.tarih !== tarih) continue;
-    const b = bolumById(d.bolum_id);
+    const b = bolumlar[d.bolum_id];
     const planlanan = d.planlanan_denetmen || "";
     out.push({
       denetim_id: d.id, bolum_id: d.bolum_id, bolum_ad: b ? b.ad : "?",
@@ -502,12 +541,13 @@ function besSPlanSatirlari(tarih, aktifDenetmenAd) {
 }
 
 // Trend tablosu: satır=bölüm, sütun=denetim turu (eski->yeni), fark renklendirilir.
-function besSTrendTablo() {
-  const denetimler = loadDenetimler();
+async function besSTrendTablo() {
+  const denetimler = await loadDenetimler();
   const turlar = [...new Set(denetimler.filter((d) => d.tarih && d.puan !== null).map((d) => d.tarih))].sort();
-  const basliklar = turlar.map((t) => ({ tarih: t, ad: besSTurAdi(t) || turAdiUret(t) }));
+  const basliklar = [];
+  for (const t of turlar) basliklar.push({ tarih: t, ad: (await besSTurAdi(t)) || turAdiUret(t) });
   const satirlar = [];
-  for (const b of loadBolumler()) {
+  for (const b of await loadBolumler()) {
     const hucreler = [];
     let onceki = null;
     for (const t of turlar) {
@@ -534,26 +574,26 @@ function bolumLiderleri(b) {
   return isimListesi((b || {}).sorumlu);
 }
 // Denetmen adayları = tüm bölümlerin ekip liderleri (benzersiz, sıralı)
-function denetmenAdaylari() {
+async function denetmenAdaylari() {
   const adlar = [];
-  for (const b of loadBolumler()) {
+  for (const b of await loadBolumler()) {
     for (const ad of bolumLiderleri(b)) if (!adlar.includes(ad)) adlar.push(ad);
   }
   return adlar.sort((a, b) => a.localeCompare(b, "tr"));
 }
 // Şifreden denetmeni bulur (giriş) — hash karşılaştırmalı
-function denetmenBySifre(sifre) {
+async function denetmenBySifre(sifre) {
   if (!sifre) return null;
-  for (const d of loadDenetmenler()) {
+  for (const d of await loadDenetmenler()) {
     if (checkPassword(d.sifre, sifre)) return d;
   }
   return null;
 }
 // Oturumdaki denetmen kaydı (silinmiş hesabı düşürür)
-function aktifDenetmen(session) {
+async function aktifDenetmen(session) {
   const did = session && session.denetmen_id;
   if (!did) return null;
-  const d = db.prepare("SELECT * FROM denetmenler WHERE id = ?").get(did);
+  const d = await tek("SELECT * FROM denetmenler WHERE id = ?", [did]);
   if (!d) { delete session.denetmen_id; delete session.denetmen_ad; }
   return d || null;
 }
@@ -562,26 +602,28 @@ function aktifDenetmen(session) {
 // Aksiyonlar
 // ---------------------------------------------------------------------------
 // Aksiyonu kapatabilecek kişi = açıldığı bölümün GÜNCEL ekip lideri
-function aksiyonAtanan(a) {
-  const b = bolumById(a.bolum_id);
+async function aksiyonAtanan(a, bolumlar = null) {
+  const b = bolumlar ? bolumlar[a.bolum_id] : await bolumById(a.bolum_id);
   if (b && (b.sorumlu || "").trim()) return b.sorumlu.trim();
   return (a.atanan_lider || "").trim();
 }
 // Yönetici her zaman; denetmen yalnızca kendi bölümünün lideri olarak atanmışsa
-function aksiyonKapatabilir(a, session) {
+async function aksiyonKapatabilir(a, session, bolumlar = null) {
   if (a.durum === "kapali") return false;
   if (session && session.admin) return true;
-  const d = aktifDenetmen(session);
-  return Boolean(d && isimListesi(aksiyonAtanan(a)).includes(d.ad));
+  const d = await aktifDenetmen(session);
+  if (!d) return false;
+  return isimListesi(await aksiyonAtanan(a, bolumlar)).includes(d.ad);
 }
 
 // Aksiyonları iki seviyede gruplar: denetim TURU → BÖLÜM → aksiyonlar
-function aksiyonGruplari(durum, session) {
+async function aksiyonGruplari(durum, session) {
+  const bolumlar = await bolumMap();
   const turlar = new Map();
-  for (const a of loadAksiyonlar()) {
+  for (const a of await loadAksiyonlar()) {
     if (durum && a.durum !== durum) continue;
-    a._atanan = aksiyonAtanan(a);
-    a._kapatabilir = aksiyonKapatabilir(a, session);
+    a._atanan = await aksiyonAtanan(a, bolumlar);
+    a._kapatabilir = await aksiyonKapatabilir(a, session, bolumlar);
     const turAdi = a.tur_adi || turAdiUret(a.tarih || "");
     const anahtar = `${a.tarih || ""}|${turAdi}`;
     if (!turlar.has(anahtar)) {
@@ -608,17 +650,15 @@ function aksiyonFotolari(a) {
 
 // Denetim formundaki 'Aksiyon Ata' alanlarından açık aksiyon kayıtları oluşturur.
 // Her kriter için EN FAZLA 2 açık aksiyon; aynı metinli mükerrer eklenmez.
-function syncDenetimAksiyonlari(did, meta, form) {
-  const atananLider = ((bolumById(meta.bolum_id) || {}).sorumlu || "").trim();
-  const mevcutlar = loadAksiyonlar().filter((a) => a.denetim_id === did && a.durum === "acik");
+async function syncDenetimAksiyonlari(did, meta, form) {
+  const atananLider = (((await bolumById(meta.bolum_id)) || {}).sorumlu || "").trim();
+  const mevcutlar = (await sorgu(
+    "SELECT * FROM aksiyonlar WHERE denetim_id = ? AND durum = 'acik'", [did])).map(aksiyonRow);
   const mevcutMetinler = new Set(mevcutlar.map((a) => `${a.kriter_k}|${(a.aksiyon || "").trim()}`));
   const acikSayisi = {};
   for (const a of mevcutlar) acikSayisi[a.kriter_k] = (acikSayisi[a.kriter_k] || 0) + 1;
 
   const now = S.zamanTr();
-  const ins = db.prepare(`INSERT INTO aksiyonlar(id, denetim_id, tarih, tur_adi, bolum_id, bolum_ad,
-      kriter_k, kriter_m, aksiyon, sorumlu, atanan_lider, termin, durum, olusturma_zamani, kapatma)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL)`);
   let eklendi = 0;
   for (const s of P.BESS) {
     for (const kr of s.kriterler) {
@@ -629,9 +669,13 @@ function syncDenetimAksiyonlari(did, meta, form) {
         if ((acikSayisi[k] || 0) >= 2) continue;
         let termin = String(form[`aksiyon_termin_${k}_${slot}`] || "").trim();
         if (termin && meta.tarih && termin <= meta.tarih) termin = ""; // termin denetimden sonra olmalı
-        ins.run(uid(), did, meta.tarih, meta.tur_adi, meta.bolum_id, meta.bolum_ad,
-          k, kr.m, metin, String(form[`aksiyon_sorumlu_${k}_${slot}`] || "").trim(),
-          atananLider, termin, "acik", now);
+        await calistir(
+          `INSERT INTO aksiyonlar(id, denetim_id, tarih, tur_adi, bolum_id, bolum_ad,
+             kriter_k, kriter_m, aksiyon, sorumlu, atanan_lider, termin, durum, olusturma_zamani, kapatma)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL)`,
+          [uid(), did, meta.tarih, meta.tur_adi, meta.bolum_id, meta.bolum_ad,
+            k, kr.m, metin, String(form[`aksiyon_sorumlu_${k}_${slot}`] || "").trim(),
+            atananLider, termin, "acik", now]);
         mevcutMetinler.add(`${k}|${metin}`);
         acikSayisi[k] = (acikSayisi[k] || 0) + 1;
         eklendi += 1;
@@ -710,7 +754,7 @@ module.exports = {
   uid, nextNumber, safeName, allowedFile, guvenliYol, trdate, ayEtiketi, puanfmt,
   gorselKaydet, getRecord, updateRecord, combinedRecords, filtrele, mevcutAylar,
   puanDurumu, dashboardIstatistik,
-  loadBolumler, bolumById, loadDenetimler, denetimById, loadAksiyonlar, aksiyonById,
+  loadBolumler, bolumById, bolumMap, loadDenetimler, denetimById, loadAksiyonlar, aksiyonById,
   loadDenetmenler, loadMisafirler, odulIslenenler, odulKayitlari,
   bolumDenetimleri, sonDenetim, denetimKriterPuanlari, denetimTarihi, denetimFotolari,
   turAdiUret, besSTurAdi, besSTurlar, besSPlanTur, besSSonSonucTur, aksiyonSayilari,

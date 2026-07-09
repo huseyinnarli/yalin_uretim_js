@@ -13,16 +13,15 @@ Kod tabanını devralacak bir geliştirici için referanstır. Kullanıcı odakl
 |---|---|
 | **Tür** | Fabrika içi web uygulaması — Öneri, Kaizen, 5S denetim + personel puan/ödül sistemi |
 | **Çalışma modeli** | Tek Node.js süreci, sunucu tarafı render (SPA değil), dış CDN yok |
-| **Veritabanı** | SQLite (`node:sqlite` yerleşik modülü, WAL modu) — `data/yalin.db` |
+| **Veritabanı** | MySQL 8 (`mysql2/promise` bağlantı havuzu, 10 bağlantı) — utf8mb4 + `utf8mb4_turkish_ci` |
 | **Arayüz** | EJS şablonları + tek `static/style.css` + az miktarda vanilla JS |
 | **Raporlama** | exceljs (Excel), archiver (fotoğraf ZIP'leri) — talep anında üretilir |
 | **Kimlik** | İmzalı çerez oturumu (cookie-session, 12 saat), şifreden rol tanıma |
 
 ### Bağımlılıklar (tamamı saf JavaScript — native derleme yok)
 
-`express` (web çatısı) · `ejs` (şablon) · `exceljs` (Excel) · `archiver` (ZIP) ·
-`multer` (dosya yükleme) · `cookie-session` (oturum). Veritabanı sürücüsü Node yerleşiği
-olduğundan ek bağımlılık gerektirmez.
+`express` (web çatısı) · `mysql2` (MySQL sürücüsü, promise API) · `ejs` (şablon) ·
+`exceljs` (Excel) · `archiver` (ZIP) · `multer` (dosya yükleme) · `cookie-session` (oturum).
 
 ---
 
@@ -33,12 +32,18 @@ Bağımlılık yönü tek taraflıdır, döngü yoktur:
 ```
 sabitler.js   → yollar, sabit değerler, TR saat yardımcıları        (saf, bağımlılıksız)
 puanlama.js   → öneri/kaizen rubriği + 5S kriter tanımları          (saf, IO/Express yok)
-db.js         → SQLite bağlantısı + şema + satır↔nesne dönüşümü + otomatik yedek
+db.js         → MySQL havuzu + şema + sorgu/transaction yardımcıları + otomatik yedek
 cekirdek.js   → iş mantığı: numara, puan durumu, 5S motoru, kimlik  (Express'e bağımlı DEĞİL)
-web.js        → istek bağlamı gerektiren yardımcılar: flash, CSRF, hız limiti, yetki
+web.js        → istek bağlamı gerektiren yardımcılar: flash, CSRF, hız limiti, yetki, sar()
 rotalar/*.js  → HTTP rotaları (module.exports = register(app) deseni)
-server.js     → Express kurulumu + middleware zinciri + modül kaydı
+server.js     → async main(): şema kurulumu → Express kurulumu → middleware → modül kaydı
 ```
+
+Veri erişimi **tamamen asenkrondur** (`async/await`). `db.js` üç yardımcı sunar:
+`sorgu(sql, params)` (satır listesi), `tek(...)` (ilk satır), `calistir(...)` (INSERT/UPDATE
+sonucu) ve `transaction(fn)` — `fn(conn)` tek transaction içinde çalışır, hata durumunda
+tamamı geri alınır. Express 4 async hataları kendiliğinden yakalamadığından tüm async rota
+işleyicileri `web.js:sar()` sarıcısıyla kaydedilir (reddedilen promise 500 işleyiciye düşer).
 
 `cekirdek.js` oturuma ihtiyaç duyduğunda `session` nesnesini **parametre olarak alır**
 (`aktifDenetmen(session)`, `aksiyonKapatabilir(a, session)`) — bu sayede Express olmadan
@@ -51,7 +56,7 @@ test edilebilir.
 | `server.js` | Express app, middleware sırası, rota modüllerinin kaydı, 404/500 yakalayıcı, `listen` |
 | `src/sabitler.js` | `DATA_DIR` (env ile taşınabilir), tüm klasör yolları, `ODUL_ESIK=300`, `ODUL_MAP={100,75,50}`, `DURUMLAR`, `KAZANC_BASLIKLARI`, `TR_AYLAR`, `ALAN_MAX=5000`, `nowTr()/bugunIso()/zamanTr()` (Europe/Istanbul) |
 | `src/puanlama.js` | `PUAN_TEMEL/ETKI/MALIYET/YAYGIN/EFOR` rubrik tanımları, `PUAN_MAX`, `BESS` (5×4 kriter), `hesaplaPuanlama(form)`, `puanlamaOzet(p)` |
-| `src/db.js` | `DatabaseSync` bağlantısı, `CREATE TABLE IF NOT EXISTS` şeması, JSON kolon yardımcıları (`j`/`js`), satır dönüştürücüler (`oneriRow`, `denetimRow`…), `configGet/Set`, `yedekle()` (VACUUM INTO) + `baslatYedekleme()` |
+| `src/db.js` | mysql2 bağlantı havuzu, `CREATE TABLE IF NOT EXISTS` şeması (`init()`), `sorgu/tek/calistir/transaction` yardımcıları, JSON kolon yardımcıları (`j`/`js`), satır dönüştürücüler (`oneriRow`, `denetimRow`…), `configGet/Set`, `yedekle()` (tüm tablolar → json.gz) + `baslatYedekleme()` |
 | `src/cekirdek.js` | Şifre (hash/doğrulama, werkzeug uyumlu), `nextNumber`, `guvenliYol`, `gorselKaydet` (magic bytes), öneri/kaizen CRUD yardımcıları, `combinedRecords/filtrele/mevcutAylar`, `puanDurumu`, `dashboardIstatistik`, tüm 5S fonksiyonları (`besSTur*`, `besSIsle`, `besSPlanSatirlari`, `besSTrendTablo`…), aksiyon mantığı (`aksiyonKapatabilir`, `syncDenetimAksiyonlari`), denetmen/misafir yardımcıları |
 | `src/web.js` | `flash`, `hizLimitAsildi` (bellek içi kayan pencere), `alan` (kırp + 5000 sınır), `ortakLocals` (her istekte şablon değişkenleri + flash tüketimi + CSRF üretimi), `csrfDogrula`, `guvenlikBasliklari`, `adminRequired`/`denetciRequired` |
 | `src/excel.js` | 7 rapor üreticisi: öneri, kaizen (görsel gömülü), 5S toplu, 5S tek form, aksiyonlar, puan listesi, ödül alanlar, 5S trend (renkli fark) — hepsi buffer döner |
@@ -61,6 +66,8 @@ test edilebilir.
 | `src/rotalar/bes_s.js` | 5S: bölümler, plan (oluştur/kaydet/dağıt/sil), denetim (yap/göster/sil/Excel/ZIP), aksiyonlar (kapat/sil/Excel/ZIP), ödül işleme, geçmiş/arşiv, görsel servisleri (27 rota) |
 | `src/rotalar/admin.js` | Giriş/çıkış, dashboard, denetmen/misafir yönetimi, şifre değiştirme, durum değiştirme, değerlendirme-puanlama, kayıt silme, trend Excel (13 rota) |
 | `scripts/import-json.js` | Eski JSON tabanlı sürümden veri + görsel aktarımı (kaynağa salt-okunur, tek transaction, hata durumunda tam geri alma) |
+| `scripts/sqlite-to-mysql.js` | Önceki SQLite sürümünden (`data/yalin.db`) tüm tabloları MySQL'e taşır (`npm run migrate`) |
+| `scripts/e2e-test.js` | Uçtan uca test paketi — ayrı veritabanı (`yalin_e2e`) + geçici veri klasörü + ayrı port (`npm test`) |
 
 ---
 
@@ -85,11 +92,12 @@ test edilebilir.
 
 ---
 
-## 4. Veri Modeli (SQLite)
+## 4. Veri Modeli (MySQL)
 
-Liste/nesne değerli alanlar **JSON kolonlarında** metin olarak saklanır; okurken `db.js`'teki
-satır dönüştürücüler nesneye çevirir. Tarihler ISO (`YYYY-MM-DD`), zaman damgaları
-`DD.MM.YYYY HH:MM` (TR saati) formatındadır.
+Tüm tablolar InnoDB, `utf8mb4` karakter seti ve `utf8mb4_turkish_ci` collation ile kurulur
+(Türkçe karakterler ve sıralama doğru çalışır). Liste/nesne değerli alanlar **TEXT kolonlarında
+JSON** olarak saklanır; okurken `db.js`'teki satır dönüştürücüler nesneye çevirir. Tarihler ISO
+(`YYYY-MM-DD`), zaman damgaları `DD.MM.YYYY HH:MM` (TR saati) formatındadır.
 
 | Tablo | Anahtar | Önemli kolonlar |
 |---|---|---|
@@ -105,6 +113,7 @@ satır dönüştürücüler nesneye çevirir. Tarihler ISO (`YYYY-MM-DD`), zaman
 | `silinen_kisiler` | `ad` | puan listesinden gizlenenler (puanlar silinmez) |
 | `denetmenler` | `id` | ad, `sifre` (hash), oluşturma |
 | `misafirler` | `id` | ad, oluşturma |
+| `sayaclar` | `onek` | öneri/kaizen numara sayaçları (ör. `ÖNFR2607-` → 2) — atomik artırma |
 
 **Kritik tasarım kararları:**
 - **`denetimler.tarih` = tur kimliği.** Bir denetim turu, plan başlangıç tarihiyle ayırt edilir;
@@ -123,8 +132,10 @@ satır dönüştürücüler nesneye çevirir. Tarihler ISO (`YYYY-MM-DD`), zaman
 ## 5. Önemli İş Kuralları ve Algoritmalar
 
 ### Numara üretimi (`nextNumber`)
-`ÖNFR2607-01` = önek + yıl(2) + ay(2) + o ayki sıra. Sıra her ay sıfırlanır. Üretim ve ekleme
-**aynı `BEGIN IMMEDIATE` transaction'ında** yapılır → eşzamanlı gönderimde mükerrer numara oluşmaz.
+`ÖNFR2607-01` = önek + yıl(2) + ay(2) + o ayki sıra. Sıra her ay sıfırlanır. Numara,
+`sayaclar` tablosundaki **atomik sayaçtan** alınır (`UPDATE ... SET sayac = LAST_INSERT_ID(sayac+1)`
+deseni) → eşzamanlı gönderimde mükerrer numara oluşmaz. Sayaç kaydı yoksa (ör. veri aktarımından
+sonra ilk kayıt) mevcut kayıtların en büyük sırasından otomatik tohumlanır.
 
 ### Puanlama motoru (`hesaplaPuanlama`)
 - **Temel Şartlar** ÇOKLU: iki madde de puanlanır, toplanır (max 10).
@@ -178,9 +189,10 @@ Kaizen raporunda önce/sonra görselleri hücrelere gömülür. ZIP'ler archiver
 yazılır (bellekte tam kopya tutulmaz). Excel/ZIP uçları yalnızca yöneticiye açıktır.
 
 ### Otomatik yedek
-Açılışta + 6 saatte bir `VACUUM INTO` ile **tutarlı** veritabanı kopyası
-`data/_yedek_otomatik/yedek_YYYYMMDD_HHMMSS.db` olarak alınır; son 15 kopya tutulur.
-(Görsel klasörleri yedeğe dahil değildir — bkz. iyileştirme raporu.)
+Açılışta + 6 saatte bir tüm tablolar `data/_yedek_otomatik/yedek_YYYYMMDD_HHMMSS.json.gz`
+dosyasına dökülür; son 15 kopya tutulur. Bu, uygulama içi bir güvence katmanıdır — tam sunucu
+yedeği için `mysqldump` tercih edilmelidir. (Görsel klasörleri yedeğe dahil değildir —
+bkz. iyileştirme raporu.)
 
 ---
 
@@ -214,13 +226,19 @@ Açılışta + 6 saatte bir `VACUUM INTO` ile **tutarlı** veritabanı kopyası
 
 ## 8. Dağıtım Notları
 
+- **MySQL sunucusu:** Windows'ta servis olarak kurulması önerilir
+  (`mysqld --install <ad> --defaults-file=<my.ini>` — veri dizini `C:\ProgramData` altında
+  olmalıdır; kullanıcı profili altındaki veri diziniyle servis başlamayabilir).
+  Bu makinedeki kurulum: `YalinMySQL` servisi, veri `C:\ProgramData\YalinMySQL\data`,
+  yalnızca `127.0.0.1`'i dinler.
 - **LAN (mevcut hedef):** `npm start` yeterli. Veri klasörünü kod dışına almak için
   `YALIN_DATA_DIR` kullanın; klasörün düzenli olarak farklı bir diske kopyalanması önerilir.
 - **İnternet:** Uygulama TLS sonlandırmaz — bir reverse proxy (Caddy/nginx) arkasına konmalıdır.
   Bu senaryoda ek sertleştirme gerekir (secure cookie, `trust proxy`, HSTS) — henüz yapılandırma
   bayrağı yoktur; ayrıntı ve plan için [IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md) bkz. R3.
-- **Süreç yönetimi:** Windows'ta Görev Zamanlayıcı/NSSM, Linux'ta systemd ile açılışta başlatma;
-  uygulama tek süreçtir, yatay ölçekleme desteklenmez (SQLite tek yazar).
+- **Süreç yönetimi:** Windows'ta Görev Zamanlayıcı/NSSM, Linux'ta systemd ile açılışta başlatma.
+  Veritabanı MySQL olduğundan gerekirse uygulama birden çok süreçle de çalıştırılabilir
+  (hız-limit/giriş-kilidi sayaçları süreç-içidir; çok süreçte etkisi zayıflar).
 
 ## 9. Geliştirme Rehberi
 
@@ -229,7 +247,10 @@ Açılışta + 6 saatte bir `VACUUM INTO` ile **tutarlı** veritabanı kopyası
 - **Yeni alan eklerken:** şemaya kolon ekleyin (`db.js` — mevcut kurulumlar için
   `ALTER TABLE ... ADD COLUMN` migrasyonu gerekir), satır dönüştürücüyü ve ilgili formu/detayı
   güncelleyin. Liste değerli alanlarda `js()`/`j()` yardımcılarını kullanın.
+- **Veri erişimi:** yeni iş mantığı fonksiyonları `async` olmalı ve `sorgu/tek/calistir`
+  kullanmalıdır; çok adımlı yazmaları `transaction(fn)` ile sarın. Rota işleyicisinde `await`
+  varsa mutlaka `sar()` ile kaydedin.
 - **İş kuralı değişikliği:** puan oranları `cekirdek.js:puanDurumu`, rubrik `puanlama.js`,
   ödül eşiği/haritası `sabitler.js` (`ODUL_ESIK`, `ODUL_MAP`).
-- **Test:** izole çalıştırma için `YALIN_DATA_DIR=<geçici> PORT=5001 node server.js` —
-  canlı veriye dokunmadan tüm akışlar denenebilir.
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 24 adımlı
+  uçtan uca senaryo; canlı veriye dokunmaz.
