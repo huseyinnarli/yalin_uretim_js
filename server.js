@@ -18,7 +18,12 @@ async function main() {
   const app = express();
   app.set("view engine", "ejs");
   app.set("views", path.join(__dirname, "views"));
-  app.set("trust proxy", false); // reverse proxy arkasında çalıştırırken true yapın
+
+  // Dağıtım bayrakları (data/config.json veya YALIN_HTTPS / YALIN_PROXY):
+  // proxy → gerçek istemci IP'si (hız limiti / giriş kilidi doğru çalışsın),
+  // https → çerez yalnızca şifreli bağlantıda taşınır + HSTS başlığı.
+  const site = S.siteKonfig();
+  app.set("trust proxy", site.proxy ? 1 : false);
 
   app.use(web.guvenlikBasliklari);
   app.use("/static", express.static(path.join(__dirname, "static"), { maxAge: "365d" }));
@@ -33,6 +38,7 @@ async function main() {
     maxAge: 12 * 60 * 60 * 1000,
     httpOnly: true,
     sameSite: "lax",
+    secure: site.https,
   }));
 
   app.use(web.ortakLocals);

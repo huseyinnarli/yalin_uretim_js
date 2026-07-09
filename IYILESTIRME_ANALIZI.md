@@ -1,13 +1,13 @@
 # Kod İnceleme Raporu — İyileştirmeler ve Riskler
 
 Tarih: 2026-07-08 · Kapsam: tüm kaynak kod + bağımlılık denetimi (`npm audit`)
-Güncelleme: 2026-07-09 — R1, R2, R6, R7 ve R9 **kapatıldı** (MySQL geçişi + yükleme sertleştirmesi).
+Güncelleme: 2026-07-09 — R1, R2, R3, R6, R7 ve R9 **kapatıldı**
+(MySQL geçişi + yükleme sertleştirmesi + HTTPS/proxy bayrakları).
 
 **Özet karar:** Mimari sağlam ve katmanlı; güvenlik temelleri (CSRF, hash'li şifreler,
 parametreli SQL, path-traversal koruması, dosya imzası doğrulaması) yerinde. Fabrika içi ağda
-(LAN) kullanım için **hazır**. İnternete açılmadan önce kapatılması gereken en önemli eksik
-**R3** (HTTPS/proxy yapılandırması); R4 (görsel işleme) ve R5 (yedek kapsamı) kısa vadede
-önerilir.
+(LAN) kullanım için **hazır**; internete açılırken `https`/`proxy` bayraklarını etkinleştirmek
+yeterlidir. Kalan öneriler: R4 (görsel işleme) ve R5 (yedek kapsamı) kısa vadede.
 
 ## Bulgu Özeti
 
@@ -15,7 +15,7 @@ parametreli SQL, path-traversal koruması, dosya imzası doğrulaması) yerinde.
 |---|---|---|---|
 | R1 | Open redirect (`next` parametresi `//host` biçimini kabul ediyordu) | Yüksek | ✅ **Düzeltildi** (2026-07-09, e2e testte doğrulanıyor) |
 | R2 | Dosya yükleme bellek sınırı çok genişti (istek başına ~1,1 GB olasılığı) | Yüksek | ✅ **Düzeltildi** (2026-07-09, rota-bazlı multer + uca özel sınırlar) |
-| R3 | HTTPS/reverse-proxy desteği yok (secure cookie, trust proxy, HSTS) | **Yüksek** (yalnız internet senaryosu) | Açık |
+| R3 | HTTPS/reverse-proxy desteği yoktu (secure cookie, trust proxy, HSTS) | Yüksek | ✅ **Düzeltildi** (2026-07-09, `https`/`proxy` yapılandırma bayrakları) |
 | R4 | Görseller yeniden işlenmiyor (küçültme/EXIF temizliği yok) | Orta | Açık |
 | R5 | Yedek kapsamı: görseller hariç, yedekler aynı diskte | Orta | Açık |
 | R6 | Çok adımlı bazı yazmalar transaction dışındaydı | Orta | ✅ **Düzeltildi** (ödül işleme, denetim/bölüm silme, plan oluşturma `transaction()` içinde) |
@@ -43,18 +43,14 @@ açıklayıcı 400 döner. Dosya kabul etmeyen uçlara multipart gönderim **do�
 sonra ayrıca doğrulanır). En kötü durum bellek kullanımı istek başına ~1,1 GB'tan
 herkese açık uçlarda ~16-40 MB'a indi. e2e testinde 3 yeni adımla doğrulanıyor.
 
-### R3 — HTTPS / reverse-proxy desteği yok
-- Oturum çerezinde `secure` bayrağı yok; HSTS başlığı yok.
-- `trust proxy` kapalı: reverse proxy arkasında `req.ip` hep proxy adresi olur →
-  **tüm kullanıcılar tek IP sayılır**; 8 hatalı girişte herkes kilitlenir, hız limitleri
-  ortak havuzdan tükenir.
-
-LAN'da sorun oluşturmaz; internete çıkışta şarttır.
-
-**Öneri:** `config` tablosuna `https` ve `proxy` bayrakları ekle; açıkken
-`app.set("trust proxy", 1)`, cookie-session'a `secure: true`, başlıklara
-`Strict-Transport-Security` ekle. (Eski sistemdeki `ProxyFix` + `SESSION_COOKIE_SECURE`
-davranışının karşılığı.)
+### R3 — HTTPS / reverse-proxy desteği ✅ DÜZELTİLDİ (2026-07-09)
+`data/config.json` (`{ "https": true, "proxy": true }`) veya `YALIN_HTTPS`/`YALIN_PROXY`
+ortam değişkenleriyle açılır (`sabitler.js:siteKonfig`). `proxy` → `trust proxy` (hız
+limiti/giriş kilidi gerçek istemci IP'sini görür); `https` → oturum çerezine `Secure`
+bayrağı + `Strict-Transport-Security` başlığı. Varsayılan kapalıdır (LAN davranışı değişmez).
+e2e testinde bayraklar açık ikinci bir sunucuyla HSTS ve Secure çerez doğrulanıyor.
+Not: `https` açıkken proxy `X-Forwarded-Proto: https` iletmelidir — aksi hâlde çerez
+yazılamaz (bilinçli: şifresiz bağlantıda oturum taşınmaz).
 
 ---
 
@@ -141,6 +137,6 @@ dağıtım→denetim→ödül işleme→puan dağılımı, numara sıralılığ�
 | ~~4~~ | ~~R2 multer'ı rota-bazlı yapıp sınırları daraltmak~~ | — | ✅ Yapıldı (2026-07-09) |
 | 5 | R4 sharp ile görsel işleme (küçültme + EXIF temizliği) | ~2 saat | Kısa vade |
 | 6 | R5 yedek kapsamı/konumu (+ düzenli `mysqldump`) | ~2 saat | Kısa vade |
-| 7 | R3 https/proxy yapılandırma bayrakları | ~2 saat | İnternete açılmadan önce **şart** |
+| ~~7~~ | ~~R3 https/proxy yapılandırma bayrakları~~ | — | ✅ Yapıldı (2026-07-09) |
 | 8 | R11 inline JS'leri dış dosyaya taşıyıp CSP sertleştirme | ~yarım gün | Orta vade |
 | 9 | R13 `/liste` sayfalama | ~yarım gün | Kayıt sayısı binleri bulunca |

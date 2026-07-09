@@ -234,8 +234,11 @@ bkz. iyileştirme raporu.)
 - **LAN (mevcut hedef):** `npm start` yeterli. Veri klasörünü kod dışına almak için
   `YALIN_DATA_DIR` kullanın; klasörün düzenli olarak farklı bir diske kopyalanması önerilir.
 - **İnternet:** Uygulama TLS sonlandırmaz — bir reverse proxy (Caddy/nginx) arkasına konmalıdır.
-  Bu senaryoda ek sertleştirme gerekir (secure cookie, `trust proxy`, HSTS) — henüz yapılandırma
-  bayrağı yoktur; ayrıntı ve plan için [IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md) bkz. R3.
+  `data/config.json` → `{ "https": true, "proxy": true }` (veya `YALIN_HTTPS=1 YALIN_PROXY=1`):
+  `proxy` bayrağı `trust proxy`yi açar (hız limiti/giriş kilidi gerçek istemci IP'sini görür),
+  `https` bayrağı oturum çerezine `Secure` ekler ve HSTS başlığı gönderir. Proxy,
+  `X-Forwarded-Proto`/`X-Forwarded-For` başlıklarını iletmelidir. Bayraklar açılışta okunur —
+  değişiklik için uygulamayı yeniden başlatın.
 - **Süreç yönetimi:** Windows'ta Görev Zamanlayıcı/NSSM, Linux'ta systemd ile açılışta başlatma.
   Veritabanı MySQL olduğundan gerekirse uygulama birden çok süreçle de çalıştırılabilir
   (hız-limit/giriş-kilidi sayaçları süreç-içidir; çok süreçte etkisi zayıflar).

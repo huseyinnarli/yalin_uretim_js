@@ -109,7 +109,8 @@ function dosyaYukleyici(maxDosya) {
   return [yukle, csrfKontrol];
 }
 
-// --- Güvenlik başlıkları ---
+// --- Güvenlik başlıkları (https açıksa HSTS de eklenir) ---
+const _site = S.siteKonfig();
 function guvenlikBasliklari(req, res, next) {
   res.set("X-Content-Type-Options", "nosniff");
   res.set("X-Frame-Options", "DENY");
@@ -117,6 +118,9 @@ function guvenlikBasliklari(req, res, next) {
   res.set("Content-Security-Policy",
     "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; " +
     "script-src 'self' 'unsafe-inline'; frame-ancestors 'none'");
+  if (_site.https) {
+    res.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
   next();
 }
 

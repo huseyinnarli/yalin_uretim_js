@@ -40,6 +40,23 @@ const ODUL_MAP = { 0: 100, 1: 75, 2: 50 }; // 1./2./3. bölüm
 const ALAN_MAX = 5000;   // tek metin alanı üst sınırı
 const GORSEL_MAX_BAYT = 8 * 1024 * 1024; // tek görsel üst sınırı (multer + gorselKaydet)
 
+// Dağıtım bayrakları: HTTPS arkasında mı (secure cookie + HSTS), reverse proxy var mı
+// (trust proxy → gerçek istemci IP'si). Öncelik: ortam değişkeni > data/config.json.
+// Örnek data/config.json: { "https": true, "proxy": true }
+function siteKonfig() {
+  let dosya = {};
+  try {
+    dosya = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "config.json"), "utf-8"));
+  } catch { /* dosya yoksa varsayılanlar (kapalı) */ }
+  const bayrak = (env, anahtar) => env !== undefined
+    ? ["1", "true", "evet"].includes(String(env).toLowerCase())
+    : Boolean(dosya[anahtar]);
+  return {
+    https: bayrak(process.env.YALIN_HTTPS, "https"),
+    proxy: bayrak(process.env.YALIN_PROXY, "proxy"),
+  };
+}
+
 // Türkiye saatine göre şu an (tüm tarih/saat varsayılanları).
 function nowTr() {
   const s = new Date().toLocaleString("sv-SE", { timeZone: "Europe/Istanbul" });
@@ -65,5 +82,5 @@ module.exports = {
   BESS_AKSIYON_FOTO_DIR, YEDEK_DIR, STATIC_DIR, ensureDirs,
   ODUL_ESIK, ALLOWED_EXT, KAZANC_BASLIKLARI, TR_AYLAR, DURUMLAR,
   VARSAYILAN_DURUM, ADMIN_PASSWORD, MARKA_ADI, ODUL_MAP, ALAN_MAX,
-  GORSEL_MAX_BAYT, nowTr, bugunIso, zamanTr,
+  GORSEL_MAX_BAYT, siteKonfig, nowTr, bugunIso, zamanTr,
 };

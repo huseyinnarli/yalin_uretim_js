@@ -154,6 +154,20 @@ GRANT ALL PRIVILEGES ON yalin_uretim.* TO 'yalin'@'localhost';
 | `YALIN_DB_USER` | `yalin` | MySQL kullanıcısı |
 | `YALIN_DB_PASSWORD` | — | MySQL şifresi |
 | `YALIN_DB_DATABASE` | `yalin_uretim` | Veritabanı adı |
+| `YALIN_HTTPS` | kapalı | HTTPS arkasında: çerez `Secure` + HSTS başlığı |
+| `YALIN_PROXY` | kapalı | Reverse proxy arkasında: gerçek istemci IP'si (`trust proxy`) |
+
+### İnternete açarken (HTTPS)
+
+Uygulama TLS sonlandırmaz — bir reverse proxy (Caddy, nginx…) arkasına koyun ve
+`data/config.json` dosyasına şunu ekleyin (veya `YALIN_HTTPS=1 YALIN_PROXY=1`):
+
+```json
+{ "https": true, "proxy": true }
+```
+
+Bu bayraklarla oturum çerezi yalnızca şifreli bağlantıda taşınır, HSTS başlığı gönderilir ve
+hız limitleri/giriş kilidi proxy'nin ilettiği gerçek istemci IP'sine göre çalışır.
 
 ### Marka / Logo
 

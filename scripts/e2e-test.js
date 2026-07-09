@@ -257,6 +257,29 @@ async function main() {
   } finally {
     srv.kill();
     await new Promise((r) => setTimeout(r, 300));
+  }
+
+  // --- HTTPS/proxy bayrakları (R3): HSTS + Secure çerez ---
+  const BASE2 = "http://127.0.0.1:5002";
+  const proxyBaslik = { "x-forwarded-proto": "https" }; // reverse proxy'yi taklit et
+  const srv2 = spawn(process.execPath, [path.join(PROJE, "server.js")], {
+    env: { ...process.env, ...dbEnv, YALIN_DATA_DIR: DATA, PORT: "5002",
+      YALIN_HTTPS: "1", YALIN_PROXY: "1" },
+    stdio: "inherit",
+  });
+  try {
+    let hazir2 = false;
+    for (let i = 0; i < 30 && !hazir2; i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      try { await fetch(BASE2 + "/", { headers: proxyBaslik }); hazir2 = true; } catch {}
+    }
+    const r = await fetch(BASE2 + "/", { headers: proxyBaslik, redirect: "manual" });
+    const sc = (r.headers.getSetCookie ? r.headers.getSetCookie() : []).join(" | ").toLowerCase();
+    ok("HSTS başlığı (https modu)", Boolean(r.headers.get("strict-transport-security")));
+    ok("oturum çerezi Secure bayraklı (https modu)", sc.includes("secure"));
+  } finally {
+    srv2.kill();
+    await new Promise((r) => setTimeout(r, 300));
     try { fs.rmSync(DATA, { recursive: true, force: true }); } catch {}
   }
 
