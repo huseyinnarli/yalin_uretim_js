@@ -1,13 +1,14 @@
 # Kod İnceleme Raporu — İyileştirmeler ve Riskler
 
 Tarih: 2026-07-08 · Kapsam: tüm kaynak kod + bağımlılık denetimi (`npm audit`)
-Güncelleme: 2026-07-09 — R1, R2, R3, R6, R7 ve R9 **kapatıldı**
-(MySQL geçişi + yükleme sertleştirmesi + HTTPS/proxy bayrakları).
+Güncelleme: 2026-07-10 — Yüksek ve orta öncelikli TÜM bulgular **kapatıldı**
+(R1, R2, R3, R4, R5, R6, R7, R9).
 
 **Özet karar:** Mimari sağlam ve katmanlı; güvenlik temelleri (CSRF, hash'li şifreler,
-parametreli SQL, path-traversal koruması, dosya imzası doğrulaması) yerinde. Fabrika içi ağda
+parametreli SQL, path-traversal koruması, görsel yeniden kodlama) yerinde. Fabrika içi ağda
 (LAN) kullanım için **hazır**; internete açılırken `https`/`proxy` bayraklarını etkinleştirmek
-yeterlidir. Kalan öneriler: R4 (görsel işleme) ve R5 (yedek kapsamı) kısa vadede.
+yeterlidir. Açık kalanlar yalnızca düşük öncelikli notlar ve bilinçli tasarım kabulleridir
+(R8, R10–R17).
 
 ## Bulgu Özeti
 
@@ -16,8 +17,8 @@ yeterlidir. Kalan öneriler: R4 (görsel işleme) ve R5 (yedek kapsamı) kısa v
 | R1 | Open redirect (`next` parametresi `//host` biçimini kabul ediyordu) | Yüksek | ✅ **Düzeltildi** (2026-07-09, e2e testte doğrulanıyor) |
 | R2 | Dosya yükleme bellek sınırı çok genişti (istek başına ~1,1 GB olasılığı) | Yüksek | ✅ **Düzeltildi** (2026-07-09, rota-bazlı multer + uca özel sınırlar) |
 | R3 | HTTPS/reverse-proxy desteği yoktu (secure cookie, trust proxy, HSTS) | Yüksek | ✅ **Düzeltildi** (2026-07-09, `https`/`proxy` yapılandırma bayrakları) |
-| R4 | Görseller yeniden işlenmiyor (küçültme/EXIF temizliği yok) | Orta | Açık |
-| R5 | Yedek kapsamı: görseller hariç, yedekler aynı diskte | Orta | Açık |
+| R4 | Görseller yeniden işlenmiyordu (küçültme/EXIF temizliği yoktu) | Orta | ✅ **Düzeltildi** (2026-07-10, sharp ile yeniden kodlama) |
+| R5 | Yedek kapsamı: görseller hariçti, yedekler aynı diskteydi | Orta | ✅ **Düzeltildi** (2026-07-10, ZIP + görseller + yönlendirilebilir klasör) |
 | R6 | Çok adımlı bazı yazmalar transaction dışındaydı | Orta | ✅ **Düzeltildi** (ödül işleme, denetim/bölüm silme, plan oluşturma `transaction()` içinde) |
 | R7 | Bellek içi hız-limit tabloları sınırsız büyüyordu | Orta | ✅ **Düzeltildi** (saatlik süpürme zamanlayıcısı) |
 | R8 | `npm audit`: 2 orta bulgu (exceljs → uuid zinciri) | Düşük | İzleniyor |
@@ -56,22 +57,20 @@ yazılamaz (bilinçli: şifresiz bağlantıda oturum taşınmaz).
 
 ## Orta Öncelik
 
-### R4 — Görseller yeniden işlenmiyor
-`gorselKaydet` imza kontrolünden sonra dosyayı **olduğu gibi** diske yazar:
-- **EXIF verisi temizlenmiyor** — telefon fotoğraflarındaki konum (GPS) bilgisi sistemde ve
-  Excel/ZIP çıktılarında yaşamaya devam eder (gizlilik).
-- Küçültme yok — 12–16 MB'lık fotoğraflar diski hızla büyütür, mobilde sayfaları yavaşlatır.
+### R4 — Görsel işleme ✅ DÜZELTİLDİ (2026-07-10)
+`gorselKaydet` artık imza kontrolünden sonra görseli **sharp ile yeniden kodlar**:
+EXIF yönüne göre döndürülür, **tüm metadata (GPS/konum dahil) temizlenir**, 1600 px'i aşan
+görseller küçültülür, JPEG/WEBP kalite 85 kaydedilir. Sharp'ın çözemediği (bozuk/sahte)
+dosyalar reddedilir; BMP (EXIF taşımaz, sharp desteklemez) imza kontrolüyle olduğu gibi
+yazılır. Doğrulama: 3000×2000 EXIF'li JPEG → 1600×1067, metadata yok; imzası geçerli ama
+gövdesi bozuk dosya reddedildi.
 
-**Öneri:** `sharp` paketi (Windows dahil hazır binary ile kurulur): doğrula → EXIF yönüne göre
-döndür → 1600 px'e küçült → JPEG kalite 85 kaydet. Tek fonksiyon değişikliğiyle üç sorun kapanır.
-
-### R5 — Yedekleme kapsamı ve konumu
-- Otomatik yedek yalnızca `yalin.db` — üç görsel klasörü kapsam dışı.
-- Yedekler ana veriyle **aynı disk ve klasör ağacında** (`data/_yedek_otomatik/`); disk
-  arızasında asıl veriyle birlikte kaybolur.
-
-**Öneri:** yedeğe görselleri de dahil eden bir ZIP seçeneği; yedek klasörünü env değişkeniyle
-farklı diske yönlendirme; haftalık harici kopya (paylaşımlı klasör/bulut) prosedürü.
+### R5 — Yedekleme kapsamı ve konumu ✅ DÜZELTİLDİ (2026-07-10)
+Otomatik yedek artık tek **ZIP**: tüm tablolar (`veritabani.json`) + üç görsel klasörü.
+Görseller `data/config.json` → `"yedek_gorseller": false` ile kapsam dışı bırakılabilir.
+Yedek klasörü `YALIN_YEDEK_DIR` ortam değişkeni veya config `"yedek_dir"` anahtarıyla
+**farklı bir diske/ağ paylaşımına** yönlendirilebilir. Kalan öneri (kullanıcı prosedürü):
+yedek klasörünü haricî bir konuma (ör. `D:` ya da ağ paylaşımı) yönlendirmek.
 
 ### R6 — Transaction kapsamı ✅ DÜZELTİLDİ (2026-07-09)
 MySQL geçişiyle birlikte çok adımlı yazmalar `db.js:transaction(fn)` içine alındı:
@@ -135,8 +134,8 @@ dağıtım→denetim→ödül işleme→puan dağılımı, numara sıralılığ�
 | ~~2~~ | ~~R9 e2e testini depoya almak (`npm test`)~~ | — | ✅ Yapıldı (2026-07-09) |
 | ~~3~~ | ~~R6 transaction sarmalama + R7 süpürme zamanlayıcısı~~ | — | ✅ Yapıldı (2026-07-09) |
 | ~~4~~ | ~~R2 multer'ı rota-bazlı yapıp sınırları daraltmak~~ | — | ✅ Yapıldı (2026-07-09) |
-| 5 | R4 sharp ile görsel işleme (küçültme + EXIF temizliği) | ~2 saat | Kısa vade |
-| 6 | R5 yedek kapsamı/konumu (+ düzenli `mysqldump`) | ~2 saat | Kısa vade |
+| ~~5~~ | ~~R4 sharp ile görsel işleme (küçültme + EXIF temizliği)~~ | — | ✅ Yapıldı (2026-07-10) |
+| ~~6~~ | ~~R5 yedek kapsamı/konumu~~ | — | ✅ Yapıldı (2026-07-10) |
 | ~~7~~ | ~~R3 https/proxy yapılandırma bayrakları~~ | — | ✅ Yapıldı (2026-07-09) |
 | 8 | R11 inline JS'leri dış dosyaya taşıyıp CSP sertleştirme | ~yarım gün | Orta vade |
 | 9 | R13 `/liste` sayfalama | ~yarım gün | Kayıt sayısı binleri bulunca |

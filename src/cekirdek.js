@@ -134,7 +134,10 @@ function puanfmt(v) {
   return s.replace(".", ",");
 }
 
-// Görsel doğrulama: uzantı + dosya imzası (magic bytes) kontrolüyle kaydeder.
+// Görsel doğrulama + işleme: dosya imzası (magic bytes) kontrolünden sonra sharp ile
+// yeniden kodlanır — EXIF yönü düzeltilir, metadata (GPS/konum dahil) TEMİZLENİR,
+// büyük görseller 1600px'e küçültülür, JPEG'ler kalite 85 kaydedilir.
+const sharp = require("sharp");
 const _IMZALAR = [
   [0xFF, 0xD8, 0xFF],                    // JPEG
   [0x89, 0x50, 0x4E, 0x47],              // PNG
@@ -142,13 +145,28 @@ const _IMZALAR = [
   [0x42, 0x4D],                          // BMP
   [0x52, 0x49, 0x46, 0x46],              // WEBP (RIFF)
 ];
-function gorselKaydet(file, hedefYol) {
+async function gorselKaydet(file, hedefYol) {
   if (!file || !file.buffer || !file.buffer.length) return false;
   if (file.buffer.length > S.GORSEL_MAX_BAYT) return false;
   const b = file.buffer;
   const gecerli = _IMZALAR.some((sig) => sig.every((v, i) => b[i] === v));
   if (!gecerli) return false;
-  try { fs.writeFileSync(hedefYol, b); return true; } catch { return false; }
+  const ext = path.extname(hedefYol).toLowerCase();
+  // BMP'yi sharp desteklemez — imzası doğrulanmış hâliyle yazılır (BMP'de EXIF yoktur)
+  if (ext === ".bmp") {
+    try { fs.writeFileSync(hedefYol, b); return true; } catch { return false; }
+  }
+  try {
+    let img = sharp(b).rotate(); // EXIF yönüne göre döndür (metadata kopyalanmaz)
+    img = img.resize(S.GORSEL_MAX_KENAR, S.GORSEL_MAX_KENAR,
+      { fit: "inside", withoutEnlargement: true });
+    if (ext === ".jpg" || ext === ".jpeg") img = img.jpeg({ quality: 85 });
+    else if (ext === ".png") img = img.png();
+    else if (ext === ".webp") img = img.webp({ quality: 85 });
+    else if (ext === ".gif") img = img.gif();
+    await img.toFile(hedefYol);
+    return true;
+  } catch { return false; } // bozuk/sahte görüntü reddedilir
 }
 
 // ---------------------------------------------------------------------------
@@ -686,7 +704,7 @@ async function syncDenetimAksiyonlari(did, meta, form) {
 }
 
 // Her kriter için en fazla 3 foto kaydeder (mevcutları korur). files: multer dizisi.
-function saveDenetimFotolar(did, mevcut, files) {
+async function saveDenetimFotolar(did, mevcut, files) {
   const fotolar = { ...(mevcut || {}) };
   const grup = {};
   for (const f of files || []) {
@@ -699,7 +717,7 @@ function saveDenetimFotolar(did, mevcut, files) {
       if (f && f.originalname && allowedFile(f.originalname)) {
         const ext = path.extname(f.originalname).toLowerCase();
         const fname = `${did}_${k}_${uid().slice(0, 6)}${ext}`;
-        if (gorselKaydet(f, path.join(S.BESS_FOTO_DIR, fname))) varolan.push(fname);
+        if (await gorselKaydet(f, path.join(S.BESS_FOTO_DIR, fname))) varolan.push(fname);
       }
     }
     if (varolan.length) fotolar[k] = varolan;
@@ -708,7 +726,7 @@ function saveDenetimFotolar(did, mevcut, files) {
 }
 
 // Aksiyon kapatma fotoğrafları (en fazla 5)
-function saveAksiyonFotolar(aid, files) {
+async function saveAksiyonFotolar(aid, files) {
   S.ensureDirs();
   const fotolar = [];
   for (const f of files || []) {
@@ -716,18 +734,18 @@ function saveAksiyonFotolar(aid, files) {
     if (f && f.originalname && allowedFile(f.originalname)) {
       const ext = path.extname(f.originalname).toLowerCase();
       const fname = `aksiyon_${aid}_${uid().slice(0, 6)}${ext}`;
-      if (gorselKaydet(f, path.join(S.BESS_AKSIYON_FOTO_DIR, fname))) fotolar.push(fname);
+      if (await gorselKaydet(f, path.join(S.BESS_AKSIYON_FOTO_DIR, fname))) fotolar.push(fname);
     }
   }
   return fotolar;
 }
 
 // Kaizen önce/sonra görseli kaydet (file: multer dosyası)
-function kaizenKaydetGorsel(file, etiket, sn) {
+async function kaizenKaydetGorsel(file, etiket, sn) {
   if (file && file.originalname && allowedFile(file.originalname)) {
     const ext = path.extname(file.originalname).toLowerCase();
     const fname = `${sn}_${etiket}${ext}`;
-    if (gorselKaydet(file, path.join(S.KAIZEN_IMG_DIR, fname))) return fname;
+    if (await gorselKaydet(file, path.join(S.KAIZEN_IMG_DIR, fname))) return fname;
   }
   return null;
 }

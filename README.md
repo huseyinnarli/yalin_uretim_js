@@ -156,6 +156,7 @@ GRANT ALL PRIVILEGES ON yalin_uretim.* TO 'yalin'@'localhost';
 | `YALIN_DB_DATABASE` | `yalin_uretim` | Veritabanı adı |
 | `YALIN_HTTPS` | kapalı | HTTPS arkasında: çerez `Secure` + HSTS başlığı |
 | `YALIN_PROXY` | kapalı | Reverse proxy arkasında: gerçek istemci IP'si (`trust proxy`) |
+| `YALIN_YEDEK_DIR` | `data/_yedek_otomatik` | Otomatik yedeklerin yazılacağı klasör (farklı disk önerilir) |
 
 ### İnternete açarken (HTTPS)
 
@@ -181,8 +182,12 @@ Sol üstteki başlık [src/sabitler.js](src/sabitler.js) içindeki `MARKA_ADI` i
 - Tüm kayıtlar **MySQL** veritabanında tutulur (`yalin_uretim`, utf8mb4 + Türkçe collation).
 - Yüklenen fotoğraflar diskte (`data/kaizen_gorseller/`, `data/bes_s_gorseller/`,
   `data/aksiyon_gorseller/`), adları veritabanında.
-- **Uygulama içi otomatik yedek:** açılışta + 6 saatte bir tüm tablolar
-  `data/_yedek_otomatik/yedek_*.json.gz` olarak dökülür (son 15 tutulur).
+- **Yüklenen fotoğraflar otomatik işlenir:** EXIF yönü düzeltilir, konum/metadata temizlenir,
+  1600 px'e küçültülür (disk + mobil bant genişliği).
+- **Uygulama içi otomatik yedek:** açılışta + 6 saatte bir tüm tablolar **ve görseller**
+  tek ZIP olarak `data/_yedek_otomatik/yedek_*.zip` dosyasına yazılır (son 15 tutulur).
+  Yedek klasörü `YALIN_YEDEK_DIR` ile farklı bir diske/ağ paylaşımına yönlendirilebilir;
+  görseller `"yedek_gorseller": false` ile kapsam dışı bırakılabilir.
   Tam sunucu yedeği için ayrıca `mysqldump` önerilir:
   `mysqldump -u yalin -p yalin_uretim > yedek.sql`
 - Excel raporları saklanmaz; her indirmede güncel veriden üretilir.
@@ -221,7 +226,8 @@ Eski hash'li şifreler (pbkdf2/scrypt) aynen tanınır — yönetici ve denetmen
 - Tüm POST isteklerinde **CSRF token** doğrulaması.
 - Girişte **kaba kuvvet koruması** (IP başına 10 dakikada 8 deneme); herkese açık yazma
   uçlarında hız limiti.
-- Yüklenen dosyalar uzantı **+ dosya imzası (magic bytes)** ile doğrulanır; görsel servis
+- Yüklenen dosyalar uzantı **+ dosya imzası (magic bytes)** ile doğrulanıp **sharp ile
+  yeniden kodlanır** (EXIF/konum verisi temizlenir, 1600 px'e küçültülür); görsel servis
   uçları path-traversal korumalıdır.
 - Güvenlik başlıkları (CSP, nosniff, X-Frame-Options DENY); oturum çerezi
   HttpOnly + SameSite=Lax, imza anahtarı veritabanında tutulur (koda gömülü değildir).

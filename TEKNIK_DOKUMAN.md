@@ -18,10 +18,11 @@ Kod tabanını devralacak bir geliştirici için referanstır. Kullanıcı odakl
 | **Raporlama** | exceljs (Excel), archiver (fotoğraf ZIP'leri) — talep anında üretilir |
 | **Kimlik** | İmzalı çerez oturumu (cookie-session, 12 saat), şifreden rol tanıma |
 
-### Bağımlılıklar (tamamı saf JavaScript — native derleme yok)
+### Bağımlılıklar
 
 `express` (web çatısı) · `mysql2` (MySQL sürücüsü, promise API) · `ejs` (şablon) ·
-`exceljs` (Excel) · `archiver` (ZIP) · `multer` (dosya yükleme) · `cookie-session` (oturum).
+`exceljs` (Excel) · `archiver` (ZIP) · `multer` (dosya yükleme) · `cookie-session` (oturum) ·
+`sharp` (görsel işleme — hazır binary ile kurulur, derleme gerektirmez).
 
 ---
 
@@ -179,7 +180,10 @@ aynı tur iki kez işlenemez. İlk 3 bölümün lider+üye tam listesi 100/75/50
 
 ### Dosya/görsel işleme
 - Yüklemeler bellekte alınır → uzantı beyaz listesi + **dosya imzası** (JPEG/PNG/GIF/BMP/WEBP
-  magic bytes) kontrolü → diske yazılır. İmza tutmayan dosya sessizce reddedilir.
+  magic bytes) kontrolü → **sharp ile yeniden kodlanır**: EXIF yönüne göre döndürme,
+  metadata (GPS/konum) temizliği, 1600 px'e küçültme, JPEG/WEBP kalite 85. Sharp'ın
+  çözemediği bozuk/sahte dosyalar reddedilir (BMP istisna: EXIF taşımaz, imza kontrolüyle
+  olduğu gibi yazılır).
 - Görsel servis uçları (`/kaizen/gorsel/:f`, `/5s/gorsel/:f`, `/5s/aksiyon-gorsel/:f`)
   `guvenliYol` ile path-traversal'a kapalıdır (resolve + kök önek kontrolü).
 
@@ -189,10 +193,11 @@ Kaizen raporunda önce/sonra görselleri hücrelere gömülür. ZIP'ler archiver
 yazılır (bellekte tam kopya tutulmaz). Excel/ZIP uçları yalnızca yöneticiye açıktır.
 
 ### Otomatik yedek
-Açılışta + 6 saatte bir tüm tablolar `data/_yedek_otomatik/yedek_YYYYMMDD_HHMMSS.json.gz`
-dosyasına dökülür; son 15 kopya tutulur. Bu, uygulama içi bir güvence katmanıdır — tam sunucu
-yedeği için `mysqldump` tercih edilmelidir. (Görsel klasörleri yedeğe dahil değildir —
-bkz. iyileştirme raporu.)
+Açılışta + 6 saatte bir tüm tablolar (`veritabani.json`) **ve üç görsel klasörü** tek ZIP
+olarak `yedek_YYYYMMDD_HHMMSS.zip` adıyla yazılır; son 15 kopya tutulur. Yedek klasörü
+`YALIN_YEDEK_DIR` ortam değişkeni veya `data/config.json` → `"yedek_dir"` ile farklı bir
+diske yönlendirilebilir; görseller `"yedek_gorseller": false` ile kapsam dışı bırakılabilir.
+Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqldump` tercih edilmelidir.
 
 ---
 

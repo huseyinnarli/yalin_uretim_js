@@ -298,7 +298,7 @@ module.exports = function register(app) {
       flash(req, "error", "Aksiyonu kapatmak için açıklama zorunludur.");
       return res.redirect("/5s/aksiyonlar#a-" + aid);
     }
-    const fotolar = C.saveAksiyonFotolar(aid, (req.files || []).filter((f) => f.fieldname === "foto"));
+    const fotolar = await C.saveAksiyonFotolar(aid, (req.files || []).filter((f) => f.fieldname === "foto"));
     if (!fotolar.length) {
       flash(req, "error", "Aksiyonu kapatmak için en az bir fotoğraf eklemelisiniz.");
       return res.redirect("/5s/aksiyonlar#a-" + aid);
@@ -458,7 +458,7 @@ module.exports = function register(app) {
     const now = S.zamanTr();
     const bugunIso = S.bugunIso();
     const did = bekleyen ? bekleyen.id : C.uid();
-    const fotolar = C.saveDenetimFotolar(did, (bekleyen || {}).fotolar, req.files);
+    const fotolar = await C.saveDenetimFotolar(did, (bekleyen || {}).fotolar, req.files);
     let metaTarih, metaTur;
     if (bekleyen) {
       // Denetim tarihi: planlanan gün varsa o, yoksa bugün — kalıcı kaydedilir

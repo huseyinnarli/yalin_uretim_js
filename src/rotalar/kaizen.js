@@ -43,6 +43,8 @@ module.exports = function register(app) {
     }
     const no = await C.nextNumber("kaizenler", "ÖSKFR");
     const sn = C.safeName(no);
+    const gorselOnceki = (await C.kaizenKaydetGorsel(dosya(req, "onceki_gorsel"), "oncesi", sn)) || "";
+    const gorselSonraki = (await C.kaizenKaydetGorsel(dosya(req, "sonraki_gorsel"), "sonrasi", sn)) || "";
     await calistir(
       `INSERT INTO kaizenler(\`no\`, baslangic, bitis, konu, bolum, lider, uyeler,
         sorumlular, kazanclar, onceki, sonraki, onceki_gorsel, sonraki_gorsel,
@@ -50,9 +52,7 @@ module.exports = function register(app) {
        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?)`,
       [no, alan(req, "baslangic"), alan(req, "bitis"), alan(req, "konu"),
         alan(req, "bolum"), lider, js(uyeler), sorumlular, js(kazanclarOku(req)),
-        alan(req, "onceki"), alan(req, "sonraki"),
-        C.kaizenKaydetGorsel(dosya(req, "onceki_gorsel"), "oncesi", sn) || "",
-        C.kaizenKaydetGorsel(dosya(req, "sonraki_gorsel"), "sonrasi", sn) || "",
+        alan(req, "onceki"), alan(req, "sonraki"), gorselOnceki, gorselSonraki,
         S.VARSAYILAN_DURUM, S.zamanTr()]);
     flash(req, "success", `Kaizen kaydedildi: ${no}`);
     res.redirect("/liste");
@@ -72,8 +72,8 @@ module.exports = function register(app) {
     if (!eski) return res.status(404).send("Kayıt bulunamadı.");
     S.ensureDirs();
     const sn = C.safeName(no);
-    const yeniOnceki = C.kaizenKaydetGorsel(dosya(req, "onceki_gorsel"), "oncesi", sn);
-    const yeniSonraki = C.kaizenKaydetGorsel(dosya(req, "sonraki_gorsel"), "sonrasi", sn);
+    const yeniOnceki = await C.kaizenKaydetGorsel(dosya(req, "onceki_gorsel"), "oncesi", sn);
+    const yeniSonraki = await C.kaizenKaydetGorsel(dosya(req, "sonraki_gorsel"), "sonrasi", sn);
     const { lider, uyeler, sorumlular } = ekipOku(req);
     await C.updateRecord("kaizen", no, {
       baslangic: alan(req, "baslangic"), bitis: alan(req, "bitis"),

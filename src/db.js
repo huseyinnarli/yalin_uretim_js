@@ -2,7 +2,7 @@
 // JSON kolonlar (uyeler, kazanclar, puanlar, fotolar...) TEXT olarak saklanır.
 const fs = require("fs");
 const path = require("path");
-const zlib = require("zlib");
+const archiver = require("archiver");
 const mysql = require("mysql2/promise");
 const S = require("./sabitler");
 
@@ -198,26 +198,49 @@ function odulKayitRow(r) {
   return { ...r, kisiler: j(r.kisiler, []) };
 }
 
-// Otomatik yedek: tüm tabloları JSON olarak gzip dosyasına döker (son 15 tutulur).
+// Otomatik yedek: tüm tabloları (JSON) + görsel klasörlerini tek ZIP'e döker (son 15).
+// Klasör YALIN_YEDEK_DIR / config "yedek_dir" ile farklı bir diske yönlendirilebilir;
+// görseller "yedek_gorseller": false ile kapsam dışı bırakılabilir.
 // Not: tam sunucu yedeği için mysqldump tercih edilir; bu, uygulama içi güvence katmanıdır.
 const _YEDEK_TABLOLAR = ["config", "oneriler", "kaizenler", "bolumler", "denetimler",
   "aksiyonlar", "odul_islenen", "odul_kayitlari", "odul_arsiv", "silinen_kisiler",
   "denetmenler", "misafirler", "sayaclar"];
+const _YEDEK_GORSEL_DIRLER = [
+  ["kaizen_gorseller", S.KAIZEN_IMG_DIR],
+  ["bes_s_gorseller", S.BESS_FOTO_DIR],
+  ["aksiyon_gorseller", S.BESS_AKSIYON_FOTO_DIR],
+];
 
 async function yedekle(tut = 15) {
   try {
-    fs.mkdirSync(S.YEDEK_DIR, { recursive: true });
+    const site = S.siteKonfig();
+    fs.mkdirSync(site.yedekDir, { recursive: true });
     const dump = {};
     for (const t of _YEDEK_TABLOLAR) dump[t] = await sorgu(`SELECT * FROM ${t}`);
     const d = S.nowTr();
     const p = (n) => String(n).padStart(2, "0");
-    const ad = `yedek_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.json.gz`;
-    fs.writeFileSync(path.join(S.YEDEK_DIR, ad),
-      zlib.gzipSync(JSON.stringify(dump), { level: 6 }));
-    const eskiler = fs.readdirSync(S.YEDEK_DIR)
-      .filter((f) => f.startsWith("yedek_") && f.endsWith(".json.gz")).sort();
+    const ad = `yedek_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.zip`;
+    const tamYol = path.join(site.yedekDir, ad);
+
+    await new Promise((resolve, reject) => {
+      const cikti = fs.createWriteStream(tamYol);
+      const arch = archiver("zip", { zlib: { level: 6 } });
+      cikti.on("close", resolve);
+      arch.on("error", reject);
+      arch.pipe(cikti);
+      arch.append(JSON.stringify(dump), { name: "veritabani.json" });
+      if (site.yedekGorseller) {
+        for (const [klasorAdi, dir] of _YEDEK_GORSEL_DIRLER) {
+          if (fs.existsSync(dir)) arch.directory(dir, `gorseller/${klasorAdi}`);
+        }
+      }
+      arch.finalize();
+    });
+
+    const eskiler = fs.readdirSync(site.yedekDir)
+      .filter((f) => f.startsWith("yedek_") && (f.endsWith(".zip") || f.endsWith(".json.gz"))).sort();
     for (const e of eskiler.slice(0, Math.max(0, eskiler.length - tut))) {
-      try { fs.unlinkSync(path.join(S.YEDEK_DIR, e)); } catch {}
+      try { fs.unlinkSync(path.join(site.yedekDir, e)); } catch {}
     }
     return ad;
   } catch (e) {
