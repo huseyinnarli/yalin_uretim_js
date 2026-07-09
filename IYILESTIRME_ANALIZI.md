@@ -1,19 +1,20 @@
 # Kod İnceleme Raporu — İyileştirmeler ve Riskler
 
 Tarih: 2026-07-08 · Kapsam: tüm kaynak kod + bağımlılık denetimi (`npm audit`)
-Güncelleme: 2026-07-09 — MySQL geçişiyle birlikte R1, R6, R7 ve R9 **kapatıldı**.
+Güncelleme: 2026-07-09 — R1, R2, R6, R7 ve R9 **kapatıldı** (MySQL geçişi + yükleme sertleştirmesi).
 
 **Özet karar:** Mimari sağlam ve katmanlı; güvenlik temelleri (CSRF, hash'li şifreler,
 parametreli SQL, path-traversal koruması, dosya imzası doğrulaması) yerinde. Fabrika içi ağda
-(LAN) kullanım için **hazır**. İnternete açılmadan önce kapatılması gereken **2 önemli
-sertleştirme eksiği** (R2, R3) vardır.
+(LAN) kullanım için **hazır**. İnternete açılmadan önce kapatılması gereken en önemli eksik
+**R3** (HTTPS/proxy yapılandırması); R4 (görsel işleme) ve R5 (yedek kapsamı) kısa vadede
+önerilir.
 
 ## Bulgu Özeti
 
 | No | Bulgu | Önem | Durum |
 |---|---|---|---|
 | R1 | Open redirect (`next` parametresi `//host` biçimini kabul ediyordu) | Yüksek | ✅ **Düzeltildi** (2026-07-09, e2e testte doğrulanıyor) |
-| R2 | Dosya yükleme bellek sınırı çok geniş (istek başına ~1,1 GB olasılığı) | **Yüksek** | Açık |
+| R2 | Dosya yükleme bellek sınırı çok genişti (istek başına ~1,1 GB olasılığı) | Yüksek | ✅ **Düzeltildi** (2026-07-09, rota-bazlı multer + uca özel sınırlar) |
 | R3 | HTTPS/reverse-proxy desteği yok (secure cookie, trust proxy, HSTS) | **Yüksek** (yalnız internet senaryosu) | Açık |
 | R4 | Görseller yeniden işlenmiyor (küçültme/EXIF temizliği yok) | Orta | Açık |
 | R5 | Yedek kapsamı: görseller hariç, yedekler aynı diskte | Orta | Açık |
@@ -33,17 +34,14 @@ doğruluyordu; `//saldirgan.com` gibi protokol-göreli adresler geçebiliyordu. 
 `startsWith("/") && !startsWith("//")` olarak sıkılaştırıldı; e2e testinde
 "open redirect engellendi" adımıyla sürekli doğrulanıyor.
 
-### R2 — Dosya yükleme bellek DoS'u
-`server.js` multer'ı **bellek depolamayla ve tüm rotalara** (`upload.any()`) uygular; sınırlar
-dosya başına 16 MB × 70 dosya ≈ istek başına **~1,1 GB RAM**. Toplam istek boyutu sınırı yoktur
-ve herkese açık uçlar da (öneri formu gibi) multipart kabul eder. Kötü niyetli tek istemci
-birkaç eşzamanlı istekle süreci belleksiz bırakabilir.
-
-**Öneri:**
-1. multer'ı yalnızca dosya kabul eden rotalara bağla (kaizen yeni/düzenle, denetim, aksiyon kapat).
-2. Sınırları gerçek ihtiyaca indir: `fileSize: 8 MB`, denetim için `files: 60`, kaizen için 2,
-   aksiyon için 5.
-3. Alternatif: disk depolamaya (`multer.diskStorage` → geçici klasör) geçip doğrulama sonrası taşı.
+### R2 — Dosya yükleme bellek DoS'u ✅ DÜZELTİLDİ (2026-07-09)
+multer artık global değil — yalnızca dosya kabul eden 4 rotada, uca özel sınırlarla çalışır
+(`web.js:dosyaYukleyici`): kaizen yeni/düzenle **2 dosya**, 5S denetim **60 dosya**,
+aksiyon kapatma **5 dosya**; dosya başına **8 MB** (`GORSEL_MAX_BAYT`). Sınır aşımı 500 yerine
+açıklayıcı 400 döner. Dosya kabul etmeyen uçlara multipart gönderim **doğrudan reddedilir**
+(bu sayede CSRF kontrolü multipart üzerinden atlatılamaz; token dosya uçlarında multer'dan
+sonra ayrıca doğrulanır). En kötü durum bellek kullanımı istek başına ~1,1 GB'tan
+herkese açık uçlarda ~16-40 MB'a indi. e2e testinde 3 yeni adımla doğrulanıyor.
 
 ### R3 — HTTPS / reverse-proxy desteği yok
 - Oturum çerezinde `secure` bayrağı yok; HSTS başlığı yok.
@@ -140,7 +138,7 @@ dağıtım→denetim→ödül işleme→puan dağılımı, numara sıralılığ�
 | ~~1~~ | ~~R1 open redirect düzeltmesi~~ | — | ✅ Yapıldı (2026-07-09) |
 | ~~2~~ | ~~R9 e2e testini depoya almak (`npm test`)~~ | — | ✅ Yapıldı (2026-07-09) |
 | ~~3~~ | ~~R6 transaction sarmalama + R7 süpürme zamanlayıcısı~~ | — | ✅ Yapıldı (2026-07-09) |
-| 4 | R2 multer'ı rota-bazlı yapıp sınırları daraltmak | ~1 saat | Hemen |
+| ~~4~~ | ~~R2 multer'ı rota-bazlı yapıp sınırları daraltmak~~ | — | ✅ Yapıldı (2026-07-09) |
 | 5 | R4 sharp ile görsel işleme (küçültme + EXIF temizliği) | ~2 saat | Kısa vade |
 | 6 | R5 yedek kapsamı/konumu (+ düzenli `mysqldump`) | ~2 saat | Kısa vade |
 | 7 | R3 https/proxy yapılandırma bayrakları | ~2 saat | İnternete açılmadan önce **şart** |

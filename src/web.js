@@ -1,5 +1,6 @@
-// Web yardımcıları: flash mesajları, CSRF, hız limiti, yetki middleware'leri.
+// Web yardımcıları: flash mesajları, CSRF, hız limiti, dosya yükleme, yetki middleware'leri.
 const crypto = require("crypto");
+const multer = require("multer");
 const S = require("./sabitler");
 const C = require("./cekirdek");
 
@@ -58,14 +59,54 @@ const ortakLocals = sar(async (req, res, next) => {
   next();
 });
 
-// --- CSRF doğrulama (tüm POST'larda) ---
-function csrfDogrula(req, res, next) {
-  if (req.method !== "POST") return next();
+// --- CSRF doğrulama ---
+function csrfKontrol(req, res, next) {
   const token = (req.body || {}).csrf_token;
   if (!token || token !== req.session.csrf) {
     return res.status(400).send("CSRF doğrulaması başarısız — sayfayı yenileyip tekrar deneyin.");
   }
   next();
+}
+
+// Dosya (multipart) kabul eden uçlar — yalnızca bunlara multer bağlanır.
+const DOSYA_YOLLARI = [
+  /^\/kaizen\/yeni$/,
+  /^\/kaizen\/duzenle$/,
+  /^\/5s\/bolum\/[^/]+\/denetim$/,
+  /^\/5s\/aksiyon\/[^/]+\/kapat$/,
+];
+
+// Genel CSRF kapısı (tüm POST'larda):
+// - multipart istekler yalnızca dosya uçlarına geçer (token kontrolü multer'dan SONRA
+//   dosyaYukleyici içinde yapılır — gövde ancak o zaman çözülür);
+// - diğer uçlara multipart gönderimi reddedilir (CSRF atlatma kapısı olmasın);
+// - normal form gönderimlerinde token burada doğrulanır.
+function csrfDogrula(req, res, next) {
+  if (req.method !== "POST") return next();
+  const tip = String(req.headers["content-type"] || "");
+  if (tip.startsWith("multipart/form-data")) {
+    if (DOSYA_YOLLARI.some((r) => r.test(req.path))) return next();
+    return res.status(400).send("Bu uç dosya yüklemesi kabul etmiyor.");
+  }
+  csrfKontrol(req, res, next);
+}
+
+// Rota-bazlı dosya yükleme: bellek depolama + uca özel adet sınırı + multer sonrası
+// CSRF kontrolü. Kullanım: app.post(yol, ...dosyaYukleyici(maxDosya), handler)
+function dosyaYukleyici(maxDosya) {
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: S.GORSEL_MAX_BAYT, files: maxDosya, fieldSize: 1024 * 1024 },
+  }).any();
+  const yukle = (req, res, next) => upload(req, res, (err) => {
+    if (err) {
+      return res.status(400).send(
+        `Dosya yükleme reddedildi: en fazla ${maxDosya} dosya, dosya başına ` +
+        `${Math.round(S.GORSEL_MAX_BAYT / 1024 / 1024)} MB.`);
+    }
+    next();
+  });
+  return [yukle, csrfKontrol];
 }
 
 // --- Güvenlik başlıkları ---
@@ -94,6 +135,6 @@ const denetciRequired = sar(async (req, res, next) => {
 });
 
 module.exports = {
-  sar, flash, hizLimitAsildi, alan, ortakLocals, csrfDogrula,
+  sar, flash, hizLimitAsildi, alan, ortakLocals, csrfDogrula, dosyaYukleyici,
   guvenlikBasliklari, adminRequired, denetciRequired,
 };

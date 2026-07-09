@@ -4,7 +4,7 @@ const S = require("../sabitler");
 const C = require("../cekirdek");
 const X = require("../excel");
 const { calistir, js } = require("../db");
-const { sar, flash, adminRequired, alan, hizLimitAsildi } = require("../web");
+const { sar, flash, adminRequired, alan, hizLimitAsildi, dosyaYukleyici } = require("../web");
 const { xlsxGonder } = require("./genel");
 
 function ekipOku(req) {
@@ -30,7 +30,7 @@ module.exports = function register(app) {
       kazanc_basliklari: S.KAZANC_BASLIKLARI, action_url: "/kaizen/yeni", duzenle: false });
   });
 
-  app.post("/kaizen/yeni", sar(async (req, res) => {
+  app.post("/kaizen/yeni", ...dosyaYukleyici(2), sar(async (req, res) => {
     if (hizLimitAsildi(req, "kaizen", 30, 300)) {
       flash(req, "error", "Çok fazla gönderim algılandı — birkaç dakika sonra tekrar deneyin.");
       return res.redirect("/kaizen/yeni");
@@ -66,7 +66,7 @@ module.exports = function register(app) {
       action_url: "/kaizen/duzenle?no=" + encodeURIComponent(rec.no), duzenle: true });
   }));
 
-  app.post("/kaizen/duzenle", adminRequired, sar(async (req, res) => {
+  app.post("/kaizen/duzenle", ...dosyaYukleyici(2), adminRequired, sar(async (req, res) => {
     const no = req.query.no || "";
     const eski = await C.getRecord("kaizen", no);
     if (!eski) return res.status(404).send("Kayıt bulunamadı.");

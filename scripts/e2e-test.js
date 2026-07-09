@@ -58,6 +58,25 @@ async function post(url, form) {
   storeCookies(res);
   return res;
 }
+// multipart/form-data gönderimi (dosya alanları: {ad: [dosyaAdi, Buffer]})
+async function postMultipart(url, form, dosyalar = {}) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(form)) fd.append(k, v);
+  for (const [k, [ad, buf]] of Object.entries(dosyalar)) {
+    fd.append(k, new Blob([buf], { type: "image/png" }), ad);
+  }
+  const res = await fetch(BASE + url, {
+    method: "POST", redirect: "manual",
+    headers: { cookie: cookieHeader() },
+    body: fd,
+  });
+  storeCookies(res);
+  return res;
+}
+// 1x1 geçerli PNG (magic bytes doğrulamasından geçer)
+const MINI_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64");
 
 let basarili = 0, hatali = 0;
 function ok(ad, kosul, detay = "") {
@@ -193,6 +212,28 @@ async function main() {
     await post("/durum", { csrf_token: csrf, tip: "oneri", no, durum: "Reddedildi" });
     html = await getText("/liste");
     ok("onaylı kayıt reddedilemedi", html.includes("reddedilemez"));
+
+    // --- Dosya yükleme (multipart) sınırları ---
+    // Dosya kabul etmeyen uca multipart → 400 (CSRF atlatma kapısı yok)
+    const rm = await postMultipart("/durum", { csrf_token: csrf, tip: "oneri", no, durum: "Onaylandı" });
+    ok("dosya kabul etmeyen uca multipart reddedildi", rm.status === 400);
+    // Kaizen: görselli kayıt (2 dosya sınırının içinde)
+    await postMultipart("/kaizen/yeni", {
+      csrf_token: csrf, baslangic: bugun, konu: "Görselli kaizen", bolum: "Test",
+      lider: "Foto Test", onceki: "Önce", sonraki: "Sonra",
+    }, { onceki_gorsel: ["once.png", MINI_PNG], sonraki_gorsel: ["sonra.png", MINI_PNG] });
+    html = await getText("/liste");
+    const kno = (html.match(/ÖSKFR\d{4}-\d{2}/) || [])[0];
+    ok("görselli kaizen kaydedildi", Boolean(kno));
+    if (kno) {
+      const det = await getText(`/detay?tip=kaizen&no=${encodeURIComponent(kno)}`);
+      const gorsel = (det.match(/\/kaizen\/gorsel\/([^"]+)/) || [])[1];
+      ok("kaizen görseli kaydedildi", Boolean(gorsel));
+      if (gorsel) {
+        const rg = await get("/kaizen/gorsel/" + gorsel);
+        ok("kaizen görseli servis edildi", rg.status === 200);
+      }
+    }
 
     // --- Excel uçları ---
     for (const u of ["/oneri/excel", "/5s/denetim-excel", "/puan-durumu/excel",

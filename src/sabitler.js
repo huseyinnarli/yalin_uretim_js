@@ -38,7 +38,7 @@ const ADMIN_PASSWORD = "admin123"; // ilk kurulum varsayılanı — panelden de�
 const MARKA_ADI = "Öztaş Global Soğutma";
 const ODUL_MAP = { 0: 100, 1: 75, 2: 50 }; // 1./2./3. bölüm
 const ALAN_MAX = 5000;   // tek metin alanı üst sınırı
-const GORSEL_MAX_BAYT = 10 * 1024 * 1024; // tek görsel üst sınırı
+const GORSEL_MAX_BAYT = 8 * 1024 * 1024; // tek görsel üst sınırı (multer + gorselKaydet)
 
 // Türkiye saatine göre şu an (tüm tarih/saat varsayılanları).
 function nowTr() {

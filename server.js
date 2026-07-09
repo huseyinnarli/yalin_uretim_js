@@ -3,7 +3,6 @@
 const path = require("path");
 const express = require("express");
 const cookieSession = require("cookie-session");
-const multer = require("multer");
 
 const S = require("./src/sabitler");
 const C = require("./src/cekirdek");
@@ -24,13 +23,8 @@ async function main() {
   app.use(web.guvenlikBasliklari);
   app.use("/static", express.static(path.join(__dirname, "static"), { maxAge: "365d" }));
   app.use(express.urlencoded({ extended: false, limit: "1mb" }));
-
-  // Dosya yüklemeleri bellek içinde alınır, doğrulanıp diske yazılır
-  const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 16 * 1024 * 1024, files: 70, fieldSize: 1024 * 1024 },
-  });
-  app.use(upload.any());
+  // Dosya yüklemeleri global DEĞİL — yalnızca dosya kabul eden rotalarda,
+  // uca özel sınırlarla (web.js:dosyaYukleyici). Diğer uçlara multipart reddedilir.
 
   // Oturum: imzalı çerez (12 saat), anahtar veritabanında tutulur
   app.use(cookieSession({

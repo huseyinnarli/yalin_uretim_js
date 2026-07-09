@@ -7,7 +7,7 @@ const P = require("../puanlama");
 const C = require("../cekirdek");
 const X = require("../excel");
 const { sorgu, tek, calistir, transaction, js, aksiyonRow } = require("../db");
-const { sar, flash, adminRequired, denetciRequired, alan, hizLimitAsildi } = require("../web");
+const { sar, flash, adminRequired, denetciRequired, alan, hizLimitAsildi, dosyaYukleyici } = require("../web");
 const { xlsxGonder } = require("./genel");
 
 function zipGonder(res, ad, ekleyici) {
@@ -279,7 +279,7 @@ module.exports = function register(app) {
   }));
 
   // Aksiyonu kapat — yalnızca bölümün ekip lideri (girişli denetmen) veya yönetici
-  app.post("/5s/aksiyon/:aid/kapat", sar(async (req, res) => {
+  app.post("/5s/aksiyon/:aid/kapat", ...dosyaYukleyici(5), sar(async (req, res) => {
     const aid = req.params.aid;
     if (hizLimitAsildi(req, "aksiyon", 40, 300)) {
       flash(req, "error", "Çok fazla işlem algılandı — birkaç dakika sonra tekrar deneyin.");
@@ -425,7 +425,7 @@ module.exports = function register(app) {
     });
   }));
 
-  app.post("/5s/bolum/:bid/denetim", denetciRequired, sar(async (req, res) => {
+  app.post("/5s/bolum/:bid/denetim", ...dosyaYukleyici(60), denetciRequired, sar(async (req, res) => {
     const bid = req.params.bid;
     const b = await C.bolumById(bid);
     if (!b) return res.status(404).send("Bölüm bulunamadı.");
