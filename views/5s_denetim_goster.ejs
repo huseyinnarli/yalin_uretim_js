@@ -36,10 +36,14 @@
     <% for (const s of bess) { %>
     <fieldset class="puan-blok">
         <legend><%= s.ad %> <span class="blok-max">(<%= s.puan %> puan)</span></legend>
-        <% for (const kr of s.kriterler) { const kp = kriter_puanlari[kr.k] || 0; %>
+        <% for (const kr of s.kriterler) { const kp = kriter_puanlari[kr.k] || 0;
+           const bs = (d.bulgular || {})[kr.k]; %>
         <div class="puan-satir denetim-sonuc <%= kp == kr.puan ? 'uygun' : (kp == 0 ? 'uygunsuz' : 'kismi') %>">
             <span class="durum-ikon"><%= kp %></span>
-            <span class="ps-acik"><%= kr.m %></span>
+            <span class="ps-acik"><%= kr.m %>
+                <% if (bs !== undefined && bs !== null) { %>
+                <small class="kural-not">— <%= kr.kural.tip === 'evet_hayir' ? (bs > 0 ? 'Hayır' : 'Evet') : (bs + ' bulgu') %></small>
+                <% } %></span>
             <span class="ps-puan"><%= kp %>/<%= kr.puan %></span>
         </div>
         <% const krfotolar = (d.fotolar || {})[kr.k] || []; %>

@@ -421,7 +421,7 @@ module.exports = function register(app) {
     const denetimGunu = ((bekleyen && bekleyen.plan_gun) || "").trim() || bugun;
     res.render("5s_denetim", {
       title: `Denetim · ${b.ad}`, b, bess: P.BESS, bekleyen, bugun,
-      denetim_gunu: denetimGunu, kriter_puan: P.BESS_KRITER_PUAN,
+      denetim_gunu: denetimGunu, kural_metni: P.bessKuralMetni,
     });
   }));
 
@@ -434,14 +434,16 @@ module.exports = function register(app) {
     if (yetkiHata) { flash(req, "error", yetkiHata); return res.redirect("/5s#plan"); }
 
     S.ensureDirs();
-    // Her kriter 0-max arası puan (max kritere özeldir — BESS_KRITER_MAX)
+    // Denetmen bulgu sayısı (veya Evet/Hayır) girer; puan form kurallarından hesaplanır
+    // (ör. "her bulgu −3 puan; 5+ bulguda tamamı gider") — bkz. puanlama.js
     const puanlar = {};
+    const bulgular = {};
     let skor = 0;
     for (const k of P.BESS_TUM_KRITERLER) {
-      const max = P.BESS_KRITER_MAX[k];
-      let v = parseInt(req.body[`puan_${k}`], 10);
-      if (Number.isNaN(v)) v = max;
-      v = Math.max(0, Math.min(max, v));
+      let b = parseInt(req.body[`bulgu_${k}`], 10);
+      if (Number.isNaN(b) || b < 0) b = 0;
+      bulgular[k] = b;
+      const v = P.bessKriterPuanla(k, b);
       puanlar[k] = v;
       skor += v;
     }
@@ -467,10 +469,10 @@ module.exports = function register(app) {
       metaTarih = dTarihi;
       metaTur = bekleyen.tur_adi || "";
       await calistir(
-        `UPDATE denetimler SET puan = ?, puanlar = ?, checked = ?, uygunsuz = ?,
+        `UPDATE denetimler SET puan = ?, puanlar = ?, bulgular = ?, checked = ?, uygunsuz = ?,
            notu = ?, denetmen = ?, aciklamalar = ?, fotolar = ?, denetim_tarihi = ?,
            durum = 'yapildi', kayit_zamani = ? WHERE id = ?`,
-        [skor, js(puanlar), js(checked), js(uygunsuz), not_, denetmen,
+        [skor, js(puanlar), js(bulgular), js(checked), js(uygunsuz), not_, denetmen,
           js(aciklamalar), js(fotolar), dTarihi, now, did]);
     } else {
       const tarih = alan(req, "tarih") || bugunIso;
@@ -479,10 +481,10 @@ module.exports = function register(app) {
       await calistir(
         `INSERT INTO denetimler(id, bolum_id, tarih, tur_adi, baslangic, bitis,
            plan_gun, plan_saat, planlanan_denetmen, misafir_denetmen, denetmen,
-           puan, puanlar, checked, uygunsuz, notu, aciklamalar, fotolar,
+           puan, puanlar, bulgular, checked, uygunsuz, notu, aciklamalar, fotolar,
            durum, denetim_tarihi, kayit_zamani)
-         VALUES(?,?,?,'','','','','','','',?,?,?,?,?,?,?,?,'yapildi',?,?)`,
-        [did, bid, tarih, denetmen, skor, js(puanlar), js(checked), js(uygunsuz),
+         VALUES(?,?,?,'','','','','','','',?,?,?,?,?,?,?,?,?,'yapildi',?,?)`,
+        [did, bid, tarih, denetmen, skor, js(puanlar), js(bulgular), js(checked), js(uygunsuz),
           not_, js(aciklamalar), js(fotolar), tarih, now]);
     }
     const eklenenAksiyon = await C.syncDenetimAksiyonlari(did, {

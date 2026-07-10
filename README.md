@@ -66,8 +66,9 @@ Stok, 5S… çoklu seçim), konu, yapıldığı bölüm, **ekip** (1 lider + en 
     Misafir denetmenler dengeli rastgele dağıtılır.
 - **Denetim formu (şirket 5S Denetim Raporu şablonu):** 5 bölüm — S1 Ayıklama (25) ·
   S2 Düzenleme (35) · S3 Temizlik (20) · S4 Standartlaştırma (4) · S5 Eğitim-Disiplin (16);
-  23 soru, her sorunun kendi puan üst sınırı
-  (toplam 100, canlı hesaplanır). Kriter başına 3 fotoğraf + açıklama + en fazla 2
+  23 soru. Denetmen puan girmez — **bulgu sayısı** (veya Evet/Hayır) girer, puan form
+  kuralından otomatik hesaplanır (ör. "her bulgu −3 puan; 5+ bulguda tamamı gider")
+  ve canlı gösterilir. Soru başına 3 fotoğraf + açıklama + en fazla 2
   **düzeltici aksiyon** (sorumlu + termin). Denetmen girişliyse adı oturumdan otomatik yazılır;
   denetmen yalnızca **kendisine planlanan** bölümü denetleyebilir.
 - **Ödüllendirme:** tur tüm bölümlerde tamamlanınca yönetici **"Ödülleri İşle"** der →

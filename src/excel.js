@@ -132,19 +132,23 @@ async function generate5sFormExcel(d, b) {
   ws.addRow(["Denetmen", d.denetmen || d.planlanan_denetmen || ""]);
   ws.addRow(["Kayıt", d.kayit_zamani || ""]);
   ws.addRow([]);
-  const basRow = ws.addRow(["Kategori", "Kriter", "Puan", "Maks", "Açıklama / Bulgular"]);
+  const basRow = ws.addRow(["Kategori", "Soru", "Bulgu Sayısı", "Puan", "Maks", "Açıklama / Bulgular"]);
   basRow.eachCell((c) => { c.font = HEADER_FONT; c.fill = HEADER_FILL; c.alignment = CENTER; });
   const bas = basRow.number;
   const kp = C.denetimKriterPuanlari(d);
   const aciklamalar = d.aciklamalar || {};
+  const bulgular = d.bulgular || {};
   for (const s of P.BESS) {
     for (const kr of s.kriterler) {
-      ws.addRow([s.ad, kr.m, kp[kr.k] || 0, kr.puan, aciklamalar[kr.k] || ""]);
+      const bs = bulgular[kr.k];
+      const bsGoster = bs === undefined || bs === null ? ""
+        : (kr.kural.tip === "evet_hayir" ? (bs > 0 ? "Hayır" : "Evet") : bs);
+      ws.addRow([s.ad, kr.m, bsGoster, kp[kr.k] || 0, kr.puan, aciklamalar[kr.k] || ""]);
     }
   }
   ws.addRow([]);
   ws.addRow(["Not", d.not || ""]);
-  [24, 60, 9, 9, 40].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  [24, 60, 12, 9, 9, 40].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   for (let i = bas; i <= ws.rowCount; i++) {
     ws.getRow(i).eachCell((c) => { c.alignment = WRAP; });
   }

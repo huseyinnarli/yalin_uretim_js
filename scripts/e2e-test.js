@@ -163,13 +163,16 @@ async function main() {
     html = await getText("/5s");
     ok("aynı tarihli 2. tur engellendi", html.includes("zaten bir denetim turu var"));
 
-    // --- Denetimleri yap (kriter listesi ve puan üst sınırları puanlama.js'ten) ---
-    const { BESS_KRITER_MAX } = require("../src/puanlama");
+    // --- Denetimleri yap (bulgu sayısı girilir, puan kuraldan hesaplanır) ---
+    const { BESS_TUM_KRITERLER, bessKriterPuanla } = require("../src/puanlama");
+    // İlk bölüm: s1_1'de 1 bulgu (−3 → 22) → toplam 97; ikinci bölüm: 0 bulgu → 100
+    ok("kural hesabı: s1_1 1 bulgu = 22", bessKriterPuanla("s1_1", 1) === 22);
+    ok("kural hesabı: s1_1 5 bulgu = 0 (eşik)", bessKriterPuanla("s1_1", 5) === 0);
+    ok("kural hesabı: evet_hayir s2_2_1 hayır = 0", bessKriterPuanla("s2_2_1", 1) === 0);
     for (const [i, bid] of bidler.entries()) {
       const form = { csrf_token: csrf, not: "e2e test", denetmen: "Test Denetmen" };
-      for (const [k, max] of Object.entries(BESS_KRITER_MAX)) {
-        // İlk bölümde S1 sorusundan 3 puan düş (bulgu) → 97; ikinci bölüm tam 100
-        form["puan_" + k] = (i === 0 && k === "s1_1") ? String(max - 3) : String(max);
+      for (const k of BESS_TUM_KRITERLER) {
+        form["bulgu_" + k] = (i === 0 && k === "s1_1") ? "1" : "0";
       }
       if (i === 0) {
         form["aksiyon_s1_1_1"] = "Gereksiz malzemeleri kaldır";

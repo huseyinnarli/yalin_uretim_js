@@ -70,52 +70,99 @@ const PUAN_EFOR = [
 
 // 5S denetim formu — şirket 5S Denetim Raporu şablonundan (toplam 100 puan):
 // S1 Ayıklama 25 · S2 Düzenleme 35 · S3 Temizlik 20 · S4 Standartlaştırma 4 · S5 Eğitim-Disiplin 16.
-// Her kriterin kendi puan üst sınırı vardır (`puan`); denetmen 0–max arası verir.
+// Denetmen PUAN girmez; soruya göre BULGU SAYISI veya Evet/Hayır girer, puan KURALDAN hesaplanır:
+//   kural.tip = "bulgu":      puan = bulgu >= sifir ? 0 : max(0, kr.puan - dusus * bulgu)
+//   kural.tip = "evet_hayir": puan = bulgu > 0 ? 0 : kr.puan   (ya tam puan ya 0)
 const BESS_KRITER_PUAN = 5; // eski kayıtların 'checked' formatını çevirmek için (geriye dönük)
 const BESS = [
   { kod: "s1", ad: "S1 · AYIKLAMA", puan: 25,
     aciklama: "Gerekli malzemelerin, gereksiz olan malzemelerden ayrıştırılması", kriterler: [
-    { k: "s1_1", puan: 25, m: "Alandaki tüm unsurlar yapılan işle ilgili mi? (hammadde, yarı mamul, malzeme, alet, ekipman, güncel olmayan bilgi/doküman)" },
+    { k: "s1_1", puan: 25, kural: { tip: "bulgu", dusus: 3, sifir: 5 },
+      m: "Alandaki tüm unsurlar yapılan işle ilgili mi? (hammadde, yarı mamul, malzeme, alet, ekipman, güncel olmayan bilgi/doküman)" },
   ]},
   { kod: "s2", ad: "S2 · DÜZENLEME", puan: 35,
     aciklama: "İstenilen malzemelerin kolayca bulunabilecek şekilde düzenli olması", kriterler: [
-    { k: "s2_1_1", puan: 10, m: "1.1) Sahadaki her şeyin yeri tanımlı mı ve doğru yerinde mi? (dolap/çekmece içleri dahil; ekipmanlarda etiket ve gölgelendirme; kasa ve paletler)" },
-    { k: "s2_1_2", puan: 5, m: "1.2) Zeminde yer işaretlemeleri yapılmış mı?" },
-    { k: "s2_2_1", puan: 3, m: "2.1) Tüm aparatlar etiketli mi?" },
-    { k: "s2_2_2", puan: 3, m: "2.2) Bölümün aparatları tanımlanmış aparat rafında mı?" },
-    { k: "s2_2_3", puan: 4, m: "2.3) Aparat rafları düzenli mi?" },
-    { k: "s2_3_1", puan: 6, m: "3.1) Düzenlemeler iş güvenliği ve ergonomi dikkate alınarak yapılmış mı? (zor açılan çekmece, yüksekte ağır malzeme, tonaj aşımı olmamalı)" },
-    { k: "s2_3_2", puan: 4, m: "3.2) Personellerde İSG ekipmanları var mı? (en temel: eldiven ve iş güvenliği ayakkabısı)" },
+    { k: "s2_1_1", puan: 10, kural: { tip: "bulgu", dusus: 3, sifir: 5 },
+      m: "1.1) Sahadaki her şeyin yeri tanımlı mı ve doğru yerinde mi? (dolap/çekmece içleri dahil; ekipmanlarda etiket ve gölgelendirme; kasa ve paletler)" },
+    { k: "s2_1_2", puan: 5, kural: { tip: "evet_hayir" },
+      m: "1.2) Zeminde yer işaretlemeleri yapılmış mı? (eksik yer varsa puanın tamamı gider)" },
+    { k: "s2_2_1", puan: 3, kural: { tip: "evet_hayir" },
+      m: "2.1) Tüm aparatlar etiketli mi?" },
+    { k: "s2_2_2", puan: 3, kural: { tip: "evet_hayir" },
+      m: "2.2) Bölümün aparatları tanımlanmış aparat rafında mı?" },
+    { k: "s2_2_3", puan: 4, kural: { tip: "evet_hayir" },
+      m: "2.3) Aparat rafları düzenli mi?" },
+    { k: "s2_3_1", puan: 6, kural: { tip: "bulgu", dusus: 2, sifir: 3 },
+      m: "3.1) Düzenlemeler iş güvenliği ve ergonomi dikkate alınarak yapılmış mı? (zor açılan çekmece, yüksekte ağır malzeme, tonaj aşımı olmamalı)" },
+    { k: "s2_3_2", puan: 4, kural: { tip: "evet_hayir" },
+      m: "3.2) Personellerde İSG ekipmanları var mı? (en temel: eldiven ve iş güvenliği ayakkabısı)" },
   ]},
   { kod: "s3", ad: "S3 · TEMİZLİK", puan: 20,
     aciklama: "Her yerin / her şeyin temizlenmesi ve daima temiz tutulması", kriterler: [
-    { k: "s3_1_1", puan: 3, m: "1.1) Makine, ekipman, taşıma arabası, dolap, masa, cam ve zemin temiz, boyalı, hasarsız mı?" },
-    { k: "s3_1_2", puan: 2, m: "1.2) Etiket ve tabelalar temiz mi? (yıpranmış olmamalı)" },
-    { k: "s3_1_3", puan: 2, m: "1.3) Atıklar doğru yerlere atılmış mı?" },
-    { k: "s3_1_4", puan: 3, m: "1.4) Zemin temiz mi? (yağ, pas, kir yok)" },
-    { k: "s3_2_1", puan: 2, m: "2.1) Kirlilik kaynakları tespit edilmiş mi? (kirlilik haritası var mı?)" },
-    { k: "s3_2_2", puan: 3, m: "2.2) Kirlilik kaynakları için aksiyon alınmış mı?" },
-    { k: "s3_3_1", puan: 2, m: "3.1) Temizlik planına uyularak temizlik düzenli yapılıyor mu?" },
-    { k: "s3_3_2", puan: 3, m: "3.2) Temizlik planı güncel mi?" },
+    { k: "s3_1_1", puan: 3, kural: { tip: "bulgu", dusus: 1, sifir: 3 },
+      m: "1.1) Makine, ekipman, taşıma arabası, dolap, masa, cam ve zemin temiz, boyalı, hasarsız mı?" },
+    { k: "s3_1_2", puan: 2, kural: { tip: "evet_hayir" },
+      m: "1.2) Etiket ve tabelalar temiz mi? (yıpranmış olmamalı)" },
+    { k: "s3_1_3", puan: 2, kural: { tip: "evet_hayir" },
+      m: "1.3) Atıklar doğru yerlere atılmış mı?" },
+    { k: "s3_1_4", puan: 3, kural: { tip: "evet_hayir" },
+      m: "1.4) Zemin temiz mi? (yağ, pas, kir yok)" },
+    { k: "s3_2_1", puan: 2, kural: { tip: "evet_hayir" },
+      m: "2.1) Kirlilik kaynakları tespit edilmiş mi? (kirlilik haritası var mı?)" },
+    { k: "s3_2_2", puan: 3, kural: { tip: "evet_hayir" },
+      m: "2.2) Kirlilik kaynakları için aksiyon alınmış mı?" },
+    { k: "s3_3_1", puan: 2, kural: { tip: "evet_hayir" },
+      m: "3.1) Temizlik planına uyularak temizlik düzenli yapılıyor mu?" },
+    { k: "s3_3_2", puan: 3, kural: { tip: "evet_hayir" },
+      m: "3.2) Temizlik planı güncel mi?" },
   ]},
   { kod: "s4", ad: "S4 · STANDARTLAŞTIRMA", puan: 4,
     aciklama: "Görsel kontrol ile tüm anormalliklerin standartlaştırılması", kriterler: [
-    { k: "s4_1", puan: 4, m: "Tanımlamalarda kullanılan bant, boya, etiket ve tabelalar standartlara uygun mu? (mevcut tek standart: zemin tanımlamaları — boya/bant rengi ve kalınlığı)" },
+    // Form kuralı: "birden fazla uygunsuzlukta puanın tamamı gider" → 0-1 bulgu tam puan, 2+ bulgu 0
+    { k: "s4_1", puan: 4, kural: { tip: "bulgu", dusus: 0, sifir: 2 },
+      m: "Tanımlamalarda kullanılan bant, boya, etiket ve tabelalar standartlara uygun mu? (mevcut tek standart: zemin tanımlamaları — boya/bant rengi ve kalınlığı)" },
   ]},
   { kod: "s5", ad: "S5 · EĞİTİM-DİSİPLİN", puan: 16,
     aciklama: "Kurallara %100 uyum sağlanması ve bunun alışkanlık haline getirilmesi", kriterler: [
-    { k: "s5_1_1", puan: 1, m: "1.1) Önceki denetim sonuçları takım üyeleriyle paylaşılıyor mu?" },
-    { k: "s5_1_2", puan: 1, m: "1.2) Takım panosunda önceki 5S denetim sonucu yazıyor mu?" },
-    { k: "s5_2", puan: 5, m: "2) Denetim sonuçları aksiyon planına aktarılmış mı?" },
-    { k: "s5_3", puan: 5, m: "3) Önceki denetimden itibaren aksiyon alınmış mı? (son 2 hafta içinde alınmış aksiyon olmalı; oran yazılır, örn. 7/10)" },
-    { k: "s5_4", puan: 2, m: "4) Son 1 ay içinde 5S önerisi verilmiş mi?" },
-    { k: "s5_5", puan: 2, m: "5) Takım panoları güncel ve düzenli gözden geçiriliyor mu? (denetim tarihinde doldurulmuş mu?)" },
+    { k: "s5_1_1", puan: 1, kural: { tip: "evet_hayir" },
+      m: "1.1) Önceki denetim sonuçları takım üyeleriyle paylaşılıyor mu?" },
+    { k: "s5_1_2", puan: 1, kural: { tip: "evet_hayir" },
+      m: "1.2) Takım panosunda önceki 5S denetim sonucu yazıyor mu?" },
+    { k: "s5_2", puan: 5, kural: { tip: "evet_hayir" },
+      m: "2) Denetim sonuçları aksiyon planına aktarılmış mı? (önceki denetimin TÜM uygunsuzlukları aktarılmış olmalı, yoksa tamamı gider)" },
+    { k: "s5_3", puan: 5, kural: { tip: "evet_hayir" },
+      m: "3) Önceki denetimden itibaren aksiyon alınmış mı? (son 2 hafta içinde en az 1 aksiyon olmalı; oran açıklamaya yazılır, örn. 7/10)" },
+    { k: "s5_4", puan: 2, kural: { tip: "evet_hayir" },
+      m: "4) Son 1 ay içinde 5S önerisi verilmiş mi? (metot bölümü kontrol eder)" },
+    { k: "s5_5", puan: 2, kural: { tip: "evet_hayir" },
+      m: "5) Takım panoları güncel ve düzenli gözden geçiriliyor mu? (denetim tarihinde doldurulmuş mu?)" },
   ]},
 ];
 const BESS_TUM_KRITERLER = BESS.flatMap((s) => s.kriterler.map((k) => k.k));
 // k -> maksimum puan haritası (form işleme ve doğrulama için)
 const BESS_KRITER_MAX = Object.fromEntries(
   BESS.flatMap((s) => s.kriterler.map((kr) => [kr.k, kr.puan])));
+const _BESS_KRITERLER = Object.fromEntries(
+  BESS.flatMap((s) => s.kriterler.map((kr) => [kr.k, kr])));
+
+// Bulgu sayısından kriter puanını hesaplar (form kuralları).
+function bessKriterPuanla(k, bulgu) {
+  const kr = _BESS_KRITERLER[k];
+  if (!kr) return 0;
+  bulgu = Math.max(0, parseInt(bulgu, 10) || 0);
+  const ku = kr.kural;
+  if (ku.tip === "evet_hayir") return bulgu > 0 ? 0 : kr.puan;
+  if (bulgu >= ku.sifir) return 0;
+  return Math.max(0, kr.puan - ku.dusus * bulgu);
+}
+
+// Kuralın kullanıcıya gösterilecek kısa açıklaması.
+function bessKuralMetni(kr) {
+  const ku = kr.kural;
+  if (ku.tip === "evet_hayir") return "Evet / Hayır — ya tam puan ya 0";
+  if (!ku.dusus) return `${ku.sifir}+ bulguda puanın tamamı gider`;
+  return `Her bulgu −${ku.dusus} puan; ${ku.sifir}+ bulguda tamamı gider`;
+}
 
 // Her bölümün maksimum puanı (toplam 100)
 const PUAN_MAX = { temel: 10, etki: 40, maliyet: 20, yaygin: 15, efor: 15 };
@@ -192,5 +239,6 @@ function puanlamaOzet(p) {
 module.exports = {
   PUAN_TEMEL, PUAN_ETKI, PUAN_MALIYET, PUAN_YAYGIN, PUAN_EFOR, PUAN_MAX,
   BESS, BESS_KRITER_PUAN, BESS_TUM_KRITERLER, BESS_KRITER_MAX,
+  bessKriterPuanla, bessKuralMetni,
   hesaplaPuanlama, puanlamaOzet,
 };

@@ -158,7 +158,10 @@ net ≤ 0 olan listeden düşer.
 - **misafirler:** karıştırılmış bloklar hâlinde dağıtılır — kişi başına denetim sayısı farkı en fazla 1.
 
 ### Denetim kaydetme (`POST /5s/bolum/:bid/denetim`)
-23 soru × (0–soru maksimumu) puan → skor (S1:25 · S2:35 · S3:20 · S4:4 · S5:16 = 100);
+Denetmen 23 soru için **bulgu sayısı** (veya Evet/Hayır) girer; puan `puanlama.js`'teki
+kuraldan hesaplanır (`bessKriterPuanla`: bulgu tipi → eşikte 0, yoksa max − düşüş×bulgu;
+evet_hayir → ya tam puan ya 0). Bölüm dağılımı S1:25 · S2:35 · S3:20 · S4:4 · S5:16 = 100.
+Bulgu sayıları `bulgular` JSON kolonunda saklanır (Excel'de "Bulgu Sayısı" sütunu);
 kriter fotoğrafları (max 3/kriter) doğrulanıp diske, adları JSON
 kolonuna yazılır. Denetmen girişliyse adı **oturumdan** alınır (form değeri ezilir — sahte ad
 gönderilemez). Bekleyen kayıt varsa güncellenir (plan bilgileri korunur), yoksa bağımsız denetim

@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS denetimler (
   bolum_id VARCHAR(16), tarih VARCHAR(10), tur_adi TEXT,
   baslangic VARCHAR(10), bitis VARCHAR(10), plan_gun VARCHAR(10), plan_saat VARCHAR(8),
   planlanan_denetmen TEXT, misafir_denetmen TEXT, denetmen TEXT,
-  puan INT NULL, puanlar TEXT, checked TEXT, uygunsuz TEXT,
+  puan INT NULL, puanlar TEXT, bulgular TEXT, checked TEXT, uygunsuz TEXT,
   notu TEXT, aciklamalar TEXT, fotolar TEXT,
   durum VARCHAR(16), denetim_tarihi VARCHAR(10), kayit_zamani VARCHAR(20),
   INDEX ix_denetim_bolum (bolum_id),
@@ -149,6 +149,11 @@ async function init() {
   for (const ddl of SEMA.split(";").map((s) => s.trim()).filter(Boolean)) {
     await pool.query(ddl);
   }
+  // Mevcut kurulumlar için küçük migrasyonlar (CREATE IF NOT EXISTS kolon eklemez)
+  const [kolon] = await pool.query("SHOW COLUMNS FROM denetimler LIKE 'bulgular'");
+  if (!kolon.length) {
+    await pool.query("ALTER TABLE denetimler ADD COLUMN bulgular TEXT AFTER puanlar");
+  }
 }
 
 // --- JSON kolon yardımcıları ---
@@ -185,9 +190,9 @@ function bolumRow(r) {
 }
 function denetimRow(r) {
   if (!r) return null;
-  return { ...r, puanlar: j(r.puanlar, null), checked: j(r.checked, []),
-    uygunsuz: j(r.uygunsuz, []), aciklamalar: j(r.aciklamalar, {}),
-    fotolar: j(r.fotolar, {}), not: r.notu };
+  return { ...r, puanlar: j(r.puanlar, null), bulgular: j(r.bulgular, {}),
+    checked: j(r.checked, []), uygunsuz: j(r.uygunsuz, []),
+    aciklamalar: j(r.aciklamalar, {}), fotolar: j(r.fotolar, {}), not: r.notu };
 }
 function aksiyonRow(r) {
   if (!r) return null;

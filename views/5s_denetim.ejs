@@ -10,8 +10,9 @@
 
 <p class="subtitle">
     <% if (bekleyen) { %>Denetleme tarihi: <strong><%= trdate(bekleyen.tarih) %></strong>.<% } %>
-    Her madde varsayılan <strong>tam puan</strong>dır (toplam 100). Uygunsuzluk gördüğünüz maddenin puanını düşürün;
-    bulguları madde madde açıklama kutusuna yazın. Denetim, alanın takım lideriyle birlikte yapılmalıdır.
+    Her soruda <strong>bulgu sayısını</strong> (veya Evet/Hayır) seçin — puan, form kuralına göre
+    <strong>otomatik hesaplanır</strong>. Bulguları madde madde açıklama kutusuna yazın.
+    Denetim, alanın takım lideriyle birlikte yapılmalıdır.
 </p>
 
 <form method="post" action="/5s/bolum/<%= b.id %>/denetim" enctype="multipart/form-data" id="denetimForm"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
@@ -51,16 +52,25 @@
     <fieldset class="puan-blok">
         <legend><%= s.ad %> <span class="blok-max">(<%= s.puan %> puan)</span></legend>
         <% if (s.aciklama) { %><p class="blok-alt-not"><%= s.aciklama %></p><% } %>
-        <% for (const kr of s.kriterler) { const varolan = mevcut[kr.k] || []; %>
+        <% for (const kr of s.kriterler) { const varolan = mevcut[kr.k] || []; const ku = kr.kural; %>
         <div class="bess-kriter">
             <div class="kriter-satir">
-                <select class="bess-puan" name="puan_<%= kr.k %>" title="Puan">
-                    <% for (let v = 0; v <= kr.puan; v++) { %>
-                    <option value="<%= v %>" <%= v == kr.puan ? 'selected' : '' %>><%= v %></option>
+                <% if (ku.tip === 'evet_hayir') { %>
+                <select class="bess-puan bess-bulgu" name="bulgu_<%= kr.k %>" title="Evet / Hayır"
+                        data-tip="e" data-max="<%= kr.puan %>">
+                    <option value="0" selected>Evet</option>
+                    <option value="1">Hayır</option>
+                </select>
+                <% } else { %>
+                <select class="bess-puan bess-bulgu" name="bulgu_<%= kr.k %>" title="Bulgu sayısı"
+                        data-tip="b" data-max="<%= kr.puan %>" data-dusus="<%= ku.dusus %>" data-sifir="<%= ku.sifir %>">
+                    <% for (let v = 0; v <= ku.sifir; v++) { %>
+                    <option value="<%= v %>"><%= v === ku.sifir ? v + '+' : v %> bulgu</option>
                     <% } %>
                 </select>
-                <span class="ps-acik"><%= kr.m %></span>
-                <span class="ps-puan">/ <%= kr.puan %></span>
+                <% } %>
+                <span class="ps-acik"><%= kr.m %> <small class="kural-not">— <%= kural_metni(kr) %></small></span>
+                <span class="ps-puan"><b class="kriter-puan"><%= kr.puan %></b> / <%= kr.puan %></span>
             </div>
             <div class="kriter-aciklama-satir">
                 <textarea class="kriter-aciklama" name="aciklama_<%= kr.k %>" rows="2"
@@ -119,13 +129,28 @@
 (function () {
     var form = document.getElementById('denetimForm');
     var out = document.getElementById('skor');
+    // Kural tabanlı puan: evet_hayir → bulgu>0 ise 0; bulgu → sifir eşiğinde 0, yoksa max - dusus×bulgu
+    function kriterPuan(el) {
+        var bulgu = parseInt(el.value, 10) || 0;
+        var max = parseInt(el.dataset.max, 10) || 0;
+        if (el.dataset.tip === 'e') return bulgu > 0 ? 0 : max;
+        var sifir = parseInt(el.dataset.sifir, 10) || 1;
+        var dusus = parseInt(el.dataset.dusus, 10) || 0;
+        if (bulgu >= sifir) return 0;
+        return Math.max(0, max - dusus * bulgu);
+    }
     function hesapla() {
         var skor = 0;
-        form.querySelectorAll('.bess-puan').forEach(function (el) { skor += parseInt(el.value, 10) || 0; });
+        form.querySelectorAll('.bess-bulgu').forEach(function (el) {
+            var p = kriterPuan(el);
+            skor += p;
+            var goster = el.closest('.kriter-satir').querySelector('.kriter-puan');
+            if (goster) goster.textContent = p;
+        });
         out.textContent = skor;
         out.parentElement.classList.toggle('tam', skor >= 80);
     }
-    form.querySelectorAll('.bess-puan').forEach(function (el) { el.addEventListener('change', hesapla); });
+    form.querySelectorAll('.bess-bulgu').forEach(function (el) { el.addEventListener('change', hesapla); });
     hesapla();
 
     function slotlar(k) {
