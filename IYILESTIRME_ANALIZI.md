@@ -1,7 +1,7 @@
 # Mimari ve Kod İnceleme Raporu
 
-Tarih: 2026-07-10 · Kapsam: tüm kaynak kod (3.133 satır JS + 22 EJS şablonu) + bağımlılıklar
-· Test durumu: `npm test` → **30/30 başarılı** (uçtan uca, izole veritabanı)
+Tarih: 2026-07-10 · Kapsam: tüm kaynak kod (3.228 satır JS + 22 EJS şablonu) + bağımlılıklar
+· Test durumu: `npm test` → **34/34 başarılı** (uçtan uca, izole veritabanı)
 
 İlgili dokümanlar: [README.md](README.md) (kullanım) · [TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md)
 (iç işleyiş referansı) · [DAGITIM.md](DAGITIM.md) (sunucuda devreye alma rehberi)
@@ -48,14 +48,14 @@ sabitler.js → puanlama.js → db.js → cekirdek.js → web.js → rotalar/* �
 | Dosya | Satır | Sorumluluk | Değerlendirme |
 |---|---|---|---|
 | `src/cekirdek.js` | 728 | Tüm iş mantığı | ⚠ Büyümeye devam ederse bölünmeli (bkz. Ö7) |
-| `src/rotalar/bes_s.js` | 547 | 27 5S rotası | Kabul edilebilir — rota başına ~20 satır |
-| `src/db.js` | 235 | Havuz + şema + yedek | İyi |
-| `src/excel.js` | 226 | 8 Excel raporu | İyi — tekrar eden stil yardımcılara alınmış |
+| `src/rotalar/bes_s.js` | 553 | 27 5S rotası | Kabul edilebilir — rota başına ~20 satır |
+| `src/db.js` | 240 | Havuz + şema + migrasyon + yedek | İyi |
+| `src/excel.js` | 232 | 8 Excel raporu | İyi — tekrar eden stil yardımcılara alınmış |
 | `src/rotalar/admin.js` | 225 | Giriş + panel + değerlendirme | İyi |
-| `src/puanlama.js` | 168 | Rubrik tanımları (çoğu veri) | İyi |
+| `src/puanlama.js` | 227 | Rubrik + 5S form soruları/kuralları (çoğu veri) | İyi |
 | `src/web.js` | 132 | Middleware'ler | İyi |
 | diğer rotalar + sabitler + server | ~380 | — | İyi |
-| `scripts/` | 489 | e2e test + 2 veri aktarımı | İyi |
+| `scripts/` | 508 | e2e test + 2 veri aktarımı | İyi |
 
 22 EJS şablonu; tekrar eden bloklar partial'lardadır (`odul_siralama`, `aksiyon_kart`,
 header/footer). Adlandırma tutarlıdır (Türkçe alan/fonksiyon adları, eski sistemle birebir).
@@ -79,6 +79,7 @@ atlatılamaz.
 | `odul_kayitlari` = kişi 5S puanlarının **tek kaynağı** | ✔ Denetim silinince puanın otomatik geri alınması bu tasarımın doğrudan sonucu — en kritik iş kuralı sağlam |
 | `denetimler.tarih` = tur kimliği | ✔ Basit; aynı tarihli ikinci tur uygulama kuralıyla engellenir |
 | Numara üretimi `sayaclar` tablosunda atomik sayaç | ✔ Eşzamanlı gönderimde mükerrer numara imkânsız; aktarım sonrası otomatik tohumlama var |
+| 5S formu = şirket şablonu, **kural tabanlı puanlama** | ✔ Sorular + kesme kuralları tek yerde (`puanlama.js`); denetmen bulgu sayısı girer, puan kuraldan hesaplanır (sunucu bağlayıcı); bulgu sayıları `bulgular` kolonunda saklanır |
 | FK bildirimi yok | ⚠ Yetim kayıt temizliği kod tarafında (transaction içinde) — çalışıyor, ama şema güvencesi yok (Ö4) |
 
 ---
