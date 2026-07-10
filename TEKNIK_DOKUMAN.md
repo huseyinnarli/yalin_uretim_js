@@ -231,6 +231,9 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 
 ## 8. Dağıtım Notları
 
+> Adım adım kurulum (sunucu özellikleri, Windows/Linux, systemd, reverse proxy, yedekleme,
+> kontrol listesi) için: **[DAGITIM.md](DAGITIM.md)**. Aşağıdakiler kısa özettir.
+
 - **MySQL sunucusu:** Windows'ta servis olarak kurulması önerilir
   (`mysqld --install <ad> --defaults-file=<my.ini>` — veri dizini `C:\ProgramData` altında
   olmalıdır; kullanıcı profili altındaki veri diziniyle servis başlamayabilir).

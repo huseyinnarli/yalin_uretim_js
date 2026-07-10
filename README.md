@@ -233,4 +233,5 @@ Eski hash'li şifreler (pbkdf2/scrypt) aynen tanınır — yönetici ve denetmen
   HttpOnly + SameSite=Lax, imza anahtarı veritabanında tutulur (koda gömülü değildir).
 
 Ayrıntılar için: **[TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md)** (mimari ve iç işleyiş) ·
-**[IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md)** (kod inceleme raporu: riskler ve iyileştirme planı).
+**[IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md)** (mimari/kod inceleme raporu ve iyileştirme önerileri) ·
+**[DAGITIM.md](DAGITIM.md)** (sunucuda devreye alma: sunucu özellikleri, kurulum, HTTPS, yedekleme).
