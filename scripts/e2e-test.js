@@ -177,8 +177,22 @@ async function main() {
       if (i === 0) {
         form["aksiyon_s1_1_1"] = "Gereksiz malzemeleri kaldır";
         form["aksiyon_sorumlu_s1_1_1"] = "Ali Test";
+        // Tarayıcı simülasyonu (regresyon): dosya seçilmese bile tarayıcı formdaki
+        // TÜM dosya kutularını (soru × 3) boş multipart parçası olarak gönderir —
+        // dosya sayısı sınırı bunları da saydığından kayıt reddedilmemeli.
+        const fd = new FormData();
+        for (const [ad, deger] of Object.entries(form)) fd.append(ad, deger);
+        for (const k of BESS_TUM_KRITERLER) {
+          for (let s = 0; s < 3; s++) fd.append("foto_" + k, new Blob([]), "");
+        }
+        const r = await fetch(BASE + `/5s/bolum/${bid}/denetim`, {
+          method: "POST", redirect: "manual", headers: { cookie: cookieHeader() }, body: fd,
+        });
+        storeCookies(r);
+        ok("boş dosya kutularıyla denetim kaydedildi", r.status === 302, "durum: " + r.status);
+      } else {
+        await post(`/5s/bolum/${bid}/denetim`, form);
       }
-      await post(`/5s/bolum/${bid}/denetim`, form);
     }
     html = await getText("/5s");
     ok("denetimler kaydedildi (97 + 100)", html.includes("97/100") && html.includes("100/100"));

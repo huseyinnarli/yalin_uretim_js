@@ -425,7 +425,10 @@ module.exports = function register(app) {
     });
   }));
 
-  app.post("/5s/bolum/:bid/denetim", ...dosyaYukleyici(60), denetciRequired, sar(async (req, res) => {
+  // Sınır = form üzerindeki dosya kutusu sayısı (soru × 3) — tarayıcı BOŞ dosya
+  // kutularını da multipart parçası olarak gönderir ve multer bunları da sayar.
+  app.post("/5s/bolum/:bid/denetim", ...dosyaYukleyici(3 * P.BESS_TUM_KRITERLER.length),
+    denetciRequired, sar(async (req, res) => {
     const bid = req.params.bid;
     const b = await C.bolumById(bid);
     if (!b) return res.status(404).send("Bölüm bulunamadı.");
