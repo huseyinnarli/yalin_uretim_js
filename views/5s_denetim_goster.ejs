@@ -35,12 +35,12 @@
 
     <% for (const s of bess) { %>
     <fieldset class="puan-blok">
-        <legend><%= s.ad %></legend>
+        <legend><%= s.ad %> <span class="blok-max">(<%= s.puan %> puan)</span></legend>
         <% for (const kr of s.kriterler) { const kp = kriter_puanlari[kr.k] || 0; %>
-        <div class="puan-satir denetim-sonuc <%= kp == kriter_puan ? 'uygun' : (kp == 0 ? 'uygunsuz' : 'kismi') %>">
+        <div class="puan-satir denetim-sonuc <%= kp == kr.puan ? 'uygun' : (kp == 0 ? 'uygunsuz' : 'kismi') %>">
             <span class="durum-ikon"><%= kp %></span>
             <span class="ps-acik"><%= kr.m %></span>
-            <span class="ps-puan"><%= kp %>/<%= kriter_puan %></span>
+            <span class="ps-puan"><%= kp %>/<%= kr.puan %></span>
         </div>
         <% const krfotolar = (d.fotolar || {})[kr.k] || []; %>
         <% if (krfotolar.length) { %>

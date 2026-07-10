@@ -434,18 +434,19 @@ module.exports = function register(app) {
     if (yetkiHata) { flash(req, "error", yetkiHata); return res.redirect("/5s#plan"); }
 
     S.ensureDirs();
-    // Her kriter 0-5 arası puan
+    // Her kriter 0-max arası puan (max kritere özeldir — BESS_KRITER_MAX)
     const puanlar = {};
     let skor = 0;
     for (const k of P.BESS_TUM_KRITERLER) {
+      const max = P.BESS_KRITER_MAX[k];
       let v = parseInt(req.body[`puan_${k}`], 10);
-      if (Number.isNaN(v)) v = P.BESS_KRITER_PUAN;
-      v = Math.max(0, Math.min(P.BESS_KRITER_PUAN, v));
+      if (Number.isNaN(v)) v = max;
+      v = Math.max(0, Math.min(max, v));
       puanlar[k] = v;
       skor += v;
     }
-    const checked = P.BESS_TUM_KRITERLER.filter((k) => puanlar[k] === P.BESS_KRITER_PUAN);
-    const uygunsuz = P.BESS_TUM_KRITERLER.filter((k) => puanlar[k] < P.BESS_KRITER_PUAN);
+    const checked = P.BESS_TUM_KRITERLER.filter((k) => puanlar[k] === P.BESS_KRITER_MAX[k]);
+    const uygunsuz = P.BESS_TUM_KRITERLER.filter((k) => puanlar[k] < P.BESS_KRITER_MAX[k]);
     const not_ = alan(req, "not");
     // Denetmen girişliyse adı OTOMATİK oturumdan (form değiştiremez)
     const dHesap = await C.aktifDenetmen(req.session);

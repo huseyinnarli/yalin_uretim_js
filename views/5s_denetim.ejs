@@ -10,7 +10,8 @@
 
 <p class="subtitle">
     <% if (bekleyen) { %>Denetleme tarihi: <strong><%= trdate(bekleyen.tarih) %></strong>.<% } %>
-    Her madde varsayılan <strong>uygun</strong>dur (puan 100). Uygun olmayanı işareti kaldırın — her uygunsuzluk −<%= kriter_puan %> puan.
+    Her madde varsayılan <strong>tam puan</strong>dır (toplam 100). Uygunsuzluk gördüğünüz maddenin puanını düşürün;
+    bulguları madde madde açıklama kutusuna yazın. Denetim, alanın takım lideriyle birlikte yapılmalıdır.
 </p>
 
 <form method="post" action="/5s/bolum/<%= b.id %>/denetim" enctype="multipart/form-data" id="denetimForm"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
@@ -48,17 +49,18 @@
        const aciklamalar = (bekleyen && bekleyen.aciklamalar) || {}; %>
     <% for (const s of bess) { %>
     <fieldset class="puan-blok">
-        <legend><%= s.ad %></legend>
+        <legend><%= s.ad %> <span class="blok-max">(<%= s.puan %> puan)</span></legend>
+        <% if (s.aciklama) { %><p class="blok-alt-not"><%= s.aciklama %></p><% } %>
         <% for (const kr of s.kriterler) { const varolan = mevcut[kr.k] || []; %>
         <div class="bess-kriter">
             <div class="kriter-satir">
                 <select class="bess-puan" name="puan_<%= kr.k %>" title="Puan">
-                    <% for (let v = 0; v <= kriter_puan; v++) { %>
-                    <option value="<%= v %>" <%= v == kriter_puan ? 'selected' : '' %>><%= v %></option>
+                    <% for (let v = 0; v <= kr.puan; v++) { %>
+                    <option value="<%= v %>" <%= v == kr.puan ? 'selected' : '' %>><%= v %></option>
                     <% } %>
                 </select>
                 <span class="ps-acik"><%= kr.m %></span>
-                <span class="ps-puan">/ <%= kriter_puan %></span>
+                <span class="ps-puan">/ <%= kr.puan %></span>
             </div>
             <div class="kriter-aciklama-satir">
                 <textarea class="kriter-aciklama" name="aciklama_<%= kr.k %>" rows="2"

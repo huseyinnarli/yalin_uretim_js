@@ -64,7 +64,9 @@ Stok, 5S… çoklu seçim), konu, yapıldığı bölüm, **ekip** (1 lider + en 
   - **Toplu dağıtım:** *Herkes kendi bölümüne* ya da *Çapraz* — her bölüm başka bir bölümce
     denetlenir, kimse kendi (veya ortak lider olduğu) bölümüne denk gelmez.
     Misafir denetmenler dengeli rastgele dağıtılır.
-- **Denetim formu:** 5 kategori (1S–5S) × 4 kriter = 20 kriter, her biri **0–5 puan**
+- **Denetim formu (şirket 5S Denetim Raporu şablonu):** 5 bölüm — S1 Ayıklama (25) ·
+  S2 Düzenleme (35) · S3 Temizlik (20) · S4 Standartlaştırma (4) · S5 Eğitim-Disiplin (16);
+  23 soru, her sorunun kendi puan üst sınırı
   (toplam 100, canlı hesaplanır). Kriter başına 3 fotoğraf + açıklama + en fazla 2
   **düzeltici aksiyon** (sorumlu + termin). Denetmen girişliyse adı oturumdan otomatik yazılır;
   denetmen yalnızca **kendisine planlanan** bölümü denetleyebilir.

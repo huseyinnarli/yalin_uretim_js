@@ -68,41 +68,54 @@ const PUAN_EFOR = [
   { ad: "Anahtar Teslim (Otonom)", aciklama: "Malzemeyi buldu, kendisi yaptı, çalışır halde teslim etti.", puan: 15 },
 ];
 
-// 5S denetim formu — 5 kategori × 4 kriter × 5 puan = 100
-const BESS_KRITER_PUAN = 5;
+// 5S denetim formu — şirket 5S Denetim Raporu şablonundan (toplam 100 puan):
+// S1 Ayıklama 25 · S2 Düzenleme 35 · S3 Temizlik 20 · S4 Standartlaştırma 4 · S5 Eğitim-Disiplin 16.
+// Her kriterin kendi puan üst sınırı vardır (`puan`); denetmen 0–max arası verir.
+const BESS_KRITER_PUAN = 5; // eski kayıtların 'checked' formatını çevirmek için (geriye dönük)
 const BESS = [
-  { kod: "1s", ad: "1S · Seiri (Ayıklama)", kriterler: [
-    { k: "1s1", m: "Çalışma alanında gereksiz malzeme/alet bulunmuyor" },
-    { k: "1s2", m: "Kullanılmayan ekipman ortamdan uzaklaştırılmış" },
-    { k: "1s3", m: "Sadece o işe ait malzemeler bulunuyor" },
-    { k: "1s4", m: "Kırmızı etiket (red-tag) uygulaması yapılmış" },
+  { kod: "s1", ad: "S1 · AYIKLAMA", puan: 25,
+    aciklama: "Gerekli malzemelerin, gereksiz olan malzemelerden ayrıştırılması", kriterler: [
+    { k: "s1_1", puan: 25, m: "Alandaki tüm unsurlar yapılan işle ilgili mi? (hammadde, yarı mamul, malzeme, alet, ekipman, güncel olmayan bilgi/doküman)" },
   ]},
-  { kod: "2s", ad: "2S · Seiton (Düzenleme)", kriterler: [
-    { k: "2s1", m: "Her alet/malzemenin belirli bir yeri var" },
-    { k: "2s2", m: "Yerler etiketlenmiş/işaretlenmiş (gölge pano vb.)" },
-    { k: "2s3", m: "Sık kullanılanlar kolay erişilebilir konumda" },
-    { k: "2s4", m: "Yer işaretlemeleri (çizgiler) net ve sağlam" },
+  { kod: "s2", ad: "S2 · DÜZENLEME", puan: 35,
+    aciklama: "İstenilen malzemelerin kolayca bulunabilecek şekilde düzenli olması", kriterler: [
+    { k: "s2_1_1", puan: 10, m: "1.1) Sahadaki her şeyin yeri tanımlı mı ve doğru yerinde mi? (dolap/çekmece içleri dahil; ekipmanlarda etiket ve gölgelendirme; kasa ve paletler)" },
+    { k: "s2_1_2", puan: 5, m: "1.2) Zeminde yer işaretlemeleri yapılmış mı?" },
+    { k: "s2_2_1", puan: 3, m: "2.1) Tüm aparatlar etiketli mi?" },
+    { k: "s2_2_2", puan: 3, m: "2.2) Bölümün aparatları tanımlanmış aparat rafında mı?" },
+    { k: "s2_2_3", puan: 4, m: "2.3) Aparat rafları düzenli mi?" },
+    { k: "s2_3_1", puan: 6, m: "3.1) Düzenlemeler iş güvenliği ve ergonomi dikkate alınarak yapılmış mı? (zor açılan çekmece, yüksekte ağır malzeme, tonaj aşımı olmamalı)" },
+    { k: "s2_3_2", puan: 4, m: "3.2) Personellerde İSG ekipmanları var mı? (en temel: eldiven ve iş güvenliği ayakkabısı)" },
   ]},
-  { kod: "3s", ad: "3S · Seiso (Temizlik)", kriterler: [
-    { k: "3s1", m: "Zemin ve yüzeyler temiz" },
-    { k: "3s2", m: "Makine/ekipman temiz ve bakımlı" },
-    { k: "3s3", m: "Temizlik ekipmanları mevcut ve yerinde" },
-    { k: "3s4", m: "Kir/sızıntı kaynakları giderilmiş" },
+  { kod: "s3", ad: "S3 · TEMİZLİK", puan: 20,
+    aciklama: "Her yerin / her şeyin temizlenmesi ve daima temiz tutulması", kriterler: [
+    { k: "s3_1_1", puan: 3, m: "1.1) Makine, ekipman, taşıma arabası, dolap, masa, cam ve zemin temiz, boyalı, hasarsız mı?" },
+    { k: "s3_1_2", puan: 2, m: "1.2) Etiket ve tabelalar temiz mi? (yıpranmış olmamalı)" },
+    { k: "s3_1_3", puan: 2, m: "1.3) Atıklar doğru yerlere atılmış mı?" },
+    { k: "s3_1_4", puan: 3, m: "1.4) Zemin temiz mi? (yağ, pas, kir yok)" },
+    { k: "s3_2_1", puan: 2, m: "2.1) Kirlilik kaynakları tespit edilmiş mi? (kirlilik haritası var mı?)" },
+    { k: "s3_2_2", puan: 3, m: "2.2) Kirlilik kaynakları için aksiyon alınmış mı?" },
+    { k: "s3_3_1", puan: 2, m: "3.1) Temizlik planına uyularak temizlik düzenli yapılıyor mu?" },
+    { k: "s3_3_2", puan: 3, m: "3.2) Temizlik planı güncel mi?" },
   ]},
-  { kod: "4s", ad: "4S · Seiketsu (Standartlaştırma)", kriterler: [
-    { k: "4s1", m: "5S standartları görünür şekilde asılı" },
-    { k: "4s2", m: "Görsel yönetim (renk/etiket) uygulanıyor" },
-    { k: "4s3", m: "Sorumluluklar belirlenmiş (5S panosu)" },
-    { k: "4s4", m: "Standartlara uyum düzenli kontrol ediliyor" },
+  { kod: "s4", ad: "S4 · STANDARTLAŞTIRMA", puan: 4,
+    aciklama: "Görsel kontrol ile tüm anormalliklerin standartlaştırılması", kriterler: [
+    { k: "s4_1", puan: 4, m: "Tanımlamalarda kullanılan bant, boya, etiket ve tabelalar standartlara uygun mu? (mevcut tek standart: zemin tanımlamaları — boya/bant rengi ve kalınlığı)" },
   ]},
-  { kod: "5s", ad: "5S · Shitsuke (Disiplin)", kriterler: [
-    { k: "5s1", m: "Personel 5S kurallarını biliyor" },
-    { k: "5s2", m: "Önceki denetim bulguları kapatılmış" },
-    { k: "5s3", m: "Düzenli 5S faaliyeti (rutin) var" },
-    { k: "5s4", m: "5S kültürü/katılım gözlemleniyor" },
+  { kod: "s5", ad: "S5 · EĞİTİM-DİSİPLİN", puan: 16,
+    aciklama: "Kurallara %100 uyum sağlanması ve bunun alışkanlık haline getirilmesi", kriterler: [
+    { k: "s5_1_1", puan: 1, m: "1.1) Önceki denetim sonuçları takım üyeleriyle paylaşılıyor mu?" },
+    { k: "s5_1_2", puan: 1, m: "1.2) Takım panosunda önceki 5S denetim sonucu yazıyor mu?" },
+    { k: "s5_2", puan: 5, m: "2) Denetim sonuçları aksiyon planına aktarılmış mı?" },
+    { k: "s5_3", puan: 5, m: "3) Önceki denetimden itibaren aksiyon alınmış mı? (son 2 hafta içinde alınmış aksiyon olmalı; oran yazılır, örn. 7/10)" },
+    { k: "s5_4", puan: 2, m: "4) Son 1 ay içinde 5S önerisi verilmiş mi?" },
+    { k: "s5_5", puan: 2, m: "5) Takım panoları güncel ve düzenli gözden geçiriliyor mu? (denetim tarihinde doldurulmuş mu?)" },
   ]},
 ];
 const BESS_TUM_KRITERLER = BESS.flatMap((s) => s.kriterler.map((k) => k.k));
+// k -> maksimum puan haritası (form işleme ve doğrulama için)
+const BESS_KRITER_MAX = Object.fromEntries(
+  BESS.flatMap((s) => s.kriterler.map((kr) => [kr.k, kr.puan])));
 
 // Her bölümün maksimum puanı (toplam 100)
 const PUAN_MAX = { temel: 10, etki: 40, maliyet: 20, yaygin: 15, efor: 15 };
@@ -178,6 +191,6 @@ function puanlamaOzet(p) {
 
 module.exports = {
   PUAN_TEMEL, PUAN_ETKI, PUAN_MALIYET, PUAN_YAYGIN, PUAN_EFOR, PUAN_MAX,
-  BESS, BESS_KRITER_PUAN, BESS_TUM_KRITERLER,
+  BESS, BESS_KRITER_PUAN, BESS_TUM_KRITERLER, BESS_KRITER_MAX,
   hesaplaPuanlama, puanlamaOzet,
 };

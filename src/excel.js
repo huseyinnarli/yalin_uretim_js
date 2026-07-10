@@ -132,24 +132,27 @@ async function generate5sFormExcel(d, b) {
   ws.addRow(["Denetmen", d.denetmen || d.planlanan_denetmen || ""]);
   ws.addRow(["Kayıt", d.kayit_zamani || ""]);
   ws.addRow([]);
-  const basRow = ws.addRow(["Kategori", "Kriter", "Puan (0-5)", "Açıklama"]);
+  const basRow = ws.addRow(["Kategori", "Kriter", "Puan", "Maks", "Açıklama / Bulgular"]);
   basRow.eachCell((c) => { c.font = HEADER_FONT; c.fill = HEADER_FILL; c.alignment = CENTER; });
   const bas = basRow.number;
   const kp = C.denetimKriterPuanlari(d);
   const aciklamalar = d.aciklamalar || {};
   for (const s of P.BESS) {
     for (const kr of s.kriterler) {
-      ws.addRow([s.ad, kr.m, kp[kr.k] || 0, aciklamalar[kr.k] || ""]);
+      ws.addRow([s.ad, kr.m, kp[kr.k] || 0, kr.puan, aciklamalar[kr.k] || ""]);
     }
   }
   ws.addRow([]);
   ws.addRow(["Not", d.not || ""]);
-  [28, 50, 14, 40].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  [24, 60, 9, 9, 40].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   for (let i = bas; i <= ws.rowCount; i++) {
     ws.getRow(i).eachCell((c) => { c.alignment = WRAP; });
   }
   return wb.xlsx.writeBuffer();
 }
+
+// (5s toplu raporda kriter sütun başlıkları BESS anahtarlarından üretilir — form
+// değişikliklerinde kendiliğinden uyum sağlar)
 
 async function generateAksiyonExcel() {
   const wb = new ExcelJS.Workbook();

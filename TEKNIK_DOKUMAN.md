@@ -56,7 +56,7 @@ test edilebilir.
 |---|---|
 | `server.js` | Express app, middleware sırası, rota modüllerinin kaydı, 404/500 yakalayıcı, `listen` |
 | `src/sabitler.js` | `DATA_DIR` (env ile taşınabilir), tüm klasör yolları, `ODUL_ESIK=300`, `ODUL_MAP={100,75,50}`, `DURUMLAR`, `KAZANC_BASLIKLARI`, `TR_AYLAR`, `ALAN_MAX=5000`, `nowTr()/bugunIso()/zamanTr()` (Europe/Istanbul) |
-| `src/puanlama.js` | `PUAN_TEMEL/ETKI/MALIYET/YAYGIN/EFOR` rubrik tanımları, `PUAN_MAX`, `BESS` (5×4 kriter), `hesaplaPuanlama(form)`, `puanlamaOzet(p)` |
+| `src/puanlama.js` | `PUAN_TEMEL/ETKI/MALIYET/YAYGIN/EFOR` rubrik tanımları, `PUAN_MAX`, `BESS` (şirket 5S formu: 5 bölüm / 23 soru, soru başına özel maksimum — `BESS_KRITER_MAX`), `hesaplaPuanlama(form)`, `puanlamaOzet(p)` |
 | `src/db.js` | mysql2 bağlantı havuzu, `CREATE TABLE IF NOT EXISTS` şeması (`init()`), `sorgu/tek/calistir/transaction` yardımcıları, JSON kolon yardımcıları (`j`/`js`), satır dönüştürücüler (`oneriRow`, `denetimRow`…), `configGet/Set`, `yedekle()` (tüm tablolar → json.gz) + `baslatYedekleme()` |
 | `src/cekirdek.js` | Şifre (hash/doğrulama, werkzeug uyumlu), `nextNumber`, `guvenliYol`, `gorselKaydet` (magic bytes), öneri/kaizen CRUD yardımcıları, `combinedRecords/filtrele/mevcutAylar`, `puanDurumu`, `dashboardIstatistik`, tüm 5S fonksiyonları (`besSTur*`, `besSIsle`, `besSPlanSatirlari`, `besSTrendTablo`…), aksiyon mantığı (`aksiyonKapatabilir`, `syncDenetimAksiyonlari`), denetmen/misafir yardımcıları |
 | `src/web.js` | `flash`, `hizLimitAsildi` (bellek içi kayan pencere), `alan` (kırp + 5000 sınır), `ortakLocals` (her istekte şablon değişkenleri + flash tüketimi + CSRF üretimi), `csrfDogrula`, `guvenlikBasliklari`, `adminRequired`/`denetciRequired` |
@@ -106,7 +106,7 @@ JSON** olarak saklanır; okurken `db.js`'teki satır dönüştürücüler nesney
 | `oneriler` | `no` (ÖNFR…) | tarih, sahibi, görev, konu, detay, çözüm, 4 katkı alanı, durum, `puan`, `puanlama` (JSON kırılım), degerlendirme_notu |
 | `kaizenler` | `no` (ÖSKFR…) | başlangıç/bitiş, konu, bölüm, lider, `uyeler` (JSON), sorumlular, `kazanclar` (JSON), önceki/sonraki + görsel adları, durum, puan, puanlama |
 | `bolumler` | `id` (hex8) | ad, `sorumlu` ("Ali / Veli" — çoklu lider), `kisiler` (JSON) |
-| `denetimler` | `id` (hex8) | bolum_id, `tarih` (**tur kimliği**), tur_adi, baslangic/bitis, plan_gun/saat, planlanan/misafir/gerçek denetmen, `puan` (NULL=bekliyor), `puanlar` (JSON kriter→0-5), `notu`, `aciklamalar` (JSON), `fotolar` (JSON kriter→[dosya]), denetim_tarihi |
+| `denetimler` | `id` (hex8) | bolum_id, `tarih` (**tur kimliği**), tur_adi, baslangic/bitis, plan_gun/saat, planlanan/misafir/gerçek denetmen, `puan` (NULL=bekliyor), `puanlar` (JSON kriter→verilen puan), `notu`, `aciklamalar` (JSON), `fotolar` (JSON kriter→[dosya]), denetim_tarihi |
 | `aksiyonlar` | `id` (hex8) | denetim_id, tur/bölüm bilgisi, kriter_k/m, aksiyon, sorumlu, atanan_lider, termin, durum (acik/kapali), `kapatma` (JSON: açıklama+kapatan+fotolar+zaman) |
 | `odul_islenen` | `tarih` | ödülleri işlenmiş tur tarihleri |
 | `odul_kayitlari` | otomatik | tur tarihi/adı, bölüm, sıra (1-3), puan (100/75/50), `kisiler` (JSON) — **kişi 5S puanlarının tek kaynağı** |
@@ -158,7 +158,8 @@ net ≤ 0 olan listeden düşer.
 - **misafirler:** karıştırılmış bloklar hâlinde dağıtılır — kişi başına denetim sayısı farkı en fazla 1.
 
 ### Denetim kaydetme (`POST /5s/bolum/:bid/denetim`)
-20 kriter × 0–5 puan → skor; kriter fotoğrafları (max 3/kriter) doğrulanıp diske, adları JSON
+23 soru × (0–soru maksimumu) puan → skor (S1:25 · S2:35 · S3:20 · S4:4 · S5:16 = 100);
+kriter fotoğrafları (max 3/kriter) doğrulanıp diske, adları JSON
 kolonuna yazılır. Denetmen girişliyse adı **oturumdan** alınır (form değeri ezilir — sahte ad
 gönderilemez). Bekleyen kayıt varsa güncellenir (plan bilgileri korunur), yoksa bağımsız denetim
 kaydı açılır. Ardından `syncDenetimAksiyonlari` form'daki aksiyon alanlarından açık aksiyon üretir:

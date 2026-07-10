@@ -163,20 +163,22 @@ async function main() {
     html = await getText("/5s");
     ok("aynı tarihli 2. tur engellendi", html.includes("zaten bir denetim turu var"));
 
-    // --- Denetimleri yap ---
-    const kriterler = ["1s1","1s2","1s3","1s4","2s1","2s2","2s3","2s4","3s1","3s2","3s3","3s4",
-      "4s1","4s2","4s3","4s4","5s1","5s2","5s3","5s4"];
+    // --- Denetimleri yap (kriter listesi ve puan üst sınırları puanlama.js'ten) ---
+    const { BESS_KRITER_MAX } = require("../src/puanlama");
     for (const [i, bid] of bidler.entries()) {
       const form = { csrf_token: csrf, not: "e2e test", denetmen: "Test Denetmen" };
-      for (const k of kriterler) form["puan_" + k] = (i === 0 && k === "1s1") ? "3" : "5";
+      for (const [k, max] of Object.entries(BESS_KRITER_MAX)) {
+        // İlk bölümde S1 sorusundan 3 puan düş (bulgu) → 97; ikinci bölüm tam 100
+        form["puan_" + k] = (i === 0 && k === "s1_1") ? String(max - 3) : String(max);
+      }
       if (i === 0) {
-        form["aksiyon_1s1_1"] = "Gereksiz malzemeleri kaldır";
-        form["aksiyon_sorumlu_1s1_1"] = "Ali Test";
+        form["aksiyon_s1_1_1"] = "Gereksiz malzemeleri kaldır";
+        form["aksiyon_sorumlu_s1_1_1"] = "Ali Test";
       }
       await post(`/5s/bolum/${bid}/denetim`, form);
     }
     html = await getText("/5s");
-    ok("denetimler kaydedildi (98 + 100)", html.includes("98/100") && html.includes("100/100"));
+    ok("denetimler kaydedildi (97 + 100)", html.includes("97/100") && html.includes("100/100"));
 
     html = await getText("/5s/aksiyonlar");
     ok("aksiyon oluştu", html.includes("Gereksiz malzemeleri kaldır"));
