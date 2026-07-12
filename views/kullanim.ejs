@@ -9,55 +9,133 @@
 
 <div class="form-card">
     <h2 class="bolum-baslik">Uygulama ne işe yarar?</h2>
-    <p>Fabrika içi <strong>Öneri</strong>, <strong>Kaizen</strong> ve <strong>5S denetim</strong> süreçlerini tek yerde yönetir.
-       Çalışanlar öneri/kaizen girer, yöneticiler onaylayıp puanlar, 5S denetimleri yapılır ve tüm bu puanlar
-       <strong>personel ödül sistemine</strong> dönüşür.</p>
+    <p>Fabrika içi <strong>Öneri</strong>, <strong>Kaizen</strong> ve <strong>5S denetim</strong> süreçlerini tek yerde
+       yönetir. Çalışanlar öneri/kaizen girer, yöneticiler onaylayıp puanlar, bölümler 5S denetiminden geçer ve tüm bu
+       puanlar <strong>personel ödül sistemine</strong> dönüşür.</p>
+    <p class="blok-alt-not">Genel akış: <strong>Çalışan öneri/kaizen girer → Yönetici onaylar ve puanlar</strong> ·
+       <strong>5S: bölümler denetlenir → ilk 3 bölüm ödül alır</strong> → tüm puanlar
+       <strong>Puan Listesi</strong>'nde toplanır → net puanı <strong><%= esik %></strong>'e ulaşana ödül verilir.</p>
+    <p class="blok-alt-not">Anasayfada üç kutu vardır: <strong>🏆 Puan Listesi</strong> ·
+       <strong>💡🔧 Öneri &amp; Kaizen</strong> · <strong>🧹 5S</strong>.</p>
 
-    <h2 class="bolum-baslik">💡 Öneri &amp; 🔧 Kaizen</h2>
+    <h2 class="bolum-baslik">🔐 Giriş ve Roller</h2>
     <ul>
-        <li>Herkes giriş yapmadan öneri ve kaizen ekleyebilir; numara otomatik atanır (örn. <span class="mono">ÖNFR2606-01</span>, <span class="mono">ÖSKFR2606-01</span>) ve her ay sıfırlanır.</li>
-        <li>Kaizen formunda ekip en fazla 3 kişidir: 1 lider + 2 üye. Önce/sonra açıklaması ve fotoğrafı eklenebilir.</li>
-        <li>Kayıtlar birleşik listede tarihe göre sıralanır; tür / dönem / arama filtreleri vardır.</li>
-        <li><strong>Yönetici</strong> kayıtları Onaylar / Reddeder / Revize ister. Onaylanan kayıt <strong>★ Puanla</strong> ile 100 üzerinden puanlanır
-            (Temel 10 · Etki 40 · Maliyet 20 · Yaygınlaştırma 15 · Efor 15).</li>
+        <li><strong>Genel kullanıcı</strong> (giriş gerekmez): öneri/kaizen ekleyebilir, tüm listeleri ve puan durumunu
+            görüntüleyebilir, aksiyon kapatabilir.</li>
+        <li><strong>Giriş</strong> tek ekrandan yapılır ve tek şifre alanı vardır: girdiğiniz şifre yöneticininkiyse
+            <strong>yönetici</strong>, bir denetmeninkiyse o <strong>denetmen</strong> olarak açılırsınız — sistem sizi
+            şifreden tanır (ayrı kullanıcı adı yoktur).</li>
+        <li><strong>Denetmen:</strong> yalnızca <em>kendisine planlanan</em> bölümün 5S denetimini yapabilir; denetim
+            formuna adı otomatik yazılır. Denetmenler bölüm ekip liderleri arasından belirlenir.</li>
+        <li><strong>Yönetici:</strong> onay/red/puanlama, düzenleme/silme, 5S bölüm-plan-ödül yönetimi, Excel/ZIP indirme
+            ve Yönetici Paneli yalnızca yöneticidedir.</li>
     </ul>
 
-    <h2 class="bolum-baslik">🧹 5S Denetim</h2>
+    <h2 class="bolum-baslik">💡 Öneri Ekleme</h2>
     <ul>
-        <li><strong>Bölümler</strong> sekmesinde bölüm ekleyip her bölüme ekip lideri (1 veya 2 kişi) ve üyeler tanımlanır.</li>
-        <li><strong>Denetim Planı</strong>: tarih aralığı seçilince tüm bölümler için denetim açılır; denetmen, gün ve saat atanır.
-            Toplu dağıtım: <em>Herkes kendi bölümüne</em> ya da <em>Çapraz</em> (kimse kendi bölümüne denk gelmez). Misafir denetmenler dengeli dağıtılır.</li>
-        <li>Denetim formu (şirket 5S Denetim Raporu): S1 Ayıklama 25 · S2 Düzenleme 35 · S3 Temizlik 20 ·
-            S4 Standartlaştırma 4 · S5 Eğitim-Disiplin 16 = toplam 100 puan; 23 soru. Denetmen <strong>bulgu sayısını</strong>
-            (veya Evet/Hayır) seçer, puan form kuralına göre otomatik hesaplanır. Soru başına 3 fotoğraf,
-            açıklama ve en fazla 2 <strong>düzeltici aksiyon</strong> eklenebilir.</li>
-        <li>Bir tur tüm bölümlerde tamamlanınca yönetici <strong>Ödülleri İşle</strong> der: 1./2./3. bölümün tüm ekibine
-            100 / 75 / 50 puan kalıcı eklenir.</li>
-        <li><strong>Aksiyonlar</strong> sayfasında açık/kapalı aksiyonlar tur → bölüm kırılımıyla listelenir.
-            Aksiyonu yalnızca açıldığı bölümün ekip lideri (denetmen girişli) veya yönetici kapatabilir; açıklama + en az 1 fotoğraf zorunludur.</li>
+        <li>Listede <strong>+ Öneri</strong> ile açılır; numara kayıtta otomatik atanır (örn.
+            <span class="mono">ÖNFR2607-01</span>) ve her ay <span class="mono">01</span>'den başlar.</li>
+        <li>Zorunlu alanlar: <strong>öneri sahibi</strong>, <strong>konu</strong> ve <strong>detay açıklama</strong>.
+            Ayrıca görev, tarih, çözüm önerisi ve 4 katkı sorusu (Kalite / Verimlilik / İSG / Maliyet) doldurulabilir.</li>
+    </ul>
+
+    <h2 class="bolum-baslik">🔧 Kaizen Ekleme</h2>
+    <ul>
+        <li>Listede <strong>+ Kaizen</strong> ile açılır; numara otomatik (örn. <span class="mono">ÖSKFR2607-01</span>).</li>
+        <li><strong>Ekip en fazla 3 kişidir:</strong> 1 lider + en fazla 2 üye. Başlangıç–bitiş tarihi, kazanç başlıkları
+            (Makine, İşçilik, Kalite, İSG… çoklu seçim) ve <strong>önce/sonra</strong> açıklaması girilir; her biri için
+            birer fotoğraf eklenebilir.</li>
+    </ul>
+
+    <h2 class="bolum-baslik">📋 Liste ve Değerlendirme (Yönetici)</h2>
+    <ul>
+        <li>Öneri ve kaizen tek listede tarihe göre sıralanır; <strong>tür / dönem (ay) / arama</strong> filtreleri vardır.
+            Satıra tıklayınca detay açılır.</li>
+        <li>Yönetici girişliyken her satırda işlem butonları çıkar: <strong>✓ Onay · Red · Revize</strong>.
+            <em>Bir kez onaylanan kayıt artık reddedilemez.</em></li>
+        <li>Onaylanan kayıtta <strong>★ Puanla</strong> butonu çıkar → 100 üzerinden rubrik puanlama:
+            <strong>Temel 10 · Etki 40 · Maliyet 20 · Yaygınlaştırma 15 · Efor 15</strong>. Her maddeye 0–maksimum arası
+            puan verilir, toplam canlı hesaplanır.</li>
+    </ul>
+
+    <h2 class="bolum-baslik">🧹 5S — Bölümler</h2>
+    <ul>
+        <li><strong>Bölümler</strong> sekmesinden bölüm eklenir; her bölüme <strong>ekip lideri</strong> (1 veya 2 kişi)
+            ve üye listesi tanımlanır. Bölüm kartında son denetim skoru görünür.</li>
+    </ul>
+
+    <h2 class="bolum-baslik">🗓️ 5S — Denetim Planı</h2>
+    <ul>
+        <li><strong>Tarih aralığı</strong> seçilince tüm bölümler için o turun denetimi açılır; tur adı aydan otomatik
+            gelir (örn. "Temmuz 2026 Denetimi").</li>
+        <li>Her bölüme <strong>denetmen</strong>, <strong>gün</strong> ve <strong>saat</strong> atanır. Toplu dağıtım
+            iki seçenekle yapılabilir:
+            <ul>
+                <li><strong>Herkes kendi bölümüne</strong> — her bölüm sorumlusu kendi bölümünü denetler.</li>
+                <li><strong>Çapraz</strong> — her bölüm başka bir bölümce denetlenir, kimse kendi bölümüne denk gelmez.</li>
+            </ul>
+            Misafir denetmenler (varsa) bekleyen denetimlere dengeli şekilde dağıtılır.</li>
+        <li>Aynı başlangıç tarihiyle ikinci bir tur açılamaz (turlar tarihle ayrılır).</li>
+    </ul>
+
+    <h2 class="bolum-baslik">✅ 5S — Denetim Formu</h2>
+    <p>Form, şirketin <strong>5S Denetim Raporu</strong> şablonudur — 5 bölüm, 23 soru, toplam <strong>100 puan</strong>:</p>
+    <ul>
+        <li><strong>S1 · Ayıklama (25)</strong> · <strong>S2 · Düzenleme (35)</strong> · <strong>S3 · Temizlik (20)</strong>
+            · <strong>S4 · Standartlaştırma (4)</strong> · <strong>S5 · Eğitim-Disiplin (16)</strong>.</li>
+        <li><strong>Puanı siz hesaplamazsınız.</strong> Her soruda ya <strong>Evet/Hayır</strong> seçersiniz ya da
+            gördüğünüz <strong>bulgu (uygunsuzluk) sayısını</strong> girersiniz; puan form kuralına göre otomatik iner ve
+            anında görünür. Örnek kurallar:
+            <ul>
+                <li><em>Evet/Hayır</em> sorular: Evet → tam puan, Hayır → 0 (ara değer yok).</li>
+                <li><em>Bulgu</em> soruları: her bulgu belirli puan düşürür, belirli sayıya ulaşınca o sorunun puanının
+                    tamamı gider (örn. S1'de her bulgu −3, <strong>5 ve üzeri bulguda 0</strong>).</li>
+            </ul>
+            Her sorunun yanında geçerli kural yazılıdır.</li>
+        <li>Her soruya <strong>3 fotoğraf</strong>, bir <strong>bulgu/açıklama kutusu</strong> ve en fazla
+            <strong>2 düzeltici aksiyon</strong> (sorumlu + termin) eklenebilir. Bulguları madde madde yazın.</li>
+        <li>Denetim, alanın <strong>takım lideriyle birlikte</strong> yapılmalıdır. Denetmen girişliyse adı forma otomatik
+            yazılır.</li>
+    </ul>
+
+    <h2 class="bolum-baslik">🏅 5S — Ödüllendirme ve Sonuçlar</h2>
+    <ul>
+        <li>Bir tur <strong>tüm bölümlerde tamamlanınca</strong> yönetici <strong>Ödülleri İşle</strong> der:
+            1./2./3. bölümün <strong>tüm ekibine 100 / 75 / 50 puan</strong> kalıcı eklenir.</li>
+        <li>Son turun sonuçları "Son Denetimler" sekmesinde, önceki turlar açılır listede ve
+            <strong>Geçmiş Denetimler</strong> sayfasında görünür.</li>
+        <li>Geçmiş bir denetim formu açıldığında yönetici tüm fotoğrafları <strong>ZIP</strong>, formu
+            <strong>Excel</strong> olarak indirebilir.</li>
+    </ul>
+
+    <h2 class="bolum-baslik">⚑ 5S — Aksiyonlar</h2>
+    <ul>
+        <li>Denetimde bir soruya atanan <strong>düzeltici aksiyonlar</strong> Aksiyonlar sayfasında
+            <strong>Açık / Kapalı</strong> olarak, tur → bölüm kırılımıyla listelenir.</li>
+        <li>Bir aksiyonu yalnızca <strong>açıldığı bölümün ekip lideri</strong> (denetmen olarak girişli) veya
+            <strong>yönetici</strong> kapatabilir. Kapatırken <strong>açıklama + en az 1 fotoğraf zorunludur</strong>.</li>
+        <li>Yönetici aksiyonları Excel, fotoğrafları ZIP olarak indirebilir.</li>
     </ul>
 
     <h2 class="bolum-baslik">🏆 Puan Listesi &amp; Ödül</h2>
     <ul>
-        <li>Öneri → sahibine puanın <strong>%10</strong>'u · Kaizen → lider <strong>%50</strong>, her üye <strong>%25</strong> · 5S → turda ilk 3 bölümün ekibine <strong>100/75/50</strong>.</li>
-        <li>Net puanı <strong><%= esik %></strong>'e ulaşan kişiye yönetici <strong>🎁 Ödül Ver</strong> der; <%= esik %> puan düşülür ve kişi <strong>Ödül Alanlar</strong> listesine geçer.</li>
-        <li>Ödül kaydı silinirse düşülen puan kişinin net puanına geri döner.</li>
-    </ul>
-
-    <h2 class="bolum-baslik">🔐 Giriş ve Roller</h2>
-    <ul>
-        <li>Tek giriş ekranı vardır: girilen şifre yöneticininkiyse <strong>yönetici</strong>, bir denetmeninkiyse o <strong>denetmen</strong> olarak oturum açılır.</li>
-        <li>Denetmenler yalnızca bölüm ekip liderleri arasından belirlenir; şifreleri Yönetici Paneli'nden atanır.</li>
-        <li>Denetmen yalnızca kendisine planlanan bölümün denetimini yapabilir; adı forma otomatik yazılır.</li>
-        <li>Onay/red/puanlama, düzenleme/silme, Excel/ZIP indirme ve panel yalnızca yönetici yetkisindedir.</li>
+        <li>Puanlar şu şekilde dağılır: <strong>Öneri</strong> → sahibine puanın <strong>%10</strong>'u ·
+            <strong>Kaizen</strong> → lider <strong>%50</strong>, her üye <strong>%25</strong> ·
+            <strong>5S</strong> → turda ilk 3 bölümün ekibine <strong>100/75/50</strong>.</li>
+        <li>Kişi satırına tıklayınca puanının hangi kayıtlardan geldiği açılır.</li>
+        <li>Net puanı <strong><%= esik %></strong>'e ulaşan kişiye yönetici <strong>🎁 Ödül Ver</strong> der;
+            <%= esik %> puan düşülür ve kişi <strong>Ödül Alanlar</strong> listesine geçer. Ödül kaydı silinirse düşülen
+            puan geri döner.</li>
     </ul>
 
     <h2 class="bolum-baslik">🛠️ Yönetici Paneli</h2>
     <ul>
-        <li>📊 Öneri/kaizen istatistikleri (bu ay, son 6 ay, bu yıl, tüm zamanlar).</li>
-        <li>🧹 Bölümlerin 5S trend tablosu (düşüş kırmızı, artış yeşil; Excel'e aktarılır).</li>
-        <li>👥 Denetmen şifreleri, 🎫 misafir denetmenler, 🔑 yönetici şifre değişikliği.</li>
-        <li>İlk kurulum şifresi <span class="mono">admin123</span>'tür — ilk girişten sonra hemen değiştirin.</li>
+        <li><strong>📊 İstatistikler:</strong> öneri/kaizen sayıları ve durum dağılımı (bu ay, son 6 ay, bu yıl, tüm zamanlar).</li>
+        <li><strong>🧹 5S Trendi:</strong> bölümlerin tur tur skor tablosu (düşüş kırmızı ▼, artış yeşil ▲; Excel'e aktarılır).</li>
+        <li><strong>👥 Denetmenler:</strong> bölüm ekip liderleri otomatik listelenir; siz yalnızca giriş şifresi
+            belirlersiniz (her şifre farklı olmalıdır). <strong>🎫 Misafir denetmenler</strong> plan dağıtımında kullanılır.</li>
+        <li><strong>🔑 Şifre Değiştir:</strong> yönetici şifresi buradan güncellenir. İlk kurulum şifresi
+            <span class="mono">admin123</span>'tür — <strong>ilk girişten sonra hemen değiştirin</strong>.</li>
     </ul>
 </div>
 <%- include('partials/footer') %>
