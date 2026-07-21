@@ -105,6 +105,13 @@ Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İ�
 13. **İşlem günlüğü:** `islem_gunlugu` tablosu; `web.js:flash()` her BAŞARILI yönetici/denetmen
     işlemini otomatik kaydeder (mesaj = flash metni). Ana yönetici `/yonetici/gunluk`'ta görür.
     Yeni bir loglanabilir eylem eklerken ekstra bir şey yapmana gerek yok — `flash(success)` yeter.
+14. **Silinen kayıtlar:** `/sil` artık hard-delete değil — kaydı `silinen_kayitlar`e (ham JSON)
+    taşır, kaizen görselleri diskte KALIR. `/silinenler` (yetki kayit): görüntüle/geri yükle/
+    kalıcı sil (kalıcıda görseller de silinir). Geri yükleme ham satırı tabloya yeniden ekler.
+15. **Form no:** kayıt İLK "Onaylandı" olunca `nextFormNo()` (sayaclar `FORM-<yıl>`, atomik)
+    ile `FR-YYYY-NNNN` atanır (öneri+kaizen ortak). `/durum` ve `/degerlendir/puan`'da atanır;
+    `oneriler/kaizenler.form_no` kolonu (init migrasyonu). Excel'de: öneri 2. sütun, kaizen SON
+    sütun (görsel J/K sütunları kaymasın diye).
 
 ## Açık konular
 

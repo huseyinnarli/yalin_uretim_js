@@ -99,6 +99,17 @@ function safeName(no) {
   return String(no).replace(/Ö/g, "O").replace(/ö/g, "o").replace(/-/g, "_");
 }
 
+// Onaylanan kayda verilen form numarası — yıllık sıralı (FR-2026-0001).
+// `sayaclar` tablosunda atomik sayaç (öneri+kaizen ortak, her yıl sıfırlanır).
+async function nextFormNo() {
+  const yil = S.nowTr().getFullYear();
+  const onek = `FORM-${yil}`;
+  await calistir("INSERT IGNORE INTO sayaclar(onek, sayac) VALUES(?, 0)", [onek]);
+  const r = await calistir(
+    "UPDATE sayaclar SET sayac = LAST_INSERT_ID(sayac + 1) WHERE onek = ?", [onek]);
+  return `FR-${yil}-${String(r.insertId).padStart(4, "0")}`;
+}
+
 function allowedFile(filename) {
   return S.ALLOWED_EXT.has(path.extname(filename || "").toLowerCase());
 }
@@ -826,7 +837,7 @@ function logoBul() {
 module.exports = {
   hashPassword, hashMi, checkPassword, getAdminPassword, adminSifreDogru,
   setAdminPassword, sifreleriHashle, getSecretKey,
-  uid, nextNumber, safeName, allowedFile, guvenliYol, trdate, ayEtiketi, puanfmt,
+  uid, nextNumber, nextFormNo, safeName, allowedFile, guvenliYol, trdate, ayEtiketi, puanfmt,
   gorselKaydet, getRecord, updateRecord, combinedRecords, filtrele, mevcutAylar,
   puanDurumu, dashboardIstatistik,
   loadBolumler, bolumById, bolumMap, loadDenetimler, denetimById, loadAksiyonlar, aksiyonById,

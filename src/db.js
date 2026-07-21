@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS config (
 
 CREATE TABLE IF NOT EXISTS oneriler (
   no VARCHAR(32) PRIMARY KEY,
+  form_no VARCHAR(20),
   tarih VARCHAR(10), sahibi TEXT, gorevi TEXT, konu TEXT, detay TEXT, cozum TEXT,
   kalite TEXT, verimlilik TEXT, isg TEXT, maliyet TEXT, ek TEXT,
   durum VARCHAR(40), puan DOUBLE NULL, puanlama TEXT, degerlendirme_notu TEXT,
@@ -74,6 +75,7 @@ CREATE TABLE IF NOT EXISTS oneriler (
 
 CREATE TABLE IF NOT EXISTS kaizenler (
   no VARCHAR(32) PRIMARY KEY,
+  form_no VARCHAR(20),
   baslangic VARCHAR(10), bitis VARCHAR(10), konu TEXT, bolum TEXT,
   lider TEXT, uyeler TEXT, sorumlular TEXT, kazanclar TEXT,
   onceki TEXT, sonraki TEXT, onceki_gorsel VARCHAR(255), sonraki_gorsel VARCHAR(255),
@@ -153,6 +155,12 @@ CREATE TABLE IF NOT EXISTS islem_gunlugu (
   zaman VARCHAR(20), kim VARCHAR(191), rol VARCHAR(16),
   mesaj TEXT, yol VARCHAR(255), ip VARCHAR(64)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
+
+CREATE TABLE IF NOT EXISTS silinen_kayitlar (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  tip VARCHAR(10), no VARCHAR(32), veri TEXT,
+  silen VARCHAR(191), silme_zamani VARCHAR(20)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
 `;
 
 // Şemayı kurar — uygulama açılışında bir kez çağrılır.
@@ -164,6 +172,11 @@ async function init() {
   const [kolon] = await pool.query("SHOW COLUMNS FROM denetimler LIKE 'bulgular'");
   if (!kolon.length) {
     await pool.query("ALTER TABLE denetimler ADD COLUMN bulgular TEXT AFTER puanlar");
+  }
+  // form_no: onaylanınca atanan form numarası (öneri + kaizen)
+  for (const t of ["oneriler", "kaizenler"]) {
+    const [c] = await pool.query(`SHOW COLUMNS FROM ${t} LIKE 'form_no'`);
+    if (!c.length) await pool.query(`ALTER TABLE ${t} ADD COLUMN form_no VARCHAR(20) AFTER \`no\``);
   }
 }
 
@@ -224,7 +237,8 @@ function yoneticiRow(r) {
 // Not: tam sunucu yedeği için mysqldump tercih edilir; bu, uygulama içi güvence katmanıdır.
 const _YEDEK_TABLOLAR = ["config", "oneriler", "kaizenler", "bolumler", "denetimler",
   "aksiyonlar", "odul_islenen", "odul_kayitlari", "odul_arsiv", "silinen_kisiler",
-  "denetmenler", "misafirler", "yoneticiler", "sayaclar", "islem_gunlugu"];
+  "denetmenler", "misafirler", "yoneticiler", "sayaclar", "islem_gunlugu",
+  "silinen_kayitlar"];
 const _YEDEK_GORSEL_DIRLER = [
   ["kaizen_gorseller", S.KAIZEN_IMG_DIR],
   ["bes_s_gorseller", S.BESS_FOTO_DIR],

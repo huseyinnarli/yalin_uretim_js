@@ -123,6 +123,10 @@ legend { font-weight: 700; padding: 0 8px; color: var(--primary); }
     margin-top: 8px; gap: 10px; }
 .yeni-yonetici { border-top: 1px dashed var(--line); padding-top: 14px; }
 
+/* Form numarası */
+.form-no { color: var(--primary-d); font-weight: 600; }
+.form-no-badge { background: var(--primary-tint); color: var(--primary-d); }
+
 .form-actions { display: flex; gap: 10px; margin-top: 8px; }
 
 /* List */

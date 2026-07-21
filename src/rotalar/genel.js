@@ -1,8 +1,10 @@
 // Genel/herkese açık rotalar: anasayfa, liste, detay, puan durumu, ödüller.
+const fs = require("fs");
+const path = require("path");
 const S = require("../sabitler");
 const C = require("../cekirdek");
 const X = require("../excel");
-const { sorgu, tek, calistir } = require("../db");
+const { sorgu, tek, calistir, transaction, j } = require("../db");
 const { sar, flash, yetkiGerek, alan } = require("../web");
 
 function xlsxGonder(res, buffer, ad) {
@@ -91,6 +93,57 @@ module.exports = function register(app) {
       flash(req, "success", `${req.body.ad} ödül kaydı silindi — ${S.ODUL_ESIK} puan net puanına geri eklendi.`);
     }
     res.redirect("/odul-alanlar");
+  }));
+
+  // ----- Silinen öneri/kaizen arşivi (kayıt yetkisi) -----
+  app.get("/silinenler", yetkiGerek("kayit"), sar(async (req, res) => {
+    const satirlar = (await sorgu("SELECT * FROM silinen_kayitlar ORDER BY id DESC")).map((s) => {
+      const v = j(s.veri, {}) || {};
+      return {
+        id: s.id, tip: s.tip, no: s.no, silen: s.silen, silme_zamani: s.silme_zamani,
+        konu: v.konu || "", kisi: s.tip === "oneri" ? (v.sahibi || "") : (v.sorumlular || v.lider || ""),
+        tarih: v.tarih || v.baslangic || "", durum: v.durum || "", puan: v.puan,
+      };
+    });
+    res.render("silinenler", { title: "Silinen Kayıtlar", kayitlar: satirlar });
+  }));
+
+  // Geri yükle: arşivdeki ham satırı ilgili tabloya yeniden ekler
+  app.post("/silinenler/geri", yetkiGerek("kayit"), sar(async (req, res) => {
+    const s = await tek("SELECT * FROM silinen_kayitlar WHERE id = ?", [req.body.id || ""]);
+    if (!s) { flash(req, "error", "Silinen kayıt bulunamadı."); return res.redirect("/silinenler"); }
+    const tablo = s.tip === "oneri" ? "oneriler" : "kaizenler";
+    if (await tek(`SELECT 1 FROM ${tablo} WHERE \`no\` = ?`, [s.no])) {
+      flash(req, "error", `Bu numara (${s.no}) şu an kullanımda — geri yüklenemedi.`);
+      return res.redirect("/silinenler");
+    }
+    const ham = j(s.veri, null);
+    if (!ham) { flash(req, "error", "Kayıt verisi okunamadı."); return res.redirect("/silinenler"); }
+    const kolonlar = Object.keys(ham);
+    const kolonSql = kolonlar.map((k) => `\`${k}\``).join(", ");
+    const yer = kolonlar.map(() => "?").join(", ");
+    await transaction(async (conn) => {
+      await calistir(`INSERT INTO ${tablo}(${kolonSql}) VALUES(${yer})`,
+        kolonlar.map((k) => ham[k]), conn);
+      await calistir("DELETE FROM silinen_kayitlar WHERE id = ?", [s.id], conn);
+    });
+    flash(req, "success", `${s.no} geri yüklendi.`);
+    res.redirect("/silinenler");
+  }));
+
+  // Kalıcı sil: arşivden çıkar + kaizen görsellerini diskten temizle
+  app.post("/silinenler/sil", yetkiGerek("kayit"), sar(async (req, res) => {
+    const s = await tek("SELECT * FROM silinen_kayitlar WHERE id = ?", [req.body.id || ""]);
+    if (!s) { flash(req, "error", "Silinen kayıt bulunamadı."); return res.redirect("/silinenler"); }
+    if (s.tip === "kaizen") {
+      const v = j(s.veri, {}) || {};
+      for (const fld of ["onceki_gorsel", "sonraki_gorsel"]) {
+        if (v[fld]) { try { fs.unlinkSync(path.join(S.KAIZEN_IMG_DIR, v[fld])); } catch {} }
+      }
+    }
+    await calistir("DELETE FROM silinen_kayitlar WHERE id = ?", [s.id]);
+    flash(req, "success", `${s.no} kalıcı olarak silindi.`);
+    res.redirect("/silinenler");
   }));
 
   app.get("/puan-durumu/excel", yetkiGerek("odul"), sar(async (req, res) => {

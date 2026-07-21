@@ -51,6 +51,10 @@ Stok, 5S… çoklu seçim), konu, yapıldığı bölüm, **ekip** (1 lider + en 
     Yaygınlaştırma (0–15) · Efor (0–15)
   - Her maddeye 0–maksimum arası serbest puan verilir; toplam canlı hesaplanır.
   - Bir kez onaylanan kayıt artık reddedilemez.
+- **Form numarası:** bir kayıt **ilk onaylandığında** otomatik yıllık sıralı bir form numarası
+  alır (örn. `FR-2026-0001`, öneri ve kaizen ortak sayaç). Numara listede, detayda ve Excel'de görünür.
+- **Silinen kayıtlar:** silinen öneri/kaizen kalıcı kaybolmaz; **🗑 Silinenler** sayfasında
+  saklanır, oradan **geri yüklenebilir** veya kalıcı silinebilir (kayıt yetkisi).
 
 ---
 

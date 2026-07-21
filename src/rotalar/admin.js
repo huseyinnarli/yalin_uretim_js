@@ -5,7 +5,7 @@ const S = require("../sabitler");
 const P = require("../puanlama");
 const C = require("../cekirdek");
 const X = require("../excel");
-const { calistir, js } = require("../db");
+const { calistir, tek, transaction, js } = require("../db");
 const W = require("../web");
 const { sar, flash, adminRequired, superRequired, yetkiGerek, alan, YETKILER, TUM_YETKILER } = W;
 const { xlsxGonder } = require("./genel");
@@ -276,22 +276,23 @@ module.exports = function register(app) {
     xlsxGonder(res, buf, "5S_Trend.xlsx");
   }));
 
-  // Öneri/kaizen sil (kaizen görselleri dahil)
+  // Öneri/kaizen sil — kayıt "Silinenler" arşivine taşınır (geri yüklenebilir).
+  // Kaizen görselleri diskte KORUNUR (arşivden geri yükleme/görüntüleme için);
+  // kalıcı silmede (silinenler/sil) temizlenir.
   app.post("/sil", yetkiGerek("kayit"), sar(async (req, res) => {
     const tip = req.body.tip || "";
+    const tablo = tip === "oneri" ? "oneriler" : "kaizenler";
     const no = req.body.no || "";
-    const rec = await C.getRecord(tip, no);
-    if (!rec) return res.status(404).send("Kayıt bulunamadı.");
-    if (tip === "kaizen") {
-      for (const fld of ["onceki_gorsel", "sonraki_gorsel"]) {
-        if (rec[fld]) {
-          try { fs.unlinkSync(path.join(S.KAIZEN_IMG_DIR, rec[fld])); } catch {}
-        }
-      }
-    }
-    await calistir(
-      `DELETE FROM ${tip === "oneri" ? "oneriler" : "kaizenler"} WHERE \`no\` = ?`, [no]);
-    flash(req, "success", `Kayıt silindi: ${no}`);
+    const ham = await tek(`SELECT * FROM ${tablo} WHERE \`no\` = ?`, [no]);
+    if (!ham) return res.status(404).send("Kayıt bulunamadı.");
+    const kim = req.session.super ? "Ana Yönetici" : (req.session.yonetici_ad || "Yönetici");
+    await transaction(async (conn) => {
+      await calistir(
+        "INSERT INTO silinen_kayitlar(tip, `no`, veri, silen, silme_zamani) VALUES(?,?,?,?,?)",
+        [tip, no, JSON.stringify(ham), kim, S.zamanTr()], conn);
+      await calistir(`DELETE FROM ${tablo} WHERE \`no\` = ?`, [no], conn);
+    });
+    flash(req, "success", `Kayıt silindi: ${no} (Silinenler'e taşındı)`);
     res.redirect("/liste");
   }));
 
@@ -308,8 +309,14 @@ module.exports = function register(app) {
       flash(req, "error", `${no} onaylanmış; reddedilemez.`);
       return res.redirect("/liste");
     }
-    await C.updateRecord(tip, no, { durum });
-    flash(req, "success", `${no} → ${durum}`);
+    // İlk onayda form numarası atanır (bir daha değişmez)
+    const alanlar = { durum };
+    if (durum === "Onaylandı" && !mevcut.form_no) {
+      alanlar.form_no = await C.nextFormNo();
+    }
+    await C.updateRecord(tip, no, alanlar);
+    flash(req, "success",
+      `${no} → ${durum}` + (alanlar.form_no ? ` · Form No: ${alanlar.form_no}` : ""));
     res.redirect("/liste");
   }));
 
@@ -343,10 +350,9 @@ module.exports = function register(app) {
     const { puanlama, toplam } = P.hesaplaPuanlama(req.body);
     let durum = req.body.durum || rec.durum || S.VARSAYILAN_DURUM;
     if (!S.DURUMLAR.includes(durum)) durum = rec.durum || S.VARSAYILAN_DURUM;
-    await C.updateRecord(tip, no, {
-      puanlama, puan: toplam, durum,
-      degerlendirme_notu: alan(req, "degerlendirme_notu"),
-    });
+    const alanlar = { puanlama, puan: toplam, durum, degerlendirme_notu: alan(req, "degerlendirme_notu") };
+    if (durum === "Onaylandı" && !rec.form_no) alanlar.form_no = await C.nextFormNo();
+    await C.updateRecord(tip, no, alanlar);
     flash(req, "success", `${no} puanlandı (Toplam: ${toplam}/100, Durum: ${durum})`);
     res.redirect("/liste");
   }));

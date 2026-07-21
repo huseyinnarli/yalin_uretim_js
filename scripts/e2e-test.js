@@ -220,6 +220,8 @@ async function main() {
     const no = nolar[0];
 
     await post("/durum", { csrf_token: csrf, tip: "oneri", no, durum: "Onaylandı" });
+    html = await getText("/liste");
+    ok("onaylanınca form no atandı", /FR-\d{4}-\d{4}/.test(html));
     await post(`/degerlendir/puan?tip=oneri&no=${encodeURIComponent(no)}`, {
       csrf_token: csrf, tip: "oneri", no,
       p_form: "5", p_komite: "5", p_etki_0_3: "40", p_maliyet_0: "20",
@@ -326,6 +328,20 @@ async function main() {
     ok("ek yöneticinin işlemi günlükte (kim)", gunluk.includes("Kısıtlı Yönetici"));
     ok("ek yöneticinin onayı günlükte (mesaj)", gunluk.includes(kno) && gunluk.includes("Onaylandı"));
     ok("ana yöneticinin işlemi günlükte", gunluk.includes("Ana Yönetici"));
+
+    // --- Silinen kayıtlar + geri yükleme ---
+    csrf = csrfFrom(await getText("/liste"));
+    await post("/sil", { csrf_token: csrf, tip: "kaizen", no: kno });
+    let sil = await getText("/silinenler");
+    ok("silinen kayıt arşivde", sil.includes(kno));
+    html = await getText("/liste");
+    ok("silinen kayıt ana listede yok", !html.includes(kno));
+    const sid = (sil.match(/name="id" value="(\d+)"/) || [])[1];
+    await post("/silinenler/geri", { csrf_token: csrf, id: sid });
+    html = await getText("/liste");
+    ok("geri yüklenen kayıt listede", html.includes(kno));
+    sil = await getText("/silinenler");
+    ok("geri yüklenen kayıt arşivden çıktı", !sil.includes(kno));
   } finally {
     srv.kill();
     await new Promise((r) => setTimeout(r, 300));
