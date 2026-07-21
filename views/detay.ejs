@@ -6,7 +6,7 @@
     </h1>
     <div class="list-actions">
         <a class="btn ghost" href="<%= geri %>">← Listeye Dön</a>
-        <% if (admin) { %>
+        <% if (yetki('kayit')) { %>
             <% if (tip == 'oneri') { %>
             <a class="btn primary" href="/oneri/duzenle?no=<%= encodeURIComponent(r.no) %>">Düzenle</a>
             <% } else { %>

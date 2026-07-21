@@ -6,7 +6,7 @@
         <a class="btn ghost" href="/liste">💡🔧 Öneri &amp; Kaizen</a>
         <a class="btn ghost" href="/5s">🧹 5S</a>
         <a class="btn ghost" href="/odul-alanlar">🎁 Ödül Alanlar</a>
-        <% if (admin) { %>
+        <% if (yetki('odul')) { %>
         <a class="btn ghost" href="/puan-durumu/excel">⬇ Liste Excel</a>
         <% } %>
     </div>
@@ -20,7 +20,7 @@
     <br><strong>Ödül:</strong> Net puan <b><%= esik %></b>'e ulaşan kişiye yönetici ödül verir; <%= esik %> puan düşülür.
 </div>
 
-<% if (siralama.length) { const sutun = admin ? 8 : 7; %>
+<% if (siralama.length) { const sutun = yetki('odul') ? 8 : 7; %>
 <div class="table-wrap">
 <table class="data-table puan-tablo">
     <thead>
@@ -28,7 +28,7 @@
             <th>#</th><th>Personel</th>
             <th>Öneri</th><th>Kaizen</th><th>5S</th>
             <th>Kazanılan</th><th>Net</th>
-            <% if (admin) { %><th>İşlem</th><% } %>
+            <% if (yetki('odul')) { %><th>İşlem</th><% } %>
         </tr>
     </thead>
     <tbody>
@@ -47,7 +47,7 @@
             <td data-label="5S"><%= puanfmt(k.bes_s) %></td>
             <td data-label="Kazanılan"><%= puanfmt(k.kazanilan) %></td>
             <td class="toplam-puan" data-label="Net"><%= puanfmt(k.net) %></td>
-            <% if (admin) { %>
+            <% if (yetki('odul')) { %>
             <td data-label="İşlem" class="nowrap">
                 <% if (k.net >= esik) { %>
                 <form method="post" action="/odul-ver" style="display:inline"

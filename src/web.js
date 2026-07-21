@@ -10,6 +10,20 @@ function sar(fn) {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }
 
+// --- Yetki alanları: ek yöneticilere ayrı ayrı verilebilen yetkiler ---
+// Ana yönetici (config şifresiyle giren) her zaman tüm yetkilere sahiptir.
+const YETKILER = [
+  { k: "degerlendirme", ad: "Değerlendirme & Puanlama",
+    aciklama: "Öneri/kaizen onay · red · revize ve ★ puanlama" },
+  { k: "bes_s", ad: "5S Yönetimi",
+    aciklama: "Bölüm/plan oluşturma, denetmen-misafir yönetimi, ödülleri işleme, denetim silme, 5S raporları" },
+  { k: "odul", ad: "Ödül Verme",
+    aciklama: "Puan listesinden ödül verme, kişi gizleme, ödül kaydı silme, puan raporları" },
+  { k: "kayit", ad: "Kayıt Düzenle-Sil & Raporlar",
+    aciklama: "Öneri/kaizen düzenleme-silme ve Excel indirme" },
+];
+const TUM_YETKILER = YETKILER.map((y) => y.k);
+
 // --- Flash (oturumda taşınır, bir kez gösterilir) ---
 function flash(req, kategori, mesaj) {
   if (!req.session.flash) req.session.flash = [];
@@ -42,12 +56,35 @@ function alan(req, ad) {
   return String((req.body || {})[ad] || "").trim().slice(0, S.ALAN_MAX);
 }
 
-// --- Ortak locals + flash tüketimi + CSRF üretimi ---
+// --- Ortak locals + flash tüketimi + CSRF üretimi + yetki hesaplama ---
 const ortakLocals = sar(async (req, res, next) => {
   if (!req.session.csrf) req.session.csrf = crypto.randomBytes(16).toString("hex");
   const d = await C.aktifDenetmen(req.session);
+
+  // Yetki durumu: ana yönetici (super) tüm yetkilere sahiptir; ek yönetici kendi
+  // yetki listesine. Yetkiler her istekte veritabanından TAZE okunur → silme/güncelleme
+  // anında etkilidir. Silinmiş ek yönetici hesabı aktifYonetici içinde düşürülür.
+  let superAdmin = false;
+  let yetkiler = [];
+  let yoneticiAdi = null;
+  if (req.session.admin) {
+    if (req.session.super) {
+      superAdmin = true;
+      yetkiler = TUM_YETKILER;
+    } else {
+      const y = await C.aktifYonetici(req.session);
+      if (y) { yetkiler = y.yetkiler || []; yoneticiAdi = y.ad; }
+    }
+  }
+  req.superAdmin = superAdmin;
+  req.yetkiler = yetkiler;
+
   res.locals.session = req.session;
   res.locals.admin = Boolean(req.session.admin);
+  res.locals.super_admin = superAdmin;
+  res.locals.yetkiler = yetkiler;
+  res.locals.yetki = (alan) => superAdmin || yetkiler.includes(alan);
+  res.locals.yonetici_adi = yoneticiAdi;
   res.locals.denetmen_adi = d ? d.ad : null;
   res.locals.csrf_token = req.session.csrf;
   res.locals.marka_adi = S.MARKA_ADI;
@@ -124,21 +161,43 @@ function guvenlikBasliklari(req, res, next) {
   next();
 }
 
-// --- Yetki ---
+// --- Yetki middleware'leri ---
+function _giriseYonlendir(req, res) {
+  return res.redirect("/yonetici/giris?next=" + encodeURIComponent(req.originalUrl));
+}
+function _yetkisiz(req, res) {
+  flash(req, "error", "Bu işlem için yetkiniz yok.");
+  return res.redirect("/");
+}
+
+// Herhangi bir yönetici (ana veya ek) — panele genel erişim için
 function adminRequired(req, res, next) {
-  if (!req.session.admin) {
-    return res.redirect("/yonetici/giris?next=" + encodeURIComponent(req.originalUrl));
-  }
+  if (!req.session.admin) return _giriseYonlendir(req, res);
   next();
 }
-const denetciRequired = sar(async (req, res, next) => {
-  if (!req.session.admin && !(await C.aktifDenetmen(req.session))) {
-    return res.redirect("/yonetici/giris?next=" + encodeURIComponent(req.originalUrl));
-  }
+// Yalnızca ana yönetici (ek yönetici yönetimi, ana şifre değişimi)
+function superRequired(req, res, next) {
+  if (!req.session.admin) return _giriseYonlendir(req, res);
+  if (!req.superAdmin) return _yetkisiz(req, res);
   next();
+}
+// Belirli bir yetki alanı gerektirir (ana yönetici her zaman geçer)
+function yetkiGerek(alan) {
+  return (req, res, next) => {
+    if (!req.session.admin) return _giriseYonlendir(req, res);
+    if (req.superAdmin || (req.yetkiler || []).includes(alan)) return next();
+    return _yetkisiz(req, res);
+  };
+}
+// Denetim yapma: 5S yetkili yönetici VEYA girişli denetmen
+const denetciRequired = sar(async (req, res, next) => {
+  if (req.superAdmin || (req.yetkiler || []).includes("bes_s")) return next();
+  if (await C.aktifDenetmen(req.session)) return next();
+  return _giriseYonlendir(req, res);
 });
 
 module.exports = {
   sar, flash, hizLimitAsildi, alan, ortakLocals, csrfDogrula, dosyaYukleyici,
-  guvenlikBasliklari, adminRequired, denetciRequired,
+  guvenlikBasliklari, adminRequired, superRequired, yetkiGerek, denetciRequired,
+  YETKILER, TUM_YETKILER,
 };

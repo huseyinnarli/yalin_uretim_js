@@ -273,6 +273,53 @@ async function main() {
 
     const r2 = await get("/yonetici");
     ok("denetmen yönetici paneline giremedi", r2.status === 302);
+
+    // --- Ek yönetici: yetki tabanlı erişim ---
+    // Ana yönetici olarak tekrar giriş
+    await get("/yonetici/cikis");
+    csrf = csrfFrom(await getText("/yonetici/giris"));
+    await post("/yonetici/giris", { csrf_token: csrf, sifre: "admin123" });
+    // Yalnızca 'degerlendirme' yetkili bir ek yönetici ekle
+    csrf = csrfFrom(await getText("/yonetici"));
+    await post("/yonetici/yonetici/ekle", {
+      csrf_token: csrf, ad: "Kısıtlı Yönetici", sifre: "kisitli123", yetkiler: "degerlendirme" });
+    html = await getText("/yonetici");
+    ok("ek yönetici panelde listelendi", html.includes("Kısıtlı Yönetici"));
+
+    // Ek yönetici olarak giriş
+    await get("/yonetici/cikis");
+    csrf = csrfFrom(await getText("/yonetici/giris"));
+    await post("/yonetici/giris", { csrf_token: csrf, sifre: "kisitli123" });
+    html = await getText("/");
+    ok("ek yönetici girişi (şifreden tanıma)", html.includes("Kısıtlı Yönetici") && html.includes("yönetici"));
+
+    // Panele girebilir ama Yöneticiler/Denetmen bölümlerini görmez
+    const dash = await getText("/yonetici");
+    ok("ek yönetici panele girebildi", dash.includes("Yönetici Paneli"));
+    ok("ek yönetici Yöneticiler bölümünü görmüyor", !dash.includes('id="yoneticiler"'));
+    ok("ek yönetici 5S Denetmenleri bölümünü görmüyor", !dash.includes("5S Denetmenleri"));
+
+    csrf = csrfFrom(await getText("/liste"));
+    // Sahip olduğu yetki (degerlendirme): kaizen'i onaylayabilmeli
+    let rr = await post("/durum", { csrf_token: csrf, tip: "kaizen", no: kno, durum: "Onaylandı" });
+    ok("degerlendirme yetkisi çalışıyor (onay)", (rr.headers.get("location") || "") === "/liste");
+    // Sahip olmadığı yetkiler → '/' adresine (yetkisiz) yönlendirilir
+    const rb = await post("/5s/bolum/ekle", { csrf_token: csrf, ad: "Yetkisiz Bölüm" });
+    ok("bes_s yetkisi yok → reddedildi", (rb.headers.get("location") || "") === "/");
+    const rk = await get("/oneri/excel");
+    ok("kayit yetkisi yok → reddedildi", rk.status === 302 && (rk.headers.get("location") || "") === "/");
+    const ro = await post("/odul-ver", { csrf_token: csrf, ad: "X" });
+    ok("odul yetkisi yok → reddedildi", (ro.headers.get("location") || "") === "/");
+    const rs = await post("/yonetici/yonetici/ekle", { csrf_token: csrf, ad: "X", sifre: "xxxxxx", yetkiler: "odul" });
+    ok("ek yönetici, yönetici ekleyemez (süper değil)", (rs.headers.get("location") || "") === "/");
+    // Yetkisiz eklemenin gerçekten yazılmadığını doğrula (ana yönetici olarak)
+    await get("/yonetici/cikis");
+    csrf = csrfFrom(await getText("/yonetici/giris"));
+    await post("/yonetici/giris", { csrf_token: csrf, sifre: "admin123" });
+    const bolumSayfa = await getText("/5s");
+    ok("yetkisiz bölüm gerçekten eklenmedi", !bolumSayfa.includes("Yetkisiz Bölüm"));
+    const dash2 = await getText("/yonetici");
+    ok("ana yönetici Yöneticiler bölümünü görüyor", dash2.includes('id="yoneticiler"'));
   } finally {
     srv.kill();
     await new Promise((r) => setTimeout(r, 300));

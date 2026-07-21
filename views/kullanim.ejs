@@ -27,8 +27,11 @@
             şifreden tanır (ayrı kullanıcı adı yoktur).</li>
         <li><strong>Denetmen:</strong> yalnızca <em>kendisine planlanan</em> bölümün 5S denetimini yapabilir; denetim
             formuna adı otomatik yazılır. Denetmenler bölüm ekip liderleri arasından belirlenir.</li>
-        <li><strong>Yönetici:</strong> onay/red/puanlama, düzenleme/silme, 5S bölüm-plan-ödül yönetimi, Excel/ZIP indirme
-            ve Yönetici Paneli yalnızca yöneticidedir.</li>
+        <li><strong>Ana yönetici:</strong> tüm yetkilere sahiptir — onay/red/puanlama, düzenleme/silme,
+            5S bölüm-plan-ödül yönetimi, Excel/ZIP indirme, panel ve ek yönetici yönetimi.</li>
+        <li><strong>Ek yönetici:</strong> ana yöneticinin belirlediği yetki alanlarıyla sınırlıdır
+            (Değerlendirme &amp; Puanlama / 5S Yönetimi / Ödül Verme / Kayıt Düzenle-Sil &amp; Raporlar).
+            Yalnızca yetkili olduğu bölümleri ve butonları görür.</li>
     </ul>
 
     <h2 class="bolum-baslik">💡 Öneri Ekleme</h2>
@@ -134,7 +137,10 @@
         <li><strong>🧹 5S Trendi:</strong> bölümlerin tur tur skor tablosu (düşüş kırmızı ▼, artış yeşil ▲; Excel'e aktarılır).</li>
         <li><strong>👥 Denetmenler:</strong> bölüm ekip liderleri otomatik listelenir; siz yalnızca giriş şifresi
             belirlersiniz (her şifre farklı olmalıdır). <strong>🎫 Misafir denetmenler</strong> plan dağıtımında kullanılır.</li>
-        <li><strong>🔑 Şifre Değiştir:</strong> yönetici şifresi buradan güncellenir. İlk kurulum şifresi
+        <li><strong>👤 Yöneticiler:</strong> yalnızca ana yönetici görür. Ek yönetici eklerken ad, şifre ve
+            <strong>yetki alanlarını</strong> kutucuklarla seçersiniz; sonradan değiştirebilir veya silebilirsiniz.
+            Ek yönetici kendi şifresiyle giriş yapar ve yalnızca verdiğiniz yetkileri kullanır.</li>
+        <li><strong>🔑 Şifre Değiştir:</strong> ana yönetici şifresi buradan güncellenir. İlk kurulum şifresi
             <span class="mono">admin123</span>'tür — <strong>ilk girişten sonra hemen değiştirin</strong>.</li>
     </ul>
 </div>

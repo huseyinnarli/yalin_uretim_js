@@ -3,7 +3,7 @@ const S = require("../sabitler");
 const C = require("../cekirdek");
 const X = require("../excel");
 const { calistir } = require("../db");
-const { sar, flash, adminRequired, alan, hizLimitAsildi } = require("../web");
+const { sar, flash, yetkiGerek, alan, hizLimitAsildi } = require("../web");
 const { xlsxGonder } = require("./genel");
 
 function formToDict(req) {
@@ -44,14 +44,14 @@ module.exports = function register(app) {
     res.redirect("/liste");
   }));
 
-  app.get("/oneri/duzenle", adminRequired, sar(async (req, res) => {
+  app.get("/oneri/duzenle", yetkiGerek("kayit"), sar(async (req, res) => {
     const rec = await C.getRecord("oneri", req.query.no || "");
     if (!rec) return res.status(404).send("Kayıt bulunamadı.");
     res.render("oneri_form", { title: "Öneri Düzenle", bugun: "", kayit: rec,
       action_url: "/oneri/duzenle?no=" + encodeURIComponent(rec.no), duzenle: true });
   }));
 
-  app.post("/oneri/duzenle", adminRequired, sar(async (req, res) => {
+  app.post("/oneri/duzenle", yetkiGerek("kayit"), sar(async (req, res) => {
     const no = req.query.no || "";
     const rec = await C.getRecord("oneri", no);
     if (!rec) return res.status(404).send("Kayıt bulunamadı.");
@@ -60,7 +60,7 @@ module.exports = function register(app) {
     res.redirect("/liste");
   }));
 
-  app.get("/oneri/excel", adminRequired, sar(async (req, res) => {
+  app.get("/oneri/excel", yetkiGerek("kayit"), sar(async (req, res) => {
     xlsxGonder(res, await X.generateOneriExcel(), "oneriler.xlsx");
   }));
 };

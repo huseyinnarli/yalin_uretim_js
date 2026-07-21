@@ -4,7 +4,7 @@
     <h1 class="page-title">⚑ 5S Aksiyonlar</h1>
     <div class="list-actions">
         <a class="btn ghost" href="/5s">← 5S</a>
-        <% if (admin) { %>
+        <% if (yetki('bes_s')) { %>
         <a class="btn ghost" href="/5s/aksiyonlar/excel">⬇ Aksiyon Excel</a>
         <a class="btn ghost" href="/5s/aksiyonlar/fotolar.zip">⬇ Fotoğraflar (ZIP)</a>
         <% } %>

@@ -77,6 +77,11 @@ Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İ�
    listesini buradan okur — form değişince test kendiliğinden uyar.
 8. **Kişi 5S puanlarının tek kaynağı `odul_kayitlari`** tablosudur; denetim silinince ödül
    kaydı da transaction içinde geri alınır (puan otomatik düşer). Bu kuralı bozma.
+8b. **Yetki sistemi:** roller = ana yönetici (`session.super`, tüm yetkiler), ek yönetici
+   (`session.yonetici_id`, `yoneticiler.yetkiler` JSON: `degerlendirme`/`bes_s`/`odul`/`kayit`),
+   denetmen. Rotayı `web.js:yetkiGerek(alan)` ile kapıla (ana-yönetici-özel için `superRequired`);
+   şablonda butonu `yetki('alan')` ile gizle. Yeni bir yönetici-eylemi eklerken HER İKİSİNİ de
+   yap — arayüzde gizlemek yetmez, sunucu da reddetmeli. Yetki alanları `web.js:YETKILER`de tanımlı.
 9. Numara üretimi (`ÖNFR2607-01`) `sayaclar` tablosunda **atomik sayaçtır** — elle SELECT
    MAX + INSERT yazma.
 10. Kullanıcı git commit'lerine **Co-Authored-By eklenmesini istemiyor**.
@@ -93,6 +98,10 @@ Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İ�
 8. `30a0125` **5S formu şirketin gerçek 5S Denetim Raporu şablonuna geçirildi** (5 bölüm / 23 soru: S1:25 S2:35 S3:20 S4:4 S5:16)
 9. `d7d9099` **Kural tabanlı puanlama**: bulgu sayısı girilir, puan otomatik (ör. her bulgu −3; 5+ bulguda 0)
 10. `5d6a5a2` Düzeltme: boş dosya kutuları 60-dosya sınırına takılıyordu
+11. Kullanım kılavuzu genişletildi (`56f4684`)
+12. **Ek yönetici + yetki sistemi:** ana yönetici, panelden ek yönetici ekler ve her birine
+    yetki alanlarını (degerlendirme/bes_s/odul/kayit) kutucuklarla verir. `yoneticiler` tablosu,
+    `yetkiGerek`/`superRequired` middleware, tüm rotalar/şablonlar yetkiye göre kapılandı (e2e 46/46).
 
 ## Açık konular
 

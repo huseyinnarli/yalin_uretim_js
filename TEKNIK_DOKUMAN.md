@@ -114,6 +114,7 @@ JSON** olarak saklanır; okurken `db.js`'teki satır dönüştürücüler nesney
 | `silinen_kisiler` | `ad` | puan listesinden gizlenenler (puanlar silinmez) |
 | `denetmenler` | `id` | ad, `sifre` (hash), oluşturma |
 | `misafirler` | `id` | ad, oluşturma |
+| `yoneticiler` | `id` | ek yönetici: ad, `sifre` (hash), `yetkiler` (JSON — `degerlendirme`/`bes_s`/`odul`/`kayit`), oluşturma |
 | `sayaclar` | `onek` | öneri/kaizen numara sayaçları (ör. `ÖNFR2607-` → 2) — atomik artırma |
 
 **Kritik tasarım kararları:**
@@ -173,10 +174,19 @@ sonra olmalıdır (değilse boşaltılır), aksiyon bölümün **güncel** ekip 
 Yalnızca tur **tüm bölümlerde** puanlanmışsa çalışır (eksik bölümler mesajda listelenir);
 aynı tur iki kez işlenemez. İlk 3 bölümün lider+üye tam listesi 100/75/50 puanla deftere yazılır.
 
-### Kimlik doğrulama
-- Tek şifre alanı: önce yönetici hash'i, sonra tüm denetmen hash'leri denenir → eşleşen kimlik
-  oturuma yazılır. Bu nedenle **şifreler benzersiz olmalıdır** — denetmen şifresi belirlenirken
-  admin şifresiyle ve diğer denetmenlerle çakışma kontrol edilir (min 6 karakter).
+### Kimlik doğrulama ve yetkilendirme
+- Tek şifre alanı: sırayla ana yönetici hash'i → ek yönetici hash'leri → denetmen hash'leri
+  denenir; eşleşen kimlik oturuma yazılır. Bu nedenle **şifreler benzersiz olmalıdır** — yeni
+  şifre belirlenirken ana yönetici + tüm denetmen + tüm ek yöneticilerle çakışma kontrol edilir
+  (`cekirdek.js:sifreCakismasi`, min 6 karakter).
+- **Roller ve oturum:** ana yönetici → `session.super = true` (tüm yetkiler); ek yönetici →
+  `session.yonetici_id` (yetkiler her istekte veritabanından taze okunur, `web.js:ortakLocals`);
+  denetmen → `session.denetmen_id`.
+- **Yetki alanları** (`web.js:YETKILER`): `degerlendirme`, `bes_s`, `odul`, `kayit`. Rotalar
+  `yetkiGerek(alan)` middleware'iyle kapılanır; ana yönetici her zaman geçer, ek yönetici yalnız
+  kendi yetki listesindekine erişir, aksi hâlde flash + `/`. Ana-yönetici-özel işler (ek yönetici
+  CRUD, ana şifre değişimi) `superRequired` ile korunur. Şablonlarda `yetki('alan')` yardımcısı
+  butonları gizler; **arayüzde gizli bir eylem sunucuda da reddedilir** (çift katman).
 - Hash formatı werkzeug uyumludur: yeni hash `pbkdf2:sha256:600000$salt$hex` üretilir;
   doğrulamada `pbkdf2:*` ve `scrypt:N:r:p` formatları desteklenir (`timingSafeEqual` ile).
   Böylece eski sistemden aktarılan şifreler değişmeden çalışır.

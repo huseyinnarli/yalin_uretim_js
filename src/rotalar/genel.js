@@ -3,7 +3,7 @@ const S = require("../sabitler");
 const C = require("../cekirdek");
 const X = require("../excel");
 const { sorgu, tek, calistir } = require("../db");
-const { sar, flash, adminRequired, alan } = require("../web");
+const { sar, flash, yetkiGerek, alan } = require("../web");
 
 function xlsxGonder(res, buffer, ad) {
   res.set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -52,7 +52,7 @@ module.exports = function register(app) {
     });
   }));
 
-  app.post("/odul-ver", adminRequired, sar(async (req, res) => {
+  app.post("/odul-ver", yetkiGerek("odul"), sar(async (req, res) => {
     const ad = alan(req, "ad");
     const kisi = (await C.puanDurumu()).find((k) => k.ad === ad);
     if (!kisi || kisi.net < S.ODUL_ESIK) {
@@ -65,7 +65,7 @@ module.exports = function register(app) {
     res.redirect("/puan-durumu");
   }));
 
-  app.post("/puan/sil", adminRequired, sar(async (req, res) => {
+  app.post("/puan/sil", yetkiGerek("odul"), sar(async (req, res) => {
     const ad = alan(req, "ad");
     if (ad) {
       await calistir("INSERT IGNORE INTO silinen_kisiler(ad) VALUES(?)", [ad]);
@@ -83,7 +83,7 @@ module.exports = function register(app) {
   }));
 
   // Ödül kaydını siler — düşülen puan kişinin net puanına geri döner.
-  app.post("/odul-alanlar/sil", adminRequired, sar(async (req, res) => {
+  app.post("/odul-alanlar/sil", yetkiGerek("odul"), sar(async (req, res) => {
     const r = await tek("SELECT id FROM odul_arsiv WHERE ad = ? AND zaman = ? LIMIT 1",
       [req.body.ad || "", req.body.zaman || ""]);
     if (r) {
@@ -93,11 +93,11 @@ module.exports = function register(app) {
     res.redirect("/odul-alanlar");
   }));
 
-  app.get("/puan-durumu/excel", adminRequired, sar(async (req, res) => {
+  app.get("/puan-durumu/excel", yetkiGerek("odul"), sar(async (req, res) => {
     xlsxGonder(res, await X.generatePuanExcel(), "puan_listesi.xlsx");
   }));
 
-  app.get("/odul-alanlar/excel", adminRequired, sar(async (req, res) => {
+  app.get("/odul-alanlar/excel", yetkiGerek("odul"), sar(async (req, res) => {
     xlsxGonder(res, await X.generateOdulExcel(), "odul_alanlar.xlsx");
   }));
 };

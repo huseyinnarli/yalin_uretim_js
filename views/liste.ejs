@@ -7,7 +7,7 @@
     <div class="list-actions">
         <a class="btn primary" href="/oneri/yeni">+ Öneri</a>
         <a class="btn primary" href="/kaizen/yeni">+ Kaizen</a>
-        <% if (admin) { %>
+        <% if (yetki('kayit')) { %>
         <a class="btn ghost" href="/oneri/excel">⬇ Öneri Excel</a>
         <a class="btn ghost" href="/kaizen/excel">⬇ Kaizen Excel</a>
         <% } %>
@@ -42,6 +42,7 @@
 
 <p class="result-info"><%= kayitlar.length %> kayıt gösteriliyor (toplam <%= toplam %>).</p>
 
+<% const islemVar = yetki('degerlendirme') || yetki('kayit'); %>
 <% if (kayitlar.length) { %>
 <div class="table-wrap">
 <table class="data-table">
@@ -49,7 +50,7 @@
         <tr>
             <th>Tür</th><th>No</th><th>Tarih</th><th>Konu / Başlık</th><th>Kişi</th>
             <th>Durum</th><th>Puan</th>
-            <% if (admin) { %><th>İşlem</th><% } %>
+            <% if (islemVar) { %><th>İşlem</th><% } %>
         </tr>
     </thead>
     <tbody>
@@ -74,8 +75,9 @@
                 <% } else { %><span class="durum-badge bekle"><%= du %></span><% } %>
             </td>
             <td class="nowrap puan-cell" data-label="Puan"><%= (r.puan === null || r.puan === '' || r.puan === undefined) ? '—' : r.puan %></td>
-            <% if (admin) { %>
+            <% if (islemVar) { %>
             <td class="nowrap islem-hucre" data-label="İşlem">
+                <% if (yetki('degerlendirme')) { %>
                 <% if (du != 'Onaylandı') { %>
                 <form method="post" action="/durum" style="display:inline"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                     <input type="hidden" name="tip" value="<%= r.tip %>">
@@ -103,12 +105,15 @@
                 <% if (du == 'Onaylandı') { %>
                 <a class="btn-mini eval" href="/degerlendir/puan?tip=<%= r.tip %>&no=<%= encodeURIComponent(r.no) %>">★ Puanla</a>
                 <% } %>
+                <% } %>
+                <% if (yetki('kayit')) { %>
                 <form method="post" action="/sil" style="display:inline"
                       onsubmit="return confirm('“<%= r.no %>” kaydı silinsin mi? Bu işlem geri alınamaz.');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                     <input type="hidden" name="tip" value="<%= r.tip %>">
                     <input type="hidden" name="no" value="<%= r.no %>">
                     <button type="submit" class="btn-mini del">Sil</button>
                 </form>
+                <% } %>
             </td>
             <% } %>
         </tr>

@@ -10,7 +10,7 @@
         <span class="os-odul"><% if (s.odul > 0) { %>+<%= s.odul %> puan<% } else { %>—<% } %></span>
         <span class="os-islem">
             <a class="btn-mini eval" href="/5s/denetim/<%= s.denetim_id %>?geri=<%= encodeURIComponent(geri) %>">Formu Gör</a>
-            <% if (admin) { %>
+            <% if (yetki('bes_s')) { %>
             <form method="post" action="/5s/denetim/<%= s.denetim_id %>/sil" style="display:inline"
                   onsubmit="return confirm('“<%= s.ad %>” denetimi silinsin mi?<%= typeof sil_uyari !== 'undefined' ? sil_uyari : '' %>');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="geri" value="<%= geri %>">

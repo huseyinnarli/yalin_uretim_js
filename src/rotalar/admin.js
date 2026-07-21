@@ -1,12 +1,13 @@
-// Yönetici/denetmen/giriş + değerlendirme-puanlama rotaları.
+// Yönetici/denetmen/giriş + ek yönetici yönetimi + değerlendirme-puanlama rotaları.
 const fs = require("fs");
 const path = require("path");
 const S = require("../sabitler");
 const P = require("../puanlama");
 const C = require("../cekirdek");
 const X = require("../excel");
-const { calistir } = require("../db");
-const { sar, flash, adminRequired, alan } = require("../web");
+const { calistir, js } = require("../db");
+const W = require("../web");
+const { sar, flash, adminRequired, superRequired, yetkiGerek, alan, YETKILER, TUM_YETKILER } = W;
 const { xlsxGonder } = require("./genel");
 
 // Kaba kuvvet koruması: IP başına 10 dakikada en fazla 8 başarısız deneme
@@ -19,8 +20,26 @@ function girisKilitli(ip) {
   return denemeler.length >= _GIRIS_LIMIT;
 }
 
+// Checkbox'lardan gelen yetki listesini okur (yalnızca tanımlı yetkiler)
+function yetkileriOku(req) {
+  let v = (req.body || {}).yetkiler || [];
+  if (!Array.isArray(v)) v = [v];
+  return TUM_YETKILER.filter((k) => v.includes(k));
+}
+
+// Oturumu tamamen temizler (rol geçişlerinde eski roldan iz kalmasın)
+function oturumuTemizle(session) {
+  delete session.admin;
+  delete session.super;
+  delete session.yonetici_id;
+  delete session.yonetici_ad;
+  delete session.denetmen_id;
+  delete session.denetmen_ad;
+}
+
 module.exports = function register(app) {
-  // Tek giriş: şifre yöneticininkiyse yönetici, bir denetmeninkiyse o denetmen
+  // Tek giriş: şifre ana yöneticininkiyse ana yönetici (tam yetki), bir ek
+  // yöneticininkiyse o yönetici (kısıtlı yetki), bir denetmeninkiyse o denetmen.
   app.get("/yonetici/giris", (req, res) => {
     res.render("yonetici_giris", { title: "Yönetici Girişi" });
   });
@@ -35,21 +54,32 @@ module.exports = function register(app) {
     const hedefRaw = req.query.next || "/";
     // Yalnızca site içi yol: '//host' protokol-göreli adresleri de reddedilir (open redirect)
     const hedef = (hedefRaw.startsWith("/") && !hedefRaw.startsWith("//")) ? hedefRaw : "/";
+
     if (await C.adminSifreDogru(sifre)) {
+      oturumuTemizle(req.session);
       req.session.admin = true;
-      delete req.session.denetmen_id;
-      delete req.session.denetmen_ad;
+      req.session.super = true; // ana yönetici — tüm yetkiler
       _girisDenemeleri.delete(ip);
       if (sifre === S.ADMIN_PASSWORD) {
         flash(req, "error", "⚠ Varsayılan yönetici şifresini kullanıyorsunuz — panelden hemen değiştirin!");
       }
       return res.redirect(hedef);
     }
+    const y = await C.yoneticiBySifre(sifre);
+    if (y) {
+      oturumuTemizle(req.session);
+      req.session.admin = true;
+      req.session.yonetici_id = y.id;
+      req.session.yonetici_ad = y.ad;
+      _girisDenemeleri.delete(ip);
+      flash(req, "success", `Hoş geldiniz, ${y.ad} (yönetici).`);
+      return res.redirect(hedef);
+    }
     const d = await C.denetmenBySifre(sifre);
     if (d) {
+      oturumuTemizle(req.session);
       req.session.denetmen_id = d.id;
       req.session.denetmen_ad = d.ad;
-      delete req.session.admin;
       _girisDenemeleri.delete(ip);
       flash(req, "success", `Hoş geldiniz, ${d.ad} (denetmen).`);
       return res.redirect(hedef);
@@ -60,9 +90,7 @@ module.exports = function register(app) {
   }));
 
   app.get("/yonetici/cikis", (req, res) => {
-    delete req.session.admin;
-    delete req.session.denetmen_id;
-    delete req.session.denetmen_ad;
+    oturumuTemizle(req.session);
     flash(req, "success", "Çıkış yapıldı.");
     res.redirect("/");
   });
@@ -79,11 +107,81 @@ module.exports = function register(app) {
       denetmen_adaylar: adaylar,
       denetmenler,
       misafirler: await C.loadMisafirler(),
+      // Ek yönetici yönetimi yalnızca ana yöneticide gösterilir
+      yoneticiler: req.superAdmin ? await C.loadYoneticiler() : [],
+      yetki_tanimlari: YETKILER,
     });
   }));
 
-  // Bölüm sorumlusuna şifre belirler (denetmen listesi = bölüm sorumluları)
-  app.post("/yonetici/denetmen/ekle", adminRequired, sar(async (req, res) => {
+  // ----- Ek yönetici yönetimi (yalnızca ana yönetici) -----
+  app.post("/yonetici/yonetici/ekle", superRequired, sar(async (req, res) => {
+    const ad = alan(req, "ad");
+    const sifre = String(req.body.sifre || "").trim();
+    const yetkiler = yetkileriOku(req);
+    if (!ad) {
+      flash(req, "error", "Yönetici adı gerekli.");
+      return res.redirect("/yonetici#yoneticiler");
+    }
+    if (sifre.length < 6) {
+      flash(req, "error", "Yönetici şifresi en az 6 karakter olmalı.");
+      return res.redirect("/yonetici#yoneticiler");
+    }
+    if (!yetkiler.length) {
+      flash(req, "error", "En az bir yetki alanı seçmelisiniz.");
+      return res.redirect("/yonetici#yoneticiler");
+    }
+    // Şifre kimliği belirlediği için benzersiz olmalı (ana yönetici + denetmen + diğer yöneticiler)
+    if (await C.sifreCakismasi(sifre)) {
+      flash(req, "error", "Bu şifre kullanımda — her hesabın şifresi farklı olmalı.");
+      return res.redirect("/yonetici#yoneticiler");
+    }
+    await calistir("INSERT INTO yoneticiler(id, ad, sifre, yetkiler, olusturma) VALUES(?,?,?,?,?)",
+      [C.uid(), ad, C.hashPassword(sifre), js(yetkiler), S.zamanTr()]);
+    flash(req, "success", `${ad} yöneticisi eklendi.`);
+    res.redirect("/yonetici#yoneticiler");
+  }));
+
+  // Yetkileri (ve isteğe bağlı şifreyi) günceller
+  app.post("/yonetici/yonetici/guncelle", superRequired, sar(async (req, res) => {
+    const id = req.body.id || "";
+    const y = await C.yoneticiById(id);
+    if (!y) {
+      flash(req, "error", "Yönetici bulunamadı.");
+      return res.redirect("/yonetici#yoneticiler");
+    }
+    const yetkiler = yetkileriOku(req);
+    if (!yetkiler.length) {
+      flash(req, "error", "En az bir yetki alanı seçmelisiniz.");
+      return res.redirect("/yonetici#yoneticiler");
+    }
+    const yeniSifre = String(req.body.sifre || "").trim();
+    if (yeniSifre) {
+      if (yeniSifre.length < 6) {
+        flash(req, "error", "Yönetici şifresi en az 6 karakter olmalı.");
+        return res.redirect("/yonetici#yoneticiler");
+      }
+      if (await C.sifreCakismasi(yeniSifre, id)) {
+        flash(req, "error", "Bu şifre kullanımda — her hesabın şifresi farklı olmalı.");
+        return res.redirect("/yonetici#yoneticiler");
+      }
+      await calistir("UPDATE yoneticiler SET yetkiler = ?, sifre = ? WHERE id = ?",
+        [js(yetkiler), C.hashPassword(yeniSifre), id]);
+      flash(req, "success", `${y.ad} yetkileri ve şifresi güncellendi.`);
+    } else {
+      await calistir("UPDATE yoneticiler SET yetkiler = ? WHERE id = ?", [js(yetkiler), id]);
+      flash(req, "success", `${y.ad} yetkileri güncellendi.`);
+    }
+    res.redirect("/yonetici#yoneticiler");
+  }));
+
+  app.post("/yonetici/yonetici/sil", superRequired, sar(async (req, res) => {
+    const r = await calistir("DELETE FROM yoneticiler WHERE id = ?", [req.body.id || ""]);
+    if (r.affectedRows) flash(req, "success", "Yönetici silindi.");
+    res.redirect("/yonetici#yoneticiler");
+  }));
+
+  // ----- Denetmen / misafir yönetimi (5S yetkisi) -----
+  app.post("/yonetici/denetmen/ekle", yetkiGerek("bes_s"), sar(async (req, res) => {
     const ad = alan(req, "ad");
     const sifre = String(req.body.sifre || "").trim();
     if (!(await C.denetmenAdaylari()).includes(ad)) {
@@ -94,13 +192,15 @@ module.exports = function register(app) {
       flash(req, "error", "Denetmen şifresi en az 6 karakter olmalı.");
       return res.redirect("/yonetici#denetmenler");
     }
-    // Şifre kimliği belirlediği için benzersiz olmalı (admin şifresi dahil)
+    // Şifre kimliği belirlediği için benzersiz olmalı; bu denetmenin mevcut kaydı hariç
+    const kayit = (await C.loadDenetmenler()).find((d) => d.ad === ad);
     const mevcutSahip = await C.denetmenBySifre(sifre);
-    if ((await C.adminSifreDogru(sifre)) || (mevcutSahip && mevcutSahip.ad !== ad)) {
-      flash(req, "error", "Bu şifre kullanımda — her denetmenin şifresi farklı olmalı.");
+    const yoneticiSahip = await C.yoneticiBySifre(sifre);
+    if ((await C.adminSifreDogru(sifre)) || yoneticiSahip
+        || (mevcutSahip && mevcutSahip.ad !== ad)) {
+      flash(req, "error", "Bu şifre kullanımda — her hesabın şifresi farklı olmalı.");
       return res.redirect("/yonetici#denetmenler");
     }
-    const kayit = (await C.loadDenetmenler()).find((d) => d.ad === ad);
     if (kayit) {
       await calistir("UPDATE denetmenler SET sifre = ? WHERE id = ?", [C.hashPassword(sifre), kayit.id]);
       flash(req, "success", `${ad} şifresi güncellendi.`);
@@ -112,13 +212,13 @@ module.exports = function register(app) {
     res.redirect("/yonetici#denetmenler");
   }));
 
-  app.post("/yonetici/denetmen/sil", adminRequired, sar(async (req, res) => {
+  app.post("/yonetici/denetmen/sil", yetkiGerek("bes_s"), sar(async (req, res) => {
     const r = await calistir("DELETE FROM denetmenler WHERE id = ?", [req.body.id || ""]);
     if (r.affectedRows) flash(req, "success", "Denetmen silindi.");
     res.redirect("/yonetici#denetmenler");
   }));
 
-  app.post("/yonetici/misafir/ekle", adminRequired, sar(async (req, res) => {
+  app.post("/yonetici/misafir/ekle", yetkiGerek("bes_s"), sar(async (req, res) => {
     const ad = alan(req, "ad");
     if (!ad) {
       flash(req, "error", "Misafir denetmen adı gerekli.");
@@ -134,19 +234,21 @@ module.exports = function register(app) {
     res.redirect("/yonetici#misafirler");
   }));
 
-  app.post("/yonetici/misafir/sil", adminRequired, sar(async (req, res) => {
+  app.post("/yonetici/misafir/sil", yetkiGerek("bes_s"), sar(async (req, res) => {
     const r = await calistir("DELETE FROM misafirler WHERE id = ?", [req.body.id || ""]);
     if (r.affectedRows) flash(req, "success", "Misafir denetmen silindi.");
     res.redirect("/yonetici#misafirler");
   }));
 
-  app.post("/yonetici/sifre", adminRequired, sar(async (req, res) => {
+  // Ana yönetici şifresini değiştir (yalnızca ana yönetici)
+  app.post("/yonetici/sifre", superRequired, sar(async (req, res) => {
     const eski = req.body.eski || "";
     const yeni = String(req.body.yeni || "").trim();
     const yeni2 = String(req.body.yeni2 || "").trim();
     if (!(await C.adminSifreDogru(eski))) flash(req, "error", "Mevcut şifre hatalı.");
     else if (!yeni) flash(req, "error", "Yeni şifre boş olamaz.");
     else if (yeni !== yeni2) flash(req, "error", "Yeni şifreler eşleşmiyor.");
+    else if (await C.sifreCakismasi(yeni)) flash(req, "error", "Bu şifre başka bir hesapta kullanımda.");
     else {
       await C.setAdminPassword(yeni);
       flash(req, "success", "Şifre güncellendi.");
@@ -154,7 +256,7 @@ module.exports = function register(app) {
     res.redirect("/yonetici");
   }));
 
-  app.get("/yonetici/5s-trend/excel", adminRequired, sar(async (req, res) => {
+  app.get("/yonetici/5s-trend/excel", yetkiGerek("bes_s"), sar(async (req, res) => {
     const buf = await X.generateTrendExcel();
     if (!buf) {
       flash(req, "error", "İndirilecek trend verisi yok.");
@@ -164,7 +266,7 @@ module.exports = function register(app) {
   }));
 
   // Öneri/kaizen sil (kaizen görselleri dahil)
-  app.post("/sil", adminRequired, sar(async (req, res) => {
+  app.post("/sil", yetkiGerek("kayit"), sar(async (req, res) => {
     const tip = req.body.tip || "";
     const no = req.body.no || "";
     const rec = await C.getRecord(tip, no);
@@ -183,7 +285,7 @@ module.exports = function register(app) {
   }));
 
   // Hızlı onay / red / düzeltme isteme
-  app.post("/durum", adminRequired, sar(async (req, res) => {
+  app.post("/durum", yetkiGerek("degerlendirme"), sar(async (req, res) => {
     const tip = req.body.tip || "";
     const no = req.body.no || "";
     const durum = req.body.durum || "";
@@ -201,7 +303,7 @@ module.exports = function register(app) {
   }));
 
   // Puanlama sayfası + kaydet
-  app.get("/degerlendir/puan", adminRequired, sar(async (req, res) => {
+  app.get("/degerlendir/puan", yetkiGerek("degerlendirme"), sar(async (req, res) => {
     const tip = req.query.tip || "";
     const no = req.query.no || "";
     const rec = await C.getRecord(tip, no);
@@ -218,7 +320,7 @@ module.exports = function register(app) {
     });
   }));
 
-  app.post("/degerlendir/puan", adminRequired, sar(async (req, res) => {
+  app.post("/degerlendir/puan", yetkiGerek("degerlendirme"), sar(async (req, res) => {
     const tip = req.query.tip || req.body.tip || "";
     const no = req.query.no || req.body.no || "";
     const rec = await C.getRecord(tip, no);

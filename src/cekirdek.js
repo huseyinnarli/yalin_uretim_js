@@ -9,7 +9,7 @@ const S = require("./sabitler");
 const P = require("./puanlama");
 const {
   sorgu, tek, calistir, transaction, js, configGet, configSet,
-  oneriRow, kaizenRow, bolumRow, denetimRow, aksiyonRow, odulKayitRow,
+  oneriRow, kaizenRow, bolumRow, denetimRow, aksiyonRow, odulKayitRow, yoneticiRow,
 } = require("./db");
 
 // ---------------------------------------------------------------------------
@@ -617,6 +617,41 @@ async function aktifDenetmen(session) {
 }
 
 // ---------------------------------------------------------------------------
+// Ek yöneticiler (ana yönetici dışında, kısıtlı yetkili hesaplar)
+// ---------------------------------------------------------------------------
+async function loadYoneticiler() {
+  return (await sorgu("SELECT * FROM yoneticiler ORDER BY ad")).map(yoneticiRow);
+}
+async function yoneticiById(id) {
+  return yoneticiRow(await tek("SELECT * FROM yoneticiler WHERE id = ?", [id]));
+}
+// Şifreden ek yöneticiyi bulur (giriş) — hash karşılaştırmalı
+async function yoneticiBySifre(sifre) {
+  if (!sifre) return null;
+  for (const y of await loadYoneticiler()) {
+    if (checkPassword(y.sifre, sifre)) return y;
+  }
+  return null;
+}
+// Oturumdaki ek yönetici kaydı (silinmiş/yetkisi güncellenmiş hesabı taze okur)
+async function aktifYonetici(session) {
+  const yid = session && session.yonetici_id;
+  if (!yid) return null;
+  const y = await yoneticiById(yid);
+  if (!y) { delete session.yonetici_id; delete session.yonetici_ad; delete session.admin; }
+  return y;
+}
+// Şifre başka bir hesapta (ana yönetici / denetmen / başka ek yönetici) kullanılıyor mu?
+// haricYoneticiId verilirse o ek yönetici kendi şifresini korurken çakışma sayılmaz.
+async function sifreCakismasi(sifre, haricYoneticiId = null) {
+  if (await adminSifreDogru(sifre)) return true;
+  if (await denetmenBySifre(sifre)) return true;
+  const y = await yoneticiBySifre(sifre);
+  if (y && y.id !== haricYoneticiId) return true;
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Aksiyonlar
 // ---------------------------------------------------------------------------
 // Aksiyonu kapatabilecek kişi = açıldığı bölümün GÜNCEL ekip lideri
@@ -628,8 +663,12 @@ async function aksiyonAtanan(a, bolumlar = null) {
 // Yönetici her zaman; denetmen yalnızca kendi bölümünün lideri olarak atanmışsa
 async function aksiyonKapatabilir(a, session, bolumlar = null) {
   if (a.durum === "kapali") return false;
-  if (session && session.admin) return true;
-  const d = await aktifDenetmen(session);
+  if (session && session.super) return true;              // ana yönetici
+  if (session && session.yonetici_id) {                    // 5S yetkili ek yönetici
+    const y = await aktifYonetici(session);
+    if (y && (y.yetkiler || []).includes("bes_s")) return true;
+  }
+  const d = await aktifDenetmen(session);                  // atanan bölüm lideri
   if (!d) return false;
   return isimListesi(await aksiyonAtanan(a, bolumlar)).includes(d.ad);
 }
@@ -779,6 +818,7 @@ module.exports = {
   besSTurSiralama, besSTurTamam, besSTurEksikler, besSIsle, besSTurKazananlar,
   besSArsivAylar, besSGecmisTurlar, besSPlanSatirlari, besSTrendTablo,
   isimListesi, bolumLiderleri, denetmenAdaylari, denetmenBySifre, aktifDenetmen,
+  loadYoneticiler, yoneticiById, yoneticiBySifre, aktifYonetici, sifreCakismasi,
   aksiyonAtanan, aksiyonKapatabilir, aksiyonGruplari, aksiyonFotolari,
   syncDenetimAksiyonlari, saveDenetimFotolar, saveAksiyonFotolar, kaizenKaydetGorsel,
   logoBul,

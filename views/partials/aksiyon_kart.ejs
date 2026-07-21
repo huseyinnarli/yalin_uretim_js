@@ -3,7 +3,7 @@
     <div class="ak-ust">
         <span class="ak-durum-rozet <%= a.durum %>"><%= a.durum == 'kapali' ? '✔ Kapalı' : '● Açık' %></span>
         <span class="ak-kriter"><%= a.kriter_m %></span>
-        <% if (admin) { %>
+        <% if (yetki('bes_s')) { %>
         <form method="post" action="/5s/aksiyon/<%= a.id %>/sil" style="display:inline"
               onsubmit="return confirm('Bu aksiyon silinsin mi?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <button type="submit" class="btn-mini del">Sil</button>

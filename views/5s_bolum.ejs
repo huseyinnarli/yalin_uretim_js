@@ -14,7 +14,7 @@
         <div class="kisi-satir lider">
             <span>👤 <strong><%= b.sorumlu || '—' %></strong> <span class="rol">ekip lideri</span></span>
         </div>
-        <% if (admin) { %>
+        <% if (yetki('bes_s')) { %>
         <form method="post" action="/5s/bolum/<%= b.id %>/lider" class="satir-form lider-form"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <input type="text" name="lider1" value="<%= lider1 %>" placeholder="1. Ekip Lideri (Ad Soyad)">
             <input type="text" name="lider2" value="<%= lider2 %>" placeholder="2. Ekip Lideri (Ad Soyad)"
@@ -26,7 +26,7 @@
         <% for (const k of b.kisiler) { %>
         <div class="kisi-satir">
             <span><%= k %></span>
-            <% if (admin) { %>
+            <% if (yetki('bes_s')) { %>
             <form method="post" action="/5s/bolum/<%= b.id %>/kisi/sil" style="display:inline"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="ad" value="<%= k %>">
                 <button type="submit" class="btn-mini del" title="Sil">×</button>
@@ -36,7 +36,7 @@
         <% } %>
         <% if (!b.kisiler.length) { %><p class="bos-not">Henüz üye eklenmemiş.</p><% } %>
 
-        <% if (admin) { %>
+        <% if (yetki('bes_s')) { %>
         <form method="post" action="/5s/bolum/<%= b.id %>/kisi/ekle" class="satir-form mt"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <input type="text" name="ad" placeholder="Kişi ekle (Ad Soyad)" required>
             <button type="submit" class="btn primary">+ Ekle</button>
@@ -64,7 +64,7 @@
                     <td data-label="">
                         <% if (d.puan !== null) { %>
                         <a class="btn-mini eval" href="/5s/denetim/<%= d.id %>">Formu Gör</a>
-                        <% } else if (admin) { %>
+                        <% } else if (yetki('bes_s')) { %>
                         <a class="btn-mini edit" href="/5s/bolum/<%= b.id %>/denetim">Doldur</a>
                         <% } %>
                     </td>

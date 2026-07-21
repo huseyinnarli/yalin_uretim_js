@@ -4,7 +4,7 @@ const S = require("../sabitler");
 const C = require("../cekirdek");
 const X = require("../excel");
 const { calistir, js } = require("../db");
-const { sar, flash, adminRequired, alan, hizLimitAsildi, dosyaYukleyici } = require("../web");
+const { sar, flash, yetkiGerek, alan, hizLimitAsildi, dosyaYukleyici } = require("../web");
 const { xlsxGonder } = require("./genel");
 
 function ekipOku(req) {
@@ -58,7 +58,7 @@ module.exports = function register(app) {
     res.redirect("/liste");
   }));
 
-  app.get("/kaizen/duzenle", adminRequired, sar(async (req, res) => {
+  app.get("/kaizen/duzenle", yetkiGerek("kayit"), sar(async (req, res) => {
     const rec = await C.getRecord("kaizen", req.query.no || "");
     if (!rec) return res.status(404).send("Kayıt bulunamadı.");
     res.render("kaizen_form", { title: "Kaizen Düzenle", bugun: "", kayit: rec,
@@ -66,7 +66,7 @@ module.exports = function register(app) {
       action_url: "/kaizen/duzenle?no=" + encodeURIComponent(rec.no), duzenle: true });
   }));
 
-  app.post("/kaizen/duzenle", ...dosyaYukleyici(2), adminRequired, sar(async (req, res) => {
+  app.post("/kaizen/duzenle", ...dosyaYukleyici(2), yetkiGerek("kayit"), sar(async (req, res) => {
     const no = req.query.no || "";
     const eski = await C.getRecord("kaizen", no);
     if (!eski) return res.status(404).send("Kayıt bulunamadı.");
@@ -88,7 +88,7 @@ module.exports = function register(app) {
     res.redirect("/liste");
   }));
 
-  app.get("/kaizen/excel", adminRequired, sar(async (req, res) => {
+  app.get("/kaizen/excel", yetkiGerek("kayit"), sar(async (req, res) => {
     xlsxGonder(res, await X.generateKaizenExcel(), "kaizenler.xlsx");
   }));
 

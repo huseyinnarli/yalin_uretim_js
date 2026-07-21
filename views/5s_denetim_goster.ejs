@@ -7,7 +7,7 @@
     <div class="list-actions">
         <a class="btn ghost" href="<%= geri %>">← Geri</a>
         <% if (b) { %><a class="btn ghost" href="/5s/bolum/<%= b.id %>">🏭 Bölüm</a><% } %>
-        <% if (admin) { %>
+        <% if (yetki('bes_s')) { %>
         <% if (fotoSayisi) { %>
         <a class="btn primary" href="/5s/denetim/<%= d.id %>/fotolar.zip">⬇ Tüm Fotoğraflar (<%= fotoSayisi %>)</a>
         <% } %>

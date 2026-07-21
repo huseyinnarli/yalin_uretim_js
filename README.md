@@ -100,19 +100,32 @@ Stok, 5S… çoklu seçim), konu, yapıldığı bölüm, **ekip** (1 lider + en 
 - **🧹 5S Trendi:** bölüm × tur skor tablosu (düşüş kırmızı ▼, artış yeşil ▲; Excel'e aktarılır).
 - **👥 Denetmenler:** bölüm ekip liderleri otomatik listelenir; yönetici yalnızca şifre belirler.
 - **🎫 Misafir denetmenler:** plan dağıtımında kullanılan harici kişiler.
-- **🔑 Şifre değiştir.**
+- **👤 Yöneticiler:** ana yönetici, **ek yöneticiler** ekler ve her birine ad, şifre ve
+  **yetki alanlarını** kutucuklarla belirler (aşağıya bakın).
+- **🔑 Şifre değiştir** (ana yönetici).
 
 ---
 
 ## Roller ve Erişim
 
-| | Genel kullanıcı | Denetmen (girişli) | Yönetici (girişli) |
-|---|---|---|---|
-| Öneri/kaizen ekleme, tüm listeleri görüntüleme | ✅ | ✅ | ✅ |
-| Kendisine planlanan bölümün 5S denetimi | ❌ | ✅ | ✅ |
-| Kendi bölümünün aksiyonunu kapatma | ❌ | ✅ | ✅ |
-| Onay/red/puanlama, düzenle/sil, 5S yönetimi | ❌ | ❌ | ✅ |
-| Excel/ZIP indirme, yönetici paneli | ❌ | ❌ | ✅ |
+**Ana yönetici** her zaman tam yetkilidir. **Ek yöneticiler**, ana yöneticinin kutucuklarla
+seçtiği yetki alanlarıyla sınırlıdır:
+
+| Yetki alanı | Kapsam |
+|---|---|
+| **Değerlendirme & Puanlama** | Öneri/kaizen onay · red · revize ve puanlama |
+| **5S Yönetimi** | Bölüm/plan oluşturma, denetmen-misafir yönetimi, ödülleri işleme, denetim silme, 5S raporları |
+| **Ödül Verme** | Puan listesinden ödül verme, kişi gizleme, ödül kaydı silme, puan raporları |
+| **Kayıt Düzenle-Sil & Raporlar** | Öneri/kaizen düzenleme-silme, Excel indirme |
+
+Yalnızca ana yönetici: ek yönetici ekleme/silme ve ana şifre değişimi.
+
+| | Genel kullanıcı | Denetmen | Ek yönetici | Ana yönetici |
+|---|---|---|---|---|
+| Öneri/kaizen ekleme, tüm listeleri görüntüleme | ✅ | ✅ | ✅ | ✅ |
+| Kendisine planlanan bölümün 5S denetimi | ❌ | ✅ | 5S yetkisiyle | ✅ |
+| Onay/red/puanlama, düzenle/sil, 5S, ödül | ❌ | ❌ | verilen yetkiyle | ✅ |
+| Ek yönetici yönetimi | ❌ | ❌ | ❌ | ✅ |
 
 ---
 

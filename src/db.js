@@ -138,6 +138,11 @@ CREATE TABLE IF NOT EXISTS misafirler (
   ad TEXT, olusturma VARCHAR(20)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
 
+CREATE TABLE IF NOT EXISTS yoneticiler (
+  id VARCHAR(16) PRIMARY KEY,
+  ad TEXT, sifre TEXT, yetkiler TEXT, olusturma VARCHAR(20)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
+
 CREATE TABLE IF NOT EXISTS sayaclar (
   onek VARCHAR(32) PRIMARY KEY,
   sayac INT NOT NULL DEFAULT 0
@@ -202,6 +207,10 @@ function odulKayitRow(r) {
   if (!r) return null;
   return { ...r, kisiler: j(r.kisiler, []) };
 }
+function yoneticiRow(r) {
+  if (!r) return null;
+  return { ...r, yetkiler: j(r.yetkiler, []) };
+}
 
 // Otomatik yedek: tüm tabloları (JSON) + görsel klasörlerini tek ZIP'e döker (son 15).
 // Klasör YALIN_YEDEK_DIR / config "yedek_dir" ile farklı bir diske yönlendirilebilir;
@@ -209,7 +218,7 @@ function odulKayitRow(r) {
 // Not: tam sunucu yedeği için mysqldump tercih edilir; bu, uygulama içi güvence katmanıdır.
 const _YEDEK_TABLOLAR = ["config", "oneriler", "kaizenler", "bolumler", "denetimler",
   "aksiyonlar", "odul_islenen", "odul_kayitlari", "odul_arsiv", "silinen_kisiler",
-  "denetmenler", "misafirler", "sayaclar"];
+  "denetmenler", "misafirler", "yoneticiler", "sayaclar"];
 const _YEDEK_GORSEL_DIRLER = [
   ["kaizen_gorseller", S.KAIZEN_IMG_DIR],
   ["bes_s_gorseller", S.BESS_FOTO_DIR],
@@ -261,6 +270,6 @@ function baslatYedekleme(saat = 6) {
 
 module.exports = {
   pool, sorgu, tek, calistir, transaction, init, j, js, configGet, configSet,
-  oneriRow, kaizenRow, bolumRow, denetimRow, aksiyonRow, odulKayitRow,
+  oneriRow, kaizenRow, bolumRow, denetimRow, aksiyonRow, odulKayitRow, yoneticiRow,
   yedekle, baslatYedekleme, baglantiAyarlari,
 };

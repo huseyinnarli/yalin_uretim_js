@@ -110,6 +110,19 @@ legend { font-weight: 700; padding: 0 8px; color: var(--primary); }
 .chk input { width: 17px; height: 17px; accent-color: var(--kaizen); }
 .prepost .field { flex: 1 1 320px; }
 
+/* Ek yönetici yetki kutuları + satırları */
+.yetki-kutulari { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
+.yetki-kutulari .chk { flex: 1 1 200px; }
+.yonetici-satir { display: block; border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 12px; background: #fff; }
+.yonetici-ust { display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 10px; }
+.yonetici-islem { display: flex; gap: 8px; align-items: center; }
+.yonetici-sifre { max-width: 220px; }
+.yonetici-alt { display: flex; justify-content: space-between; align-items: center;
+    margin-top: 8px; gap: 10px; }
+.yeni-yonetici { border-top: 1px dashed var(--line); padding-top: 14px; }
+
 .form-actions { display: flex; gap: 10px; margin-top: 8px; }
 
 /* List */
