@@ -320,6 +320,12 @@ async function main() {
     ok("yetkisiz bölüm gerçekten eklenmedi", !bolumSayfa.includes("Yetkisiz Bölüm"));
     const dash2 = await getText("/yonetici");
     ok("ana yönetici Yöneticiler bölümünü görüyor", dash2.includes('id="yoneticiler"'));
+
+    // --- İşlem günlüğü ---
+    const gunluk = await getText("/yonetici/gunluk");
+    ok("ek yöneticinin işlemi günlükte (kim)", gunluk.includes("Kısıtlı Yönetici"));
+    ok("ek yöneticinin onayı günlükte (mesaj)", gunluk.includes(kno) && gunluk.includes("Onaylandı"));
+    ok("ana yöneticinin işlemi günlükte", gunluk.includes("Ana Yönetici"));
   } finally {
     srv.kill();
     await new Promise((r) => setTimeout(r, 300));

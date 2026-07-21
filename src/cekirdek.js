@@ -641,6 +641,24 @@ async function aktifYonetici(session) {
   if (!y) { delete session.yonetici_id; delete session.yonetici_ad; delete session.admin; }
   return y;
 }
+// ---------------------------------------------------------------------------
+// İşlem günlüğü (denetim izi) — yönetici/denetmen eylemleri kaydedilir
+// ---------------------------------------------------------------------------
+async function gunlukEkle({ kim, rol, mesaj, yol, ip }) {
+  try {
+    await calistir(
+      "INSERT INTO islem_gunlugu(zaman, kim, rol, mesaj, yol, ip) VALUES(?,?,?,?,?,?)",
+      [S.zamanTr(), (kim || "").slice(0, 191), (rol || "").slice(0, 16),
+        String(mesaj || "").slice(0, 1000), (yol || "").slice(0, 255), (ip || "").slice(0, 64)]);
+  } catch (e) { console.error("Günlük yazılamadı:", e.message); }
+}
+async function loadGunluk(limit = 500) {
+  return sorgu("SELECT * FROM islem_gunlugu ORDER BY id DESC LIMIT ?", [limit]);
+}
+async function gunlukTemizle() {
+  await calistir("DELETE FROM islem_gunlugu");
+}
+
 // Şifre başka bir hesapta (ana yönetici / denetmen / başka ek yönetici) kullanılıyor mu?
 // haricYoneticiId verilirse o ek yönetici kendi şifresini korurken çakışma sayılmaz.
 async function sifreCakismasi(sifre, haricYoneticiId = null) {
@@ -819,6 +837,7 @@ module.exports = {
   besSArsivAylar, besSGecmisTurlar, besSPlanSatirlari, besSTrendTablo,
   isimListesi, bolumLiderleri, denetmenAdaylari, denetmenBySifre, aktifDenetmen,
   loadYoneticiler, yoneticiById, yoneticiBySifre, aktifYonetici, sifreCakismasi,
+  gunlukEkle, loadGunluk, gunlukTemizle,
   aksiyonAtanan, aksiyonKapatabilir, aksiyonGruplari, aksiyonFotolari,
   syncDenetimAksiyonlari, saveDenetimFotolar, saveAksiyonFotolar, kaizenKaydetGorsel,
   logoBul,

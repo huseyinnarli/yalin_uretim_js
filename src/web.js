@@ -25,9 +25,24 @@ const YETKILER = [
 const TUM_YETKILER = YETKILER.map((y) => y.k);
 
 // --- Flash (oturumda taşınır, bir kez gösterilir) ---
+// Yan etki: yönetici/denetmen bağlamındaki BAŞARILI işlemler işlem günlüğüne yazılır
+// (mesajlar zaten okunabilir Türkçe olduğundan denetim izi için birebir kullanılır).
+const _GUNLUK_HARIC = new Set(["/yonetici/giris", "/yonetici/cikis"]);
 function flash(req, kategori, mesaj) {
   if (!req.session.flash) req.session.flash = [];
   req.session.flash.push([kategori, mesaj]);
+
+  if (kategori === "success" && req.session
+      && (req.session.admin || req.session.denetmen_id)
+      && !_GUNLUK_HARIC.has(req.path)) {
+    let kim, rol;
+    if (req.session.super) { kim = "Ana Yönetici"; rol = "super"; }
+    else if (req.session.yonetici_id) { kim = req.session.yonetici_ad || "Yönetici"; rol = "yonetici"; }
+    else { kim = req.session.denetmen_ad || "Denetmen"; rol = "denetmen"; }
+    // Ateşle-unut: günlük yazımı istek akışını yavaşlatmasın/bloklamasın
+    C.gunlukEkle({ kim, rol, mesaj, yol: (req.originalUrl || "").split("?")[0], ip: req.ip })
+      .catch(() => {});
+  }
 }
 
 // --- IP hız limiti (bellek içi kayan pencere) ---

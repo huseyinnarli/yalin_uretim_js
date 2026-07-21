@@ -1,0 +1,45 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">📜 İşlem Günlüğü</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/yonetici">← Yönetici Paneli</a>
+        <% if (kayitlar.length) { %>
+        <form method="post" action="/yonetici/gunluk/temizle" style="display:inline"
+              onsubmit="return confirm('Tüm işlem günlüğü kalıcı olarak silinsin mi?');">
+            <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+            <button type="submit" class="btn-mini del">🗑 Günlüğü Temizle</button>
+        </form>
+        <% } %>
+    </div>
+</div>
+
+<p class="subtitle">Yöneticilerin ve denetmenlerin yaptığı <strong>değerlendirme ve yetki gerektiren</strong>
+    işlemler burada zaman sırasıyla (en yeni üstte) listelenir. Son 500 kayıt gösterilir.</p>
+
+<% if (kayitlar.length) { %>
+<div class="table-wrap">
+<table class="data-table">
+    <thead>
+        <tr><th>Zaman</th><th>Kim</th><th>Rol</th><th>İşlem</th></tr>
+    </thead>
+    <tbody>
+        <% for (const k of kayitlar) { %>
+        <tr>
+            <td class="nowrap" data-label="Zaman"><%= k.zaman %></td>
+            <td data-label="Kim"><strong><%= k.kim %></strong></td>
+            <td data-label="Rol">
+                <% if (k.rol === 'super') { %><span class="durum-badge onay">Ana Yönetici</span>
+                <% } else if (k.rol === 'yonetici') { %><span class="durum-badge bekle">Yönetici</span>
+                <% } else { %><span class="durum-badge revize">Denetmen</span><% } %>
+            </td>
+            <td data-label="İşlem"><%= k.mesaj %></td>
+        </tr>
+        <% } %>
+    </tbody>
+</table>
+</div>
+<% } else { %>
+<div class="empty">Henüz kayıtlı işlem yok. Yöneticiler işlem yaptıkça burada görünür.</div>
+<% } %>
+<%- include('partials/footer') %>

@@ -147,6 +147,12 @@ CREATE TABLE IF NOT EXISTS sayaclar (
   onek VARCHAR(32) PRIMARY KEY,
   sayac INT NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
+
+CREATE TABLE IF NOT EXISTS islem_gunlugu (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  zaman VARCHAR(20), kim VARCHAR(191), rol VARCHAR(16),
+  mesaj TEXT, yol VARCHAR(255), ip VARCHAR(64)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
 `;
 
 // Şemayı kurar — uygulama açılışında bir kez çağrılır.
@@ -218,7 +224,7 @@ function yoneticiRow(r) {
 // Not: tam sunucu yedeği için mysqldump tercih edilir; bu, uygulama içi güvence katmanıdır.
 const _YEDEK_TABLOLAR = ["config", "oneriler", "kaizenler", "bolumler", "denetimler",
   "aksiyonlar", "odul_islenen", "odul_kayitlari", "odul_arsiv", "silinen_kisiler",
-  "denetmenler", "misafirler", "yoneticiler", "sayaclar"];
+  "denetmenler", "misafirler", "yoneticiler", "sayaclar", "islem_gunlugu"];
 const _YEDEK_GORSEL_DIRLER = [
   ["kaizen_gorseller", S.KAIZEN_IMG_DIR],
   ["bes_s_gorseller", S.BESS_FOTO_DIR],

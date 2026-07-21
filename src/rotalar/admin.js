@@ -180,6 +180,17 @@ module.exports = function register(app) {
     res.redirect("/yonetici#yoneticiler");
   }));
 
+  // ----- İşlem günlüğü (yalnızca ana yönetici) -----
+  app.get("/yonetici/gunluk", superRequired, sar(async (req, res) => {
+    res.render("gunluk", { title: "İşlem Günlüğü", kayitlar: await C.loadGunluk(500) });
+  }));
+
+  app.post("/yonetici/gunluk/temizle", superRequired, sar(async (req, res) => {
+    await C.gunlukTemizle();
+    flash(req, "success", "İşlem günlüğü temizlendi.");
+    res.redirect("/yonetici/gunluk");
+  }));
+
   // ----- Denetmen / misafir yönetimi (5S yetkisi) -----
   app.post("/yonetici/denetmen/ekle", yetkiGerek("bes_s"), sar(async (req, res) => {
     const ad = alan(req, "ad");

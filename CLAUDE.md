@@ -102,6 +102,9 @@ Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İ�
 12. **Ek yönetici + yetki sistemi:** ana yönetici, panelden ek yönetici ekler ve her birine
     yetki alanlarını (degerlendirme/bes_s/odul/kayit) kutucuklarla verir. `yoneticiler` tablosu,
     `yetkiGerek`/`superRequired` middleware, tüm rotalar/şablonlar yetkiye göre kapılandı (e2e 46/46).
+13. **İşlem günlüğü:** `islem_gunlugu` tablosu; `web.js:flash()` her BAŞARILI yönetici/denetmen
+    işlemini otomatik kaydeder (mesaj = flash metni). Ana yönetici `/yonetici/gunluk`'ta görür.
+    Yeni bir loglanabilir eylem eklerken ekstra bir şey yapmana gerek yok — `flash(success)` yeter.
 
 ## Açık konular
 
