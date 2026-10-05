@@ -212,30 +212,33 @@ const _GOREV_KOLONLARI = [
   ["kaizen_no", "VARCHAR(32)"],
 ];
 
-// Şemayı kurar — uygulama açılışında bir kez çağrılır. Var olan tabloya/veriye dokunmaz.
+// Mevcut kurulumlara sonradan eklenen kolonlar: [tablo, kolon, tanım]. CREATE TABLE IF NOT EXISTS var olan
+// tabloya kolon EKLEMEDİĞİ için şemaya eklenen her yeni kolon buraya da yazılmalıdır.
+// Tek kaynak: init() bu listeyi uygular, scripts/gecis-kontrol.js canlıya yazmadan raporlar.
+const EK_KOLONLAR = [
+  ["denetimler", "bulgular", "TEXT AFTER puanlar"],
+  // form_no: eski sürümde onaylanınca atanan form numarası. Ekim 2026'dan itibaren atanmıyor ve
+  // gösterilmiyor; kolon ve mevcut değerler veriyi korumak için yerinde bırakıldı.
+  ["oneriler", "form_no", "VARCHAR(20) AFTER `no`"],
+  ["kaizenler", "form_no", "VARCHAR(20) AFTER `no`"],
+  // Ekim 2026: red gerekçesi, düzeltme ataması, görev ataması, öneri↔kaizen bağı, denetim revizesi
+  ...["oneriler", "kaizenler"].flatMap((t) => _DEGERLENDIRME_KOLONLARI.map(([k, tanim]) => [t, k, tanim])),
+  ..._GOREV_KOLONLARI.map(([k, tanim]) => ["oneriler", k, tanim]),
+  ["kaizenler", "kaynak_oneri_no", "VARCHAR(32)"],
+  ["denetimler", "revize_eden", "VARCHAR(191)"],
+  ["denetimler", "revize_zamani", "VARCHAR(20)"],
+];
+
+// Şemanın tek tek CREATE TABLE IF NOT EXISTS komutları
+function semaKomutlari() {
+  return SEMA.split(";").map((s) => s.trim()).filter(Boolean);
+}
+
+// Şemayı kurar — uygulama açılışında bir kez çağrılır. Var olan tabloya/veriye dokunmaz:
+// yalnızca eksik tablo oluşturur ve eksik kolon ekler (silme, yeniden adlandırma, tip değişikliği YOK).
 async function init() {
-  for (const ddl of SEMA.split(";").map((s) => s.trim()).filter(Boolean)) {
-    await pool.query(ddl);
-  }
-  // Mevcut kurulumlar için migrasyonlar (CREATE IF NOT EXISTS kolon eklemez)
-  const [kolon] = await pool.query("SHOW COLUMNS FROM denetimler LIKE 'bulgular'");
-  if (!kolon.length) {
-    await pool.query("ALTER TABLE denetimler ADD COLUMN bulgular TEXT AFTER puanlar");
-  }
-  // form_no: eski sürümde onaylanınca atanan form numarası (öneri + kaizen). Ekim 2026'dan itibaren
-  // atanmıyor ve gösterilmiyor; kolon ve mevcut değerler veriyi korumak için yerinde bırakıldı.
-  for (const t of ["oneriler", "kaizenler"]) {
-    const [c] = await pool.query(`SHOW COLUMNS FROM ${t} LIKE 'form_no'`);
-    if (!c.length) await pool.query(`ALTER TABLE ${t} ADD COLUMN form_no VARCHAR(20) AFTER \`no\``);
-  }
-  // Ekim 2026: red gerekçesi, düzeltme ataması, görev ataması, denetim revizesi
-  for (const t of ["oneriler", "kaizenler"]) {
-    for (const [k, tanim] of _DEGERLENDIRME_KOLONLARI) await kolonEkle(t, k, tanim);
-  }
-  for (const [k, tanim] of _GOREV_KOLONLARI) await kolonEkle("oneriler", k, tanim);
-  await kolonEkle("kaizenler", "kaynak_oneri_no", "VARCHAR(32)");
-  await kolonEkle("denetimler", "revize_eden", "VARCHAR(191)");
-  await kolonEkle("denetimler", "revize_zamani", "VARCHAR(20)");
+  for (const ddl of semaKomutlari()) await pool.query(ddl);
+  for (const [tablo, kolon, tanim] of EK_KOLONLAR) await kolonEkle(tablo, kolon, tanim);
 }
 
 // --- JSON kolon yardımcıları ---
@@ -349,5 +352,5 @@ function baslatYedekleme(saat = 6) {
 module.exports = {
   pool, sorgu, tek, calistir, transaction, init, j, js, configGet, configSet,
   oneriRow, kaizenRow, bolumRow, denetimRow, aksiyonRow, odulKayitRow, yoneticiRow,
-  yedekle, baslatYedekleme, baglantiAyarlari,
+  yedekle, baslatYedekleme, baglantiAyarlari, semaKomutlari, EK_KOLONLAR,
 };

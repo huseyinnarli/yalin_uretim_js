@@ -34,11 +34,12 @@ Bağımlılık yönü tek taraflıdır, döngü yoktur:
 sabitler.js   → yollar, sabit değerler, TR saat yardımcıları        (saf, bağımlılıksız)
 isim.js       → ad/soyad düzeltme, isim karşılaştırma anahtarı      (saf)
 yetkiler.js   → ek yönetici yetki alanları + eski anahtar açılımı   (saf)
-kontrol.js    → T-FR016 periyodik kontrol formu tanımı + takvim      (saf)
+kontrol.js    → 5S periyodik kontrol formu tanımı + takvim           (saf)
 puanlama.js   → öneri/kaizen rubriği + 5S kriter tanımları          (saf, IO/Express yok)
-db.js         → MySQL havuzu + şema + sorgu/transaction yardımcıları + otomatik yedek
-cekirdek.js   → iş mantığı: numara, puan durumu, 5S motoru, kimlik  (Express'e bağımlı DEĞİL)
-web.js        → istek bağlamı gerektiren yardımcılar: flash, CSRF, hız limiti, yetki, sar()
+db.js         → MySQL havuzu + şema + EK_KOLONLAR + sorgu/transaction yardımcıları + otomatik yedek
+servis/*.js   → iş mantığı, 12 alan modülü, 5 katman                 (Express'e bağımlı DEĞİL)
+cekirdek.js   → cephe: servis modüllerini tek nesnede toplar (rotalar C.xxx ile kullanır)
+web.js        → HTTP yardımcıları: sar(), flash, CSRF, hız limiti, yetki, Excel/ZIP yanıtları
 rotalar/*.js  → HTTP rotaları (module.exports = register(app) deseni)
 server.js     → async main(): şema kurulumu → Express kurulumu → middleware → modül kaydı
 ```
@@ -49,9 +50,30 @@ sonucu) ve `transaction(fn)` — `fn(conn)` tek transaction içinde çalışır,
 tamamı geri alınır. Express 4 async hataları kendiliğinden yakalamadığından tüm async rota
 işleyicileri `web.js:sar()` sarıcısıyla kaydedilir (reddedilen promise 500 işleyiciye düşer).
 
-`cekirdek.js` oturuma ihtiyaç duyduğunda `session` nesnesini **parametre olarak alır**
+İş mantığı oturuma ihtiyaç duyduğunda `session` nesnesini **parametre olarak alır**
 (`aktifDenetmen(session)`, `aksiyonKapatabilir(a, session)`) — bu sayede Express olmadan
 test edilebilir.
+
+### Servis modülleri ve katmanları
+
+Bir modül yalnızca kendinden **alttaki** katmanlara dayanır (döngüsel bağımlılık yoktur). `cekirdek.js` hepsini tek
+nesnede toplar ve aynı adın iki modülde tanımlanmasına izin vermez (açılışta hata). Yeni bir iş fonksiyonu, alanına
+uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişmeden `C.yeniFonksiyon` ile erişir.
+
+| Katman | Modül | İçerik |
+|---|---|---|
+| 0 | `servis/guvenlik.js` | `hashPassword`, `checkPassword` (werkzeug pbkdf2/scrypt uyumlu), `adminSifreDogru`, `setAdminPassword`, `sifreleriHashle`, `getSecretKey` |
+| 0 | `servis/yardimci.js` | `uid`, `nextNumber` (atomik sayaç), `safeName`, `allowedFile`, `guvenliYol` (dosya), `trdate`, `ayEtiketi`, `puanfmt`, `gorselKaydet` (imza + sharp), `logoBul` (5 dk önbellek) |
+| 0 | `servis/gunluk.js` | `gunlukEkle`, `loadGunluk`, `gunlukTemizle` |
+| 1 | `servis/kayitlar.js` | `getRecord`, `updateRecord`, `combinedRecords`, `filtrele`, `sayfala`, `mevcutAylar`, `kayitDuzenleyebilir`, `kaizeneDonusturebilir`, `kaizenKaydetGorsel` |
+| 1 | `servis/bes.js` | bölüm/denetim/aksiyon okuma, `besSTur*`, `besSIsle`, `besSPlanSatirlari`, `besSTrendTablo`, `turIslendi`, `denetimKriterPuanlari`, `saveDenetimFotolar` |
+| 2 | `servis/hesaplar.js` | denetmen/misafir/yönetici okuma, `denetmenBySifre`, `yoneticiBySifre`, `aktifDenetmen`, `oturumYetkileri`, `sifreCakismasi`, `bolumLiderleri`, `denetmenAdaylari` |
+| 2 | `servis/kontrolFormu.js` | `kontrolDoldurabilir`, `kontrolImzalayabilir`, `kontrolAy`, `kontrolAylari`, `kontrolKaydet`, `kontrolImzala`, `kontrolOzet`, `bugunkuKontroller` |
+| 3 | `servis/isimler.js` | `isimCozucu`, `gorunenAd`, `isimGruplari`, `isimBirlestir`, `isimAyir` |
+| 3 | `servis/aksiyon.js` | `aksiyonAtanan`, `aksiyonKapatabilir`, `aksiyonGruplari`, `aksiyonFotolari`, `syncDenetimAksiyonlari`, `saveAksiyonFotolar` |
+| 4 | `servis/puan.js` | `puanDurumu` |
+| 4 | `servis/gorevler.js` | `gorevlerim`, `acikAtamalar`, `gorevSayisi` |
+| 4 | `servis/panel.js` | `dashboardIstatistik` |
 
 ### Dosya dosya döküm
 
@@ -61,19 +83,21 @@ test edilebilir.
 | `src/sabitler.js` | `DATA_DIR` (env ile taşınabilir), tüm klasör yolları, `ODUL_ESIK=300`, `ODUL_MAP={100,75,50}`, `DURUMLAR`, `KAZANC_BASLIKLARI`, `TR_AYLAR`, `ALAN_MAX=5000`, `nowTr()/bugunIso()/zamanTr()` (Europe/Istanbul) |
 | `src/isim.js` | `adDuzelt` (Türkçe baş harf büyük), `adSoyad`, `adBol` (düzenleme formu için), `isimAnahtar` (büyük/küçük harf, boşluk, noktalama, Türkçe karakter farkını yok sayan karşılaştırma anahtarı), `isimIcerir` ("Ali / Veli" listesinde arama), `uzaklik` (Damerau-Levenshtein — yazım hatası önerileri) |
 | `src/yetkiler.js` | `YETKI_GRUPLARI` (10 ayrıntılı alan, 4 grup), `ESKI_YETKILER` (eski `degerlendirme`/`bes_s`/`tam` → yeni alanlar), `yetkiGenislet(liste)` → `{yetkiler}`, `yetkiFormdan(v)` |
-| `src/kontrol.js` | `KONTROL_FORMU` (T-FR016 REV00: 10 G + 3 H + 2 A madde, form notu), `ayGunSayisi`, `haftaNo`/`haftalar` (Pazartesi başlangıçlı ay haftaları), `ayKaydir`, `ayCoz` |
+| `src/kontrol.js` | `KONTROL_FORMU` (10 G + 3 H + 2 A madde, form notu; form kodu gösterilmez), `ayGunSayisi`, `haftaNo`/`haftalar` (Pazartesi başlangıçlı ay haftaları), `ayKaydir`, `ayCoz` |
 | `src/puanlama.js` | `PUAN_TEMEL/ETKI/MALIYET/YAYGIN/EFOR` rubrik tanımları, `PUAN_MAX`, `BESS` (şirket 5S formu: 5 bölüm / 23 soru, soru başına maksimum + kesme kuralı), `BESS_KRITER_MAX`, `bessKriterPuanla(k, bulgu)` (kuraldan puan), `bessKuralMetni(kr)`, `bessBulguTahmin` (eski kayıtta puandan bulgu), `bessBolumToplamlari` (S1–S5 toplamları), `hesaplaPuanlama(form)`, `puanlamaOzet(p)` |
-| `src/db.js` | mysql2 bağlantı havuzu, `CREATE TABLE IF NOT EXISTS` şeması (`init()`), `sorgu/tek/calistir/transaction` yardımcıları, JSON kolon yardımcıları (`j`/`js`), satır dönüştürücüler (`oneriRow`, `denetimRow`…), `configGet/Set`, `yedekle()` (tüm tablolar + görseller → ZIP) + `baslatYedekleme()` |
-| `src/cekirdek.js` | Şifre (hash/doğrulama, werkzeug uyumlu), `nextNumber`, `guvenliYol`, `gorselKaydet` (magic bytes), öneri/kaizen CRUD yardımcıları, `combinedRecords/filtrele/mevcutAylar`, `puanDurumu`, `dashboardIstatistik`, tüm 5S fonksiyonları (`besSTur*`, `besSIsle`, `besSPlanSatirlari`, `besSTrendTablo`…), aksiyon mantığı (`aksiyonKapatabilir`, `syncDenetimAksiyonlari`), denetmen/misafir yardımcıları |
-| `src/web.js` | `flash` (+ işlem günlüğü), `hizLimitAsildi`, `alan` (kırp + 5000 sınır), `adSoyadOku`/`kisiOku` (ad + soyad kutuları, eski tek kutu da kabul), `guvenliYol` (site içi dönüş adresi), `ortakLocals` (yetki çözümü, `req.denetmen`, görev rozeti, şablon değişkenleri, flash, CSRF), `csrfDogrula`, `dosyaYukleyici`, `guvenlikBasliklari`, yetki middleware'leri: `girisRequired`, `adminRequired`, `yetkiGerek(alan)`, `anaYoneticiRequired`, `denetciRequired` |
-| `src/excel.js` | 7 rapor üreticisi: öneri, kaizen (görsel gömülü), 5S toplu, 5S tek form, aksiyonlar, puan listesi, ödül alanlar, 5S trend (renkli fark) — hepsi buffer döner |
+| `src/db.js` | mysql2 bağlantı havuzu, `CREATE TABLE IF NOT EXISTS` şeması + `EK_KOLONLAR` (sonradan eklenen kolonların tek listesi; `init()` ve `scripts/gecis-kontrol.js` ortak kullanır), `sorgu/tek/calistir/transaction` yardımcıları, JSON kolon yardımcıları (`j`/`js`), satır dönüştürücüler (`oneriRow`, `denetimRow`…), `configGet/Set`, `yedekle()` (tüm tablolar + görseller → ZIP) + `baslatYedekleme()` |
+| `src/cekirdek.js` | Cephe: `src/servis/*` modüllerini tek nesnede toplar (yukarıdaki tablo) |
+| `src/web.js` | `flash` (+ işlem günlüğü), `hizLimitAsildi`, `alan` (kırp + 5000 sınır), `adSoyadOku`/`kisiOku` (ad + soyad kutuları, eski tek kutu da kabul), `guvenliYol` (site içi dönüş adresi), `ortakLocals` (yetki çözümü, `req.denetmen`, görev rozeti, şablon değişkenleri, flash, CSRF), `csrfDogrula` (sabit zamanlı karşılaştırma), `dosyaYukleyici`, `guvenlikBasliklari`, `xlsxGonder`, `zipGonder`, yetki middleware'leri: `girisRequired`, `adminRequired`, `yetkiGerek(alan)`, `anaYoneticiRequired`, `denetciRequired` |
+| `src/excel.js` | 9 rapor üreticisi: öneri, kaizen (görsel gömülü), 5S toplu, 5S tek form, aksiyonlar, puan listesi, ödül alanlar, 5S trend (renkli fark), periyodik kontrol formu (seçilen aya kadar her ay bir sayfa + ÖZET) — hepsi buffer döner |
 | `src/rotalar/genel.js` | Anasayfa, kılavuz, **panel**, liste (giriş + sayfalama), detay, **arşiv** (reddedilen + silinen, silinen detayı), **görevlerim**, puan durumu, ödül ver/sil, kişi gizle, **isim birleştirme**, Excel'ler |
 | `src/rotalar/oneri.js` | Öneri yeni (herkese açık) / düzenle (kayıt yetkisi veya düzeltmesi atanan denetmen) / Excel |
 | `src/rotalar/kaizen.js` | Kaizen yeni / **öneriden dönüştür** / düzenle / Excel / görsel servisi (girişli) |
-| `src/rotalar/bes_s.js` | 5S: bölümler (liste + trend), plan, denetim (yap/göster/**revize**/sil/Excel/ZIP), aksiyonlar, ödül işleme, geçmiş, **T-FR016 kontrol formu** (görüntüle/doldur/imza/Excel), görsel servisleri |
+| `src/rotalar/bes_s.js` | 5S: bölümler (liste + trend), plan, denetim (yap/göster/**revize**/sil/Excel/ZIP), aksiyonlar, ödül işleme, geçmiş, görsel servisleri |
+| `src/rotalar/kontrol.js` | **Periyodik kontrol formu**: görüntüle (`?tarih=`), doldur, haftalık/aylık imza, Excel (`?ay=` — o aya kadar) |
 | `src/rotalar/admin.js` | Giriş/çıkış, **Yönetim** sayfası, ek yönetici (yalnız ana yönetici) ve denetmen/misafir yönetimi, şifre, durum değişikliği (onay / gerekçeli red / düzeltme ataması), **görev ataması**, puanlama, kayıt silme, trend Excel |
 | `scripts/import-json.js` | Eski JSON tabanlı sürümden veri + görsel aktarımı (kaynağa salt-okunur, tek transaction, hata durumunda tam geri alma) |
 | `scripts/sqlite-to-mysql.js` | Önceki SQLite sürümünden (`data/yalin.db`) tüm tabloları MySQL'e taşır (`npm run migrate`) |
+| `scripts/gecis-kontrol.js` | Canlıya almadan önce **salt-okunur** veritabanı ön kontrolü (`npm run gecis-kontrol`): şema farkı, isimler, yetkiler, varsayılan şifre — bkz. VERITABANI_GECIS.md |
 | `scripts/e2e-test.js` | Uçtan uca test paketi — ayrı veritabanı (`yalin_e2e`) + geçici veri klasörü + ayrı port (`npm test`) |
 
 ---
@@ -92,7 +116,7 @@ test edilebilir.
        ├─ girisRequired / yetkiGerek(alan) / denetciRequired …  (yetki — DOSYA YÜKLEMESİNDEN ÖNCE)
        ├─ dosyaYukleyici(N)                  (yalnız dosya uçlarında: multer bellek, 8 MB/dosya + CSRF)
        ├─ hizLimitAsildi(...)                (herkese açık yazma uçları)
-       ├─ cekirdek.js iş mantığı + parametreli SQL
+       ├─ servis/* (cekirdek.js cephesi üzerinden) iş mantığı + parametreli SQL
        └─ res.render / res.redirect / buffer indirme
   └─ 404 / 500 yakalayıcı (hata detayı yalnızca sunucu konsoluna)
 ```
@@ -122,7 +146,7 @@ JSON** olarak saklanır; okurken `db.js`'teki satır dönüştürücüler nesney
 | `misafirler` | `id` | ad, oluşturma |
 | `yoneticiler` | `id` | ek yönetici: ad, `sifre` (hash), `yetkiler` (JSON — `src/yetkiler.js` alanları; eski `degerlendirme`/`bes_s`/`tam` okunurken alanlara açılır), oluşturma |
 | `isim_eslestirme` | `kaynak` | elle isim birleştirme: kaynak isim anahtarı → hedef anahtar (zincir izlenir, döngü engellenir) |
-| `kontrol_kayitlari` | otomatik (`bolum_id, ay, gun, madde` tekil) | T-FR016 işaretleri: durum (uygun/uygunsuz), açıklama, işaretleyen, zaman |
+| `kontrol_kayitlari` | otomatik (`bolum_id, ay, gun, madde` tekil) | Kontrol formu işaretleri: durum (uygun/uygunsuz), açıklama, işaretleyen, zaman |
 | `kontrol_onaylari` | otomatik (`bolum_id, ay, tip, sira` tekil) | haftalık (`tip=hafta`, `sira`=ay haftası) ve aylık (`tip=ay`) kontrol imzaları |
 | `islem_gunlugu` · `silinen_kayitlar` | otomatik | işlem günlüğü (flash ile) · silinen öneri/kaizenin ham satırı (geri yükleme) |
 | `sayaclar` | `onek` | öneri/kaizen numara sayaçları (ör. `ÖNFR2607-` → 2) — atomik artırma |
@@ -190,7 +214,7 @@ aynı tur iki kez işlenemez. İlk 3 bölümün lider+üye tam listesi 100/75/50
   **Reddedildi** → `red_nedeni` zorunlu. **Düzeltme İsteniyor** → `revize_denetmen` (denetmen id) + `revize_notu`
   zorunlu; atanan ad/isteyen/zaman yazılır. **Değerlendiriliyor** → reddedileni geri alır. Onaylı kayıt reddedilemez /
   düzeltmeye gönderilemez. Dönüş adresi `don` alanıdır (`guvenliYol` ile doğrulanır).
-- **Düzenleme yetkisi** `cekirdek.js:kayitDuzenleyebilir`: `kayit` yetkisi VEYA (durum "Düzeltme İsteniyor" ve
+- **Düzenleme yetkisi** `servis/kayitlar.js:kayitDuzenleyebilir`: `kayit` yetkisi VEYA (durum "Düzeltme İsteniyor" ve
   `revize_atanan_id` = oturumdaki denetmen). Denetmen kaydedince durum "Değerlendiriliyor"a, `revize_tamamlandi` dolar.
 - **Görev** `POST /gorev`: yalnız onaylı ve dönüştürülmemiş öneri. `kaizeneDonusturebilir`: atanan denetmen veya
   değerlendirme/kayıt yetkili yönetici. `GET /kaizen/yeni?oneri=NO` formu öneriden doldurur; `POST` kaizeni ve
@@ -211,7 +235,7 @@ Form `5s_denetim.ejs`'in revize modudur: kayıtlı bulgular (eski kayıtta `bess
 ile seçilen fotoğraflar (yalnız bu denetime aitse) silinir; puan yeniden hesaplanır; denetmen ve tarih değişmez;
 `revize_eden/revize_zamani` yazılır; yeni aksiyonlar `syncDenetimAksiyonlari` kuralıyla eklenir.
 
-### T-FR016 periyodik kontrol formu
+### 5S periyodik kontrol formu
 `/5s/bolum/:bid/kontrol?tarih=YYYY-MM-DD` herkese açık (takvim alanı `static/takvim.js` flatpickr ile açılır, gün
 seçilince form kendiliğinden yenilenir; ileri tarih bugüne çekilir; eski `?ay=&gun=` bağlantıları da çalışır).
 **Doldurma** (`kontrolDoldurabilir`): bölümün ekip lideri (denetmen) veya `bes_denetim`. Gün ≤ bugün. Boş bırakılan
@@ -232,7 +256,7 @@ Grafikler sunucu tarafında SVG olarak çizilir (dış kütüphane yok); her gra
 - Tek şifre alanı: sırayla ana yönetici hash'i → ek yönetici hash'leri → denetmen hash'leri
   denenir; eşleşen kimlik oturuma yazılır. Bu nedenle **şifreler benzersiz olmalıdır** — yeni
   şifre belirlenirken ana yönetici + tüm denetmen + tüm ek yöneticilerle çakışma kontrol edilir
-  (`cekirdek.js:sifreCakismasi`, min 6 karakter).
+  (`servis/hesaplar.js:sifreCakismasi`, min 6 karakter).
 - **Roller ve oturum:** ana yönetici → `session.super = true` (tüm yetkiler); ek yönetici →
   `session.yonetici_id` (yetkiler her istekte veritabanından taze okunur, `web.js:ortakLocals`);
   denetmen → `session.denetmen_id`.
@@ -301,7 +325,8 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 ## 8. Dağıtım Notları
 
 > Adım adım kurulum (sunucu özellikleri, Windows/Linux, systemd, reverse proxy, yedekleme,
-> kontrol listesi) için: **[DAGITIM.md](DAGITIM.md)**. Aşağıdakiler kısa özettir.
+> kontrol listesi) için: **[DAGITIM.md](DAGITIM.md)**. Mevcut canlı veritabanıyla yeni sürüme geçiş:
+> **[VERITABANI_GECIS.md](VERITABANI_GECIS.md)**. Aşağıdakiler kısa özettir.
 
 - **MySQL sunucusu:** Windows'ta servis olarak kurulması önerilir
   (`mysqld --install <ad> --defaults-file=<my.ini>` — veri dizini `C:\ProgramData` altında
@@ -324,16 +349,19 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 
 - **Yeni rota eklerken:** ilgili `src/rotalar/*.js` dosyasına ekleyin; yazma ucuysa POST + CSRF
   input şart.
-- **Yeni alan eklerken:** şemaya kolon ekleyin (`db.js` — mevcut kurulumlar için
-  `ALTER TABLE ... ADD COLUMN` migrasyonu gerekir), satır dönüştürücüyü ve ilgili formu/detayı
-  güncelleyin. Liste değerli alanlarda `js()`/`j()` yardımcılarını kullanın.
+- **Yeni alan eklerken:** kolonu `db.js` içindeki `CREATE TABLE`'a VE `EK_KOLONLAR` listesine ekleyin (var olan
+  kurulumlara yalnız bu liste kolon ekler; `npm run gecis-kontrol` eksik kalanı "otomatik eklenmeyecek" diye
+  gösterir). Kolon silme/yeniden adlandırma/tip değiştirme yapmayın — eski sürüme dönüşü bozar. Satır
+  dönüştürücüyü ve ilgili formu/detayı güncelleyin. Liste değerli alanlarda `js()`/`j()` yardımcılarını kullanın.
+- **Yeni iş fonksiyonu:** alanına uygun `src/servis/*` modülüne yazın, `module.exports`'a ekleyin; yalnız alt
+  katmandaki modüllere dayanın (bkz. §2 tablo). Rotalar `C.fonksiyon` ile erişir.
 - **Veri erişimi:** yeni iş mantığı fonksiyonları `async` olmalı ve `sorgu/tek/calistir`
   kullanmalıdır; çok adımlı yazmaları `transaction(fn)` ile sarın. Rota işleyicisinde `await`
   varsa mutlaka `sar()` ile kaydedin.
-- **İş kuralı değişikliği:** puan oranları `cekirdek.js:puanDurumu`, rubrik `puanlama.js`,
+- **İş kuralı değişikliği:** puan oranları `servis/puan.js:puanDurumu`, rubrik `puanlama.js`,
   ödül eşiği/haritası `sabitler.js` (`ODUL_ESIK`, `ODUL_MAP`).
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 133 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 136 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

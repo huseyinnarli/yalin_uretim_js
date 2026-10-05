@@ -4,8 +4,9 @@ const S = require("../sabitler");
 const C = require("../cekirdek");
 const X = require("../excel");
 const { calistir } = require("../db");
-const { sar, flash, yetkiGerek, girisRequired, alan, kisiOku, guvenliYol, hizLimitAsildi } = require("../web");
-const { xlsxGonder } = require("./genel");
+const {
+  sar, flash, xlsxGonder, yetkiGerek, girisRequired, alan, kisiOku, guvenliYol, hizLimitAsildi,
+} = require("../web");
 
 function formToDict(req) {
   const sahibi = kisiOku(req, "sahibi");

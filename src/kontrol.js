@@ -1,12 +1,10 @@
-// T-FR016 Günlük / Haftalık / Aylık 5S ve Güvenlik Kontrol Formu (REV00) — saf tanım.
-// Maddeler şirket formundan birebir alınmıştır. Periyot: G = günlük, H = haftalık, A = aylık.
+// Günlük / Haftalık / Aylık 5S ve Güvenlik Kontrol Formu (periyodik kontrol) — saf tanım.
+// Maddeler şirketin kâğıt formundan birebir alınmıştır (form kodu/revizyon numarası bilerek gösterilmez). Periyot: G = günlük, H = haftalık, A = aylık.
 // Takım lideri (bölümün ekip lideri) maddeleri periyoduna göre işaretler; grup lideri her hafta,
 // yetkili bölüm sorumlusu her ay sonunda kontrol edip imzalar. Uygunsuzluklar önlem planına
 // (uygulamada: 5S aksiyonları) kaydedilir.
 
 const KONTROL_FORMU = {
-  kod: "T-FR016",
-  rev: "00",
   baslik: "Günlük / Haftalık / Aylık 5S ve Güvenlik Kontrol Formu",
   maddeler: [
     { k: "g1", p: "G", m: "Çalışanların yaptıkları işe uygun kişisel koruyucu malzemeleri tanımlı, sağlam ve kullanılıyor olmalı." },

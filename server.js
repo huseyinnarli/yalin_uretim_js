@@ -49,6 +49,7 @@ async function main() {
   require("./src/rotalar/oneri")(app);
   require("./src/rotalar/kaizen")(app);
   require("./src/rotalar/bes_s")(app);
+  require("./src/rotalar/kontrol")(app);
   require("./src/rotalar/admin")(app);
 
   // 404 + hata yakalayıcı

@@ -271,7 +271,7 @@ function kontrolAyOzeti(ay, veri) {
   };
 }
 
-// T-FR016 5S ve Güvenlik Kontrol Formu — seçilen aya kadar her ay ayrı sayfa (kâğıt formun düzeninde),
+// 5S ve Güvenlik Kontrol Formu — seçilen aya kadar her ay ayrı sayfa (kâğıt formun düzeninde),
 // başta tüm ayların özeti + uygunsuzluk listesi. sayfalar: [{ ay: "2026-09", veri: kontrolAy() }], eskiden yeniye.
 async function generateKontrolExcel(b, sayfalar) {
   const wb = new ExcelJS.Workbook();
@@ -279,7 +279,7 @@ async function generateKontrolExcel(b, sayfalar) {
 
   const oz = wb.addWorksheet("ÖZET", { pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
   oz.mergeCells(1, 1, 1, 8);
-  oz.getCell(1, 1).value = `${K.KONTROL_FORMU.kod} 5S VE GÜVENLİK KONTROL FORMU — ÖZET`;
+  oz.getCell(1, 1).value = "5S VE GÜVENLİK KONTROL FORMU — ÖZET";
   oz.getCell(1, 1).font = { bold: true, size: 13 };
   oz.getRow(1).height = 24;
   oz.mergeCells(2, 1, 2, 8);
@@ -335,12 +335,10 @@ function kontrolAySayfasi(wb, b, ay, veri) {
   const gunSayisi = K.ayGunSayisi(ay);
   const ws = wb.addWorksheet(C.ayEtiketi(ay).slice(0, 31), { pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1 } });
   const sonSutun = 3 + gunSayisi;
-  ws.mergeCells(1, 1, 1, sonSutun - 6);
+  ws.mergeCells(1, 1, 1, sonSutun);
   ws.getCell(1, 1).value = F.baslik.toLocaleUpperCase("tr");
   ws.getCell(1, 1).font = { bold: true, size: 13 };
   ws.getCell(1, 1).alignment = CENTER;
-  ws.mergeCells(1, sonSutun - 5, 1, sonSutun);
-  ws.getCell(1, sonSutun - 5).value = `Doküman No: ${F.kod} · Rev: ${F.rev}`;
   ws.getRow(1).height = 26;
   ws.mergeCells(2, 1, 2, 2);
   ws.getCell(2, 1).value = `TAKIM: ${b.ad}`;

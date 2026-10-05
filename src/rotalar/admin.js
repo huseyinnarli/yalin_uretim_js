@@ -1,6 +1,4 @@
 // Yönetici/denetmen/giriş + ek yönetici yönetimi + değerlendirme-puanlama rotaları.
-const fs = require("fs");
-const path = require("path");
 const S = require("../sabitler");
 const P = require("../puanlama");
 const C = require("../cekirdek");
@@ -10,9 +8,8 @@ const I = require("../isim");
 const Y = require("../yetkiler");
 const W = require("../web");
 const {
-  sar, flash, adminRequired, anaYoneticiRequired, yetkiGerek, alan, adSoyadOku, guvenliYol,
+  sar, flash, xlsxGonder, adminRequired, anaYoneticiRequired, yetkiGerek, alan, adSoyadOku, guvenliYol,
 } = W;
-const { xlsxGonder } = require("./genel");
 
 // Kaba kuvvet koruması: IP başına 10 dakikada en fazla 8 başarısız deneme
 const _girisDenemeleri = new Map();
@@ -57,10 +54,9 @@ module.exports = function register(app) {
       flash(req, "error", "Çok fazla hatalı deneme — 10 dakika sonra tekrar deneyin.");
       return res.redirect("/yonetici/giris");
     }
-    const sifre = req.body.sifre || "";
-    const hedefRaw = req.query.next || "/";
-    // Yalnızca site içi yol: '//host' protokol-göreli adresleri de reddedilir (open redirect)
-    const hedef = (hedefRaw.startsWith("/") && !hedefRaw.startsWith("//")) ? hedefRaw : "/";
+    const sifre = String(req.body.sifre || "");
+    // Yalnızca site içi yol: '//host' ve '/\host' adresleri ile dizi parametresi reddedilir (open redirect)
+    const hedef = guvenliYol(typeof req.query.next === "string" ? req.query.next : "/");
 
     if (await C.adminSifreDogru(sifre)) {
       oturumuTemizle(req.session);
@@ -93,7 +89,7 @@ module.exports = function register(app) {
     }
     (_girisDenemeleri.get(ip) || _girisDenemeleri.set(ip, []).get(ip)).push(Date.now() / 1000);
     flash(req, "error", "Hatalı şifre.");
-    res.redirect("/yonetici/giris" + (req.query.next ? "?next=" + encodeURIComponent(req.query.next) : ""));
+    res.redirect("/yonetici/giris" + (hedef !== "/" ? "?next=" + encodeURIComponent(hedef) : ""));
   }));
 
   app.get("/yonetici/cikis", (req, res) => {

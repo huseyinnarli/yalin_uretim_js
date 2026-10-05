@@ -1,13 +1,14 @@
 {
   "name": "yalin-uretim-uygulamalari",
   "version": "1.0.0",
-  "description": "Öneri, Kaizen ve 5S süreçleri + personel puan/ödül sistemi (Node.js + Express + SQLite)",
+  "description": "Öneri, Kaizen ve 5S süreçleri + personel puan/ödül sistemi (Node.js + Express + MySQL)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "test": "node scripts/e2e-test.js",
     "import": "node scripts/import-json.js",
-    "migrate": "node scripts/sqlite-to-mysql.js"
+    "migrate": "node scripts/sqlite-to-mysql.js",
+    "gecis-kontrol": "node scripts/gecis-kontrol.js"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -15,8 +16,11 @@
     "ejs": "^3.1.10",
     "exceljs": "^4.4.0",
     "express": "^4.21.2",
-    "multer": "^1.4.5-lts.2",
+    "multer": "^2.4.0",
     "mysql2": "^3.22.6",
     "sharp": "^0.35.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

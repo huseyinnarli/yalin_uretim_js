@@ -6,13 +6,7 @@ const S = require("../sabitler");
 const C = require("../cekirdek");
 const X = require("../excel");
 const { sorgu, tek, calistir, transaction, j, oneriRow, kaizenRow } = require("../db");
-const { sar, flash, yetkiGerek, girisRequired, alan, guvenliYol } = require("../web");
-
-function xlsxGonder(res, buffer, ad) {
-  res.set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  res.set("Content-Disposition", `attachment; filename="${encodeURIComponent(ad)}"`);
-  res.send(Buffer.from(buffer));
-}
+const { sar, flash, yetkiGerek, girisRequired, alan, guvenliYol, xlsxGonder } = require("../web");
 
 // Silinen kayıt arşivindeki ham satırı detay sayfasının beklediği nesneye çevirir
 function silinenKayit(s) {
@@ -120,7 +114,9 @@ module.exports = function register(app) {
     }
     const ham = j(s.veri, null);
     if (!ham) { flash(req, "error", "Kayıt verisi okunamadı."); return res.redirect("/arsiv#silinenler"); }
-    const kolonlar = Object.keys(ham);
+    // Yalnızca tablonun bugünkü kolonları yazılır (arşiv eski/yabancı alan içerse de güvenli ve hatasız)
+    const tabloKolonlari = new Set((await sorgu(`SHOW COLUMNS FROM ${tablo}`)).map((c) => c.Field));
+    const kolonlar = Object.keys(ham).filter((k) => tabloKolonlari.has(k));
     const kolonSql = kolonlar.map((k) => `\`${k}\``).join(", ");
     const yer = kolonlar.map(() => "?").join(", ");
     await transaction(async (conn) => {
@@ -242,4 +238,3 @@ module.exports = function register(app) {
   }));
 };
 
-module.exports.xlsxGonder = xlsxGonder;

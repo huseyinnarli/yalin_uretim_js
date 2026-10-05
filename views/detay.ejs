@@ -173,9 +173,6 @@
 
 <% if (!silinen && yetki('degerlendir')) { %>
 <h2 class="bolum-baslik" id="degerlendir">⚖ Değerlendirme</h2>
-<% const denetmenSecim = (ad, secili) => denetmenler.map((dm) =>
-     '<option value="' + dm.id + '"' + (dm.id === secili ? ' selected' : '') + '>' +
-     String(dm.ad).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;') + '</option>').join(''); %>
 <% if (!denetmenler.length) { %>
 <p class="uyari-kutu">Düzeltme veya görev atamak için önce <a href="/yonetici#denetmenler">Yönetim › Denetmenler</a>'den denetmen hesabı açın.</p>
 <% } %>
@@ -187,11 +184,11 @@
         <h3>✓ Onayla</h3>
         <% if (tip == 'oneri') { %>
         <p class="bos-not">İsterseniz uygulayıp kaizene dönüştürecek kişiyi şimdi atayın:</p>
-        <select name="gorev_denetmen"><option value="">— görev atama (isteğe bağlı) —</option><%- denetmenSecim() %></select>
+        <select name="gorev_denetmen"><option value="">— görev atama (isteğe bağlı) —</option><%- include('partials/denetmen_secenekleri', { denetmenler, secili: null }) %></select>
         <input type="date" name="gorev_termin" title="Termin (isteğe bağlı)" placeholder="Termin (isteğe bağlı)">
         <textarea name="gorev_notu" rows="2" placeholder="Görev notu (isteğe bağlı)"></textarea>
         <% } else { %>
-        <p class="bos-not">Onaylanınca form numarası atanır; ardından puanlanabilir.</p>
+        <p class="bos-not">Onaylandıktan sonra puanlanabilir.</p>
         <% } %>
         <button type="submit" class="btn primary">✓ Onayla</button>
     </form>
@@ -219,7 +216,7 @@
         <input type="hidden" name="tip" value="<%= tip %>"><input type="hidden" name="no" value="<%= r.no %>">
         <input type="hidden" name="durum" value="Düzeltme İsteniyor"><input type="hidden" name="don" value="<%= bu_sayfa %>">
         <h3>✏ Düzeltme İste<%= d == 'Düzeltme İsteniyor' ? ' (yeniden ata)' : '' %></h3>
-        <select name="revize_denetmen" required><option value="">— düzeltmeyi yapacak denetmen —</option><%- denetmenSecim(null, r.revize_atanan_id) %></select>
+        <select name="revize_denetmen" required><option value="">— düzeltmeyi yapacak denetmen —</option><%- include('partials/denetmen_secenekleri', { denetmenler, secili: r.revize_atanan_id }) %></select>
         <textarea name="revize_notu" rows="3" required placeholder="Neyin düzeltilmesi gerekiyor — zorunlu"><%= d == 'Düzeltme İsteniyor' ? (r.revize_notu || '') : '' %></textarea>
         <button type="submit" class="btn-mini revize">✏ Düzeltme İste</button>
     </form>
@@ -229,7 +226,7 @@
         <input type="hidden" name="no" value="<%= r.no %>"><input type="hidden" name="don" value="<%= bu_sayfa %>">
         <h3>📌 <%= r.gorev_atanan_id ? 'Görevi Değiştir' : 'Uygulama Görevi Ata' %></h3>
         <p class="bos-not">Atanan kişi öneriyi uygular ve kaizene dönüştürür.</p>
-        <select name="gorev_denetmen" required><option value="">— denetmen seçin —</option><%- denetmenSecim(null, r.gorev_atanan_id) %></select>
+        <select name="gorev_denetmen" required><option value="">— denetmen seçin —</option><%- include('partials/denetmen_secenekleri', { denetmenler, secili: r.gorev_atanan_id }) %></select>
         <input type="date" name="gorev_termin" value="<%= r.gorev_termin || '' %>" title="Termin (isteğe bağlı)" placeholder="Termin (isteğe bağlı)">
         <textarea name="gorev_notu" rows="2" placeholder="Görev notu (isteğe bağlı)"><%= r.gorev_notu || '' %></textarea>
         <button type="submit" class="btn primary">📌 Kaydet</button>

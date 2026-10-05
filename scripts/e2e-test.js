@@ -150,6 +150,14 @@ async function main() {
     const r0 = await post("/yonetici/giris?next=" + encodeURIComponent("//kotu.example"), {
       csrf_token: csrf, sifre: "admin123" });
     ok("open redirect engellendi", (r0.headers.get("location") || "") === "/");
+    await get("/yonetici/cikis");
+    csrf = csrfFrom(await getText("/yonetici/giris"));
+    const r0b = await post("/yonetici/giris?next=" + encodeURIComponent("/\\kotu.example"), { csrf_token: csrf, sifre: "admin123" });
+    ok("open redirect (/\\host) engellendi", (r0b.headers.get("location") || "") === "/");
+    await get("/yonetici/cikis");
+    csrf = csrfFrom(await getText("/yonetici/giris"));
+    const r0c = await post("/yonetici/giris?next=/a&next=/b", { csrf_token: csrf, sifre: "admin123" });
+    ok("dizi next parametresi hata vermiyor", r0c.status === 302 && (r0c.headers.get("location") || "") === "/");
 
     // CSRF koruması
     const rc = await post("/5s/bolum/ekle", { ad: "X" });
@@ -567,7 +575,7 @@ async function main() {
     html = await getText(`/5s/bolum/${bidler[0]}`);
     ok("bölüm sayfasında trend + S kırılımı", html.includes("5S Skor Trendi") && html.includes("S1 <small>") && html.includes("Personel"));
 
-    // --- 5S Periyodik Kontrol Formu (T-FR016) ---
+    // --- 5S Periyodik Kontrol Formu ---
     const K = require("../src/kontrol");
     const C = require("../src/cekirdek");
     const trBugun = new Date().toLocaleString("sv-SE", { timeZone: "Europe/Istanbul" }).slice(0, 10);
@@ -628,6 +636,11 @@ async function main() {
     const ayAd = (a) => C.ayEtiketi(a);
     let ex = await excelOku(kAy);
     ok("kontrol formu Excel", ex.rr.status === 200 && (ex.rr.headers.get("content-type") || "").includes("spreadsheet"));
+    const exMetin = [];
+    ex.wb.eachSheet((w) => w.eachRow((row) => exMetin.push(row.values.join(" "))));
+    ok("form kodu (T-FR016) dosya adında, sayfada ve Excel'de yok",
+      !/FR016/.test(decodeURIComponent(ex.rr.headers.get("content-disposition") || "")) &&
+      !/FR016/.test(await getText(kUrl)) && !exMetin.some((t) => /FR016|REV/.test(t)));
     ok("Excel: seçilen aya kadar her ay ayrı sayfa + özet",
       ex.adlar.join("|") === ["ÖZET", ayAd(ikiAyOnce), ayAd(oncekiAy), ayAd(kAy)].join("|"), ex.adlar.join("|"));
     const ozetMetin = [];

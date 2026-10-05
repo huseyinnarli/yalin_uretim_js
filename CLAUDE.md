@@ -10,7 +10,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 - **Yığın:** Node.js 24 + Express 4 + MySQL 8 (`mysql2/promise`) + EJS (sunucu tarafı render)
   + exceljs + archiver + multer + sharp + cookie-session. SPA/dış CDN yok.
-- **GitHub:** https://github.com/huseyinnarli/yalin_uretim_js (private)
+- **GitHub:** https://github.com/huseyinnarli/yalin_uretim_js (⚠ şu an PUBLIC — gizli yapılması önerildi, IYILESTIRME_ANALIZI Ö9)
 - **Dil:** Kod, yorumlar, commit mesajları ve arayüz **Türkçe**.
 
 ## Doküman haritası (hepsi güncel tutulur)
@@ -19,7 +19,9 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 |---|---|
 | [README.md](README.md) | Uygulama tanıtımı, modüller, roller, kurulum, yapılandırma |
 | [TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md) | Mimari, istek yaşam döngüsü, veri modeli, iş kuralları/algoritmalar |
-| [IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md) | Kod inceleme raporu: güvenlik durumu, açık öneriler (Ö1–Ö8) |
+| [IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md) | Mimari ve güvenlik raporu: güvenlik durumu, kapatılan bulgular, açık öneriler (Ö1–Ö13) |
+| [GELISTIRME_RAPORU.md](GELISTIRME_RAPORU.md) | Ekim 2026 sürümünde ne eklendi/değişti/kaldırıldı, kullanılan araçlar, dosya envanteri |
+| [VERITABANI_GECIS.md](VERITABANI_GECIS.md) | Canlı (eski düzen) veritabanıyla geçiş: otomatik eklemeler, tek kutulu isimler, adım adım canlıya alma, geri dönüş |
 | [DAGITIM.md](DAGITIM.md) | Sunucuda devreye alma: gereksinimler, Windows/Linux kurulum, HTTPS, yedek |
 | [DEGISIKLIKLER.md](DEGISIKLIKLER.md) | Sürüm notları: kullanıcıya görünen değişiklikler, DB migrasyonları, canlıya alma adımları |
 
@@ -27,7 +29,8 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 133 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 136 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
 # Demo (Render, tasarım önizleme): Dockerfile → scripts/demo-baslat.sh (geçici MariaDB) → scripts/demo-veri.js
@@ -52,9 +55,11 @@ içinde `yalin-uretim-js` yapılandırması var (`preview_start name=yalin-ureti
 
 ## Mimari (özet — ayrıntı TEKNIK_DOKUMAN.md)
 
-Katmanlar tek yönlü: `sabitler · isim · yetkiler · kontrol → puanlama → db → cekirdek → web → rotalar → server`.
-Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İş mantığı
-`src/cekirdek.js`'te ve Express'ten bağımsızdır (session'ı parametre alır).
+Katmanlar tek yönlü: `sabitler · isim · yetkiler · kontrol · puanlama → db → servis/* → cekirdek (cephe) → web → rotalar → server`.
+Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İş mantığı `src/servis/*` modüllerinde
+(5 katman; bir modül yalnız ALTTAKİ katmana dayanır — sıra `cekirdek.js` başındaki açıklamada) ve Express'ten
+bağımsızdır (session'ı parametre alır). Rotalar `C = require("../cekirdek")` cephesini kullanır; yeni fonksiyonu
+ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın iki modülde olmasına izin vermez.
 
 ## Kritik konvansiyonlar ve tuzaklar
 
@@ -71,9 +76,9 @@ Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İ�
    `db.js`'teki satır dönüştürücülerde (`denetimRow` vb.).
 5. **`denetimler.notu`**: `not` SQL anahtar sözcüğü olduğundan kolon adı `notu`; satır
    nesnesinde `not` olarak açılır. `no` kolonu sorgularda backtick'lenir.
-6. **Şema değişikliği:** tablolar `CREATE TABLE IF NOT EXISTS` ile kurulur; mevcut kuruluma
-   kolon eklemek için `db.js init()` içine güvenli `ALTER TABLE` migrasyonu ekle
-   (örnek: `bulgular` kolonu).
+6. **Şema değişikliği:** tablolar `CREATE TABLE IF NOT EXISTS` ile kurulur; mevcut kuruluma kolon
+   eklemek için kolonu `db.js` → `EK_KOLONLAR` listesine yaz (init() ve `scripts/gecis-kontrol.js` aynı listeyi
+   kullanır). YALNIZ EKLEME — kolon silme/yeniden adlandırma/tip değişikliği yapma (eski sürüme dönüşü bozar).
 7. **5S formu** (sorular + puan kesme kuralları) tek yerde: `src/puanlama.js` → `BESS`.
    Denetmen puan girmez; **bulgu sayısı / Evet-Hayır** girer, puan `bessKriterPuanla` ile
    hesaplanır (sunucu bağlayıcı; istemcideki canlı hesap yalnız gösterim). e2e testi kriter
@@ -130,18 +135,23 @@ Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İ�
     kaizene dönüştürme (`kaizen_no` ↔ `kaynak_oneri_no`); Reddedilen & Silinen arşivi (`/arsiv`); Görevlerim;
     ad/soyad ayrı + otomatik/elle isim birleştirme (`/isimler`); 10 ayrıntılı yetki;
     Panel (`/panel`, girişli herkes) ve Yönetim (`/yonetici`) ayrımı; 5S bölümler tablosu, bölüm trendi + S1–S5;
-    denetim revize (ödül işlenmiş turda kapalı); **T-FR016 periyodik kontrol formu** (`kontrol_kayitlari`,
+    denetim revize (ödül işlenmiş turda kapalı); **5S periyodik kontrol formu** (`kontrol_kayitlari`,
     `kontrol_onaylari`). Tüm şema değişiklikleri `init()` içinde yalnız ekleme (`kolonEkle`).
     Aynı sürümün devamında: kontrol formunda takvimli tarih (`?tarih=`), formdan aksiyon açma kaldırıldı,
     Excel seçilen aya kadar tüm aylar (her ay sayfa + ÖZET); ek yöneticiye tam yetki kaldırıldı (yönetici hesapları +
-    günlük yalnız ana yönetici); form no kaldırıldı. e2e 133/133.
+    günlük yalnız ana yönetici); form no kaldırıldı; kontrol formundan form kodu (T-FR016) kaldırıldı.
+17. **Kod düzeni + güvenlik turu:** `cekirdek.js` 12 servis modülüne bölündü (98 fonksiyon birebir taşındı),
+    kontrol rotaları `rotalar/kontrol.js`, `xlsxGonder/zipGonder` → `web.js`, `db.js` `EK_KOLONLAR`; giriş
+    open-redirect (`/\`) + dizi `next`, CSRF timingSafeEqual, arşiv geri yükleme kolon denetimi, kılavuzdan
+    varsayılan şifre; npm audit fix + multer 2. Yeni `scripts/gecis-kontrol.js`. Eski DB (1d67cea) ile geçiş
+    doğrulaması 46/46. e2e 136/136.
 
 ## Açık konular
 
-- IYILESTIRME_ANALIZI.md §5: Ö1 CSP inline JS, Ö2 Excel worker (liste sayfalaması yapıldı), Ö3 yapılandırılmış
-  loglama + `/saglik` (işlem günlüğü yapıldı), Ö4 FK migrasyonu, Ö5 GitHub Actions CI, Ö7 cekirdek bölünmesi
-  (cekirdek ~1.200 satır — bölünmesi artık önerilir).
+- IYILESTIRME_ANALIZI.md §5: 🔴 Ö9 depo public + varsayılan şifre, 🟠 Ö10 giriş şifre taraması (pbkdf2Sync),
+  🟠 Ö12 oturum (GET çıkış, şifre değişince oturum düşmüyor), Ö1 CSP inline JS (9 şablon), Ö5 CI, Ö13 bes_s/admin
+  rota bölünmesi + lint + birim test, Ö4 FK, Ö2 Excel worker, Ö3 log + `/saglik`, Ö11 sicil no.
 - Giriş "şifre = kimlik": her başarısız giriş tüm hesap hash'lerini `pbkdf2Sync` ile tarar (hesap başına
-  ~0,3 sn, olay döngüsünü bloklar). Hesap sayısı arttıkça async pbkdf2 veya kullanıcı seçimli girişe geçilmeli.
+  ~0,28 sn, olay döngüsünü bloklar). Komite puanlaması (15 hesap) konuşuldu — yapılırsa önce Ö10.
 - Karar bekliyor: ZIP/Excel dosya adındaki tarih tur başlangıç tarihi (`d.tarih`) —
   gerçekleşme tarihine (`denetim_tarihi`) çevrilmesi önerildi, kullanıcı henüz onaylamadı.

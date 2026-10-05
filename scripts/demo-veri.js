@@ -233,7 +233,7 @@ async function main() {
     if (i === 0) await calistir("UPDATE oneriler SET kaizen_no = ? WHERE `no` = ?", [no, kaynak.no]);
   }
 
-  // --- T-FR016 kontrol formu: son iki ay (tam) + bu ay (bugüne kadar), iki bölüm ---
+  // --- Periyodik kontrol formu: son iki ay (tam) + bu ay (bugüne kadar), iki bölüm ---
   const bugun = S.bugunIso();
   const buAy = bugun.slice(0, 7);
   for (const ay of [K.ayKaydir(buAy, -2), K.ayKaydir(buAy, -1), buAy]) {

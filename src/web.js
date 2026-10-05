@@ -1,6 +1,9 @@
-// Web yardımcıları: flash mesajları, CSRF, hız limiti, dosya yükleme, yetki middleware'leri.
+// Web (HTTP) katmanı yardımcıları: async rota sarıcı, flash + işlem günlüğü, form alanı okuma (ad/soyad),
+// güvenli dönüş adresi, ortak şablon değişkenleri + yetki çözümü, CSRF, güvenlik başlıkları, hız limiti,
+// dosya yükleme, yetki middleware'leri, Excel/ZIP indirme yanıtları.
 const crypto = require("crypto");
 const multer = require("multer");
+const archiver = require("archiver");
 const S = require("./sabitler");
 const C = require("./cekirdek");
 const I = require("./isim");
@@ -128,9 +131,12 @@ const ortakLocals = sar(async (req, res, next) => {
 });
 
 // --- CSRF doğrulama ---
+function tokenEsit(a, b) {
+  const x = Buffer.from(String(a || "")), y = Buffer.from(String(b || ""));
+  return x.length > 0 && x.length === y.length && crypto.timingSafeEqual(x, y);
+}
 function csrfKontrol(req, res, next) {
-  const token = (req.body || {}).csrf_token;
-  if (!token || token !== req.session.csrf) {
+  if (!tokenEsit((req.body || {}).csrf_token, req.session.csrf)) {
     return res.status(400).send("CSRF doğrulaması başarısız — sayfayı yenileyip tekrar deneyin.");
   }
   next();
@@ -233,8 +239,24 @@ function denetciRequired(req, res, next) {
   return _giriseYonlendir(req, res);
 }
 
+// --- Dosya yanıtları (indirme) ---
+function xlsxGonder(res, buffer, ad) {
+  res.set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.set("Content-Disposition", `attachment; filename="${encodeURIComponent(ad)}"`);
+  res.send(Buffer.from(buffer));
+}
+// ZIP akışı: ekleyici(arch) dosyaları ekler, arşiv yanıta doğrudan akar (bellekte tutulmaz)
+function zipGonder(res, ad, ekleyici) {
+  res.set("Content-Type", "application/zip");
+  res.set("Content-Disposition", `attachment; filename="${encodeURIComponent(ad)}"`);
+  const arch = archiver("zip", { zlib: { level: 6 } });
+  arch.pipe(res);
+  ekleyici(arch);
+  arch.finalize();
+}
+
 module.exports = {
-  sar, flash, hizLimitAsildi, alan, adSoyadOku, kisiOku, guvenliYol, ortakLocals, csrfDogrula, dosyaYukleyici,
+  sar, flash, xlsxGonder, zipGonder, hizLimitAsildi, alan, adSoyadOku, kisiOku, guvenliYol, ortakLocals, csrfDogrula, dosyaYukleyici,
   guvenlikBasliklari, adminRequired, girisRequired, anaYoneticiRequired,
   yetkiGerek, denetciRequired, YETKILER, TUM_YETKILER,
 };

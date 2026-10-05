@@ -1,0 +1,2 @@
+<%# Denetmen <option> listesi — girdiler: denetmenler, secili (id). Adlar EJS ile otomatik kaçışlanır. %>
+<% for (const dm of denetmenler) { %><option value="<%= dm.id %>"<%= dm.id === secili ? ' selected' : '' %>><%= dm.ad %></option><% } %>

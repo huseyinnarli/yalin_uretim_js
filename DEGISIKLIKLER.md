@@ -52,23 +52,34 @@
   **S1–S5 kırılımı**.
 - **Denetim revize:** "Denetim revize & silme" yetkili yönetici yapılmış denetimi düzeltebilir (bulgular,
   açıklamalar, fotoğraf ekle/sil, yeni aksiyon). **Ödülleri işlenmiş turda revize kapalıdır.**
-- **T-FR016 Periyodik Kontrol Formu** (Günlük/Haftalık/Aylık 5S ve Güvenlik): bölüm sayfasından açılır,
+- **5S Periyodik Kontrol Formu** (Günlük/Haftalık/Aylık 5S ve Güvenlik): bölüm sayfasından açılır,
   bölümün ekip lideri doldurur; kontrol günü **Türkçe takvimden** seçilir (gün seçilince form açılır, ileri tarih
   seçilemez); uygun değil işaretlenen maddeye açıklama zorunlu, uygunsuzluklar formun altında listelenir
   (formdan aksiyon açılmaz); haftalık (grup lideri) ve aylık (bölüm sorumlusu) kontrol imzası. Herkes görüntüleyebilir.
 - **Kontrol formu Excel'i:** ay seçilir, **o aya kadar doldurulmuş tüm aylar** tek dosyada iner — her ay kâğıt
   düzeninde ayrı sayfa, başta ÖZET (ay başına kontrol günü, uygun/uygun değil, uygunluk %, imzalı hafta, aylık imza)
   ve tüm ayların uygunsuzluk listesi.
+- Kontrol formunda **form kodu ve revizyon numarası gösterilmez** (sayfa, Excel başlığı, dosya adı:
+  `5S_Kontrol_Formu_<Bölüm>_<ay>.xlsx`).
 
 **Form No kaldırıldı**
 - Onaylanan öneri/kaizene artık `FR-YYYY-NNNN` form numarası **verilmez**; liste, detay, arama ve Excel'den çıkarıldı
   (öneri Excel'inde 2. sütun, kaizen Excel'inde "Form No" sütunu yok). Daha önce verilmiş numaralar veritabanında
   (`form_no` kolonu) **olduğu gibi durur**, yalnızca gösterilmez.
 
+**Kod düzeni ve güvenlik** (ayrıntı: [GELISTIRME_RAPORU.md](GELISTIRME_RAPORU.md), [IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md))
+- İş mantığı tek dosyadan (`cekirdek.js`, 1.218 satır) 12 alan modülüne (`src/servis/*`) bölündü; fonksiyonlar
+  değiştirilmeden taşındı. Kontrol formu rotaları ayrı dosyada (`rotalar/kontrol.js`). Ölü kod temizlendi.
+- Güvenlik: girişte `/\site` yönlendirme açığı ve `?next=` çift parametre hatası kapandı; herkese açık kılavuzdan
+  varsayılan şifre kaldırıldı; CSRF sabit zamanlı karşılaştırma; arşivden geri yükleme kolon denetimi.
+- Bağımlılıklar: sharp 0.35.5, express 4.22.3, mysql2 3.24.5, multer 2.4.0 (`npm audit`: yüksek açık kalmadı).
+- **Geçiş ön kontrolü:** `npm run gecis-kontrol` — canlı veritabanına salt-okunur bağlanıp şema farkını, isimleri,
+  yetkileri ve varsayılan şifreyi raporlar (bkz. [VERITABANI_GECIS.md](VERITABANI_GECIS.md)).
+
 **Demo (tasarım önizleme)**
 - `Dockerfile` + `scripts/demo-baslat.sh` + `scripts/demo-veri.js`: Render'da harici veritabanı olmadan, içinde geçici
   MariaDB ve örnek veriyle çalışan demo. Canlı kurulumu etkilemez (bkz. DAGITIM.md §11). Uygulama MariaDB 10.11'de
-  de test edildi (133/133).
+  de test edildi (136/136).
 
 ### Veritabanı değişiklikleri (otomatik, yalnızca EKLEME)
 
@@ -82,7 +93,7 @@ adlandırma/tip değişikliği yoktur. MySQL 8'de sona kolon ekleme anlık (inst
 | `kaizenler` | `kaynak_oneri_no` |
 | `denetimler` | `revize_eden`, `revize_zamani` |
 | yeni tablo | `isim_eslestirme` (elle isim birleştirme) |
-| yeni tablo | `kontrol_kayitlari`, `kontrol_onaylari` (T-FR016 formu) |
+| yeni tablo | `kontrol_kayitlari`, `kontrol_onaylari` (periyodik kontrol formu) |
 | değişmeyen | `oneriler.form_no`, `kaizenler.form_no` kolonları ve değerleri yerinde kalır (artık yazılmaz/gösterilmez) |
 
 **Eski yetkiler:** veritabanında `degerlendirme` kayıtlı ek yönetici otomatik olarak *Değerlendirme + Puanlama*,
@@ -90,17 +101,22 @@ adlandırma/tip değişikliği yoktur. MySQL 8'de sona kolon ekleme anlık (inst
 *10 alanın tamamını* alır — yönetici hesapları ve işlem günlüğü hariç. Kayıt değişmez; yönetici bir kez
 kaydedilince yeni anahtarlarla yazılır.
 
-**Doğrulama:** Eski sürümün oluşturduğu veritabanı yeni kodla açılarak denendi — eski kolonlardaki verinin
-tamamı birebir aynı kaldı, puan listesi aynı çıktı, eski ek yönetici ve denetmen girişleri çalıştı.
-Uçtan uca test: **133/133**.
+**Doğrulama:** Canlıdaki sürümün (`1d67cea`) ürettiği, isimleri tek kutudan farklı yazılışlarla girilmiş
+veritabanı yeni kodla açıldı — 16 eski tablonun eski kolonları birebir aynı, puan toplamları aynı, eski hesaplarla
+giriş ve tüm sayfalar çalışıyor (46/46); eski kod genişletilmiş veritabanında da çalışıyor (geri dönüş).
+Uçtan uca test: **136/136**. Ayrıntı: [VERITABANI_GECIS.md](VERITABANI_GECIS.md) §6.
 
 ### Canlıya alma
 
+Adım adım ve komutlarıyla: **[VERITABANI_GECIS.md](VERITABANI_GECIS.md) §4**. Özet:
+
 1. **Yedek:** `mysqldump -u yalin -p yalin_uretim > yedek_oncesi.sql` + `data/` klasörünün kopyası.
+1b. **Ön kontrol (salt-okunur):** yeni kodu ayrı klasöre indirip `npm ci` → `YALIN_DATA_DIR=<canlı data> npm run gecis-kontrol`.
 2. **(Önerilir) Kopyada deneme:** dump'ı `yalin_test` veritabanına yükleyip yeni kodu
    `YALIN_DB_DATABASE=yalin_test` ile açın, sayfaları gezin.
 3. **Güncelle:** `git pull` → `npm ci` → servisi yeniden başlat. Kod elle kopyalanıyorsa `data/` klasörünün
    üzerine yazmayın.
-4. **İlk iş:** Yönetim › Yöneticiler'de ek yöneticilerin yetkilerini gözden geçirip kaydedin; Yönetim ›
-   Denetmenler'de görev/düzeltme atanacak kişilere denetmen hesabı açın.
+4. **İlk iş:** varsayılan yönetici şifresi kullanılıyorsa değiştirin; Yönetim › Yöneticiler'de ek yöneticilerin
+   yetkilerini gözden geçirip kaydedin; Yönetim › Denetmenler'de görev/düzeltme atanacak kişilere denetmen hesabı
+   açın; İsim Birleştirme önerilerini ve ödül eşiğini yeni geçenleri kontrol edin.
 5. **Geri dönüş:** önceki sürüme dönüp yeniden başlatmak yeterli — eklenen kolonlar eski kodu bozmaz.

@@ -5,7 +5,7 @@ bu süreçlerden doğan puanları **personel ödül sistemine** dönüştüren w
 
 Çalışanlar giriş yapmadan öneri ve kaizen girer; yöneticiler kayıtları onaylar (ya da gerekçeyle reddeder,
 denetmene düzeltme atar), onaylanan öneriyi uygulayıp kaizene dönüştürecek kişiyi atar ve 100 üzerinden puanlar;
-bölümler periyodik 5S denetimlerinden ve T-FR016 günlük/haftalık/aylık kontrol formundan geçer; biriken puanlar
+bölümler periyodik 5S denetimlerinden ve günlük/haftalık/aylık 5S kontrol formundan geçer; biriken puanlar
 personel sıralamasına ve ödüllere dönüşür. Tüm raporlar tek tıkla Excel olarak alınır.
 Sürüm değişiklikleri için: **[DEGISIKLIKLER.md](DEGISIKLIKLER.md)**.
 
@@ -24,7 +24,7 @@ Sürüm değişiklikleri için: **[DEGISIKLIKLER.md](DEGISIKLIKLER.md)**.
                                │   └─ DÜZELTME İSTER ─► seçilen denetmen düzeltir ─► yeniden değerlendirme
                                └─ onaylanan öneriye GÖREV ─► denetmen uygular ─► KAİZENE DÖNÜŞTÜRÜR
 5S: denetim turu ─► bölümler denetlenir ─► ilk 3 bölüm ödül alır ──────────┐
-5S: T-FR016 günlük/haftalık/aylık kontrol ─► uygunsuzluk ─► aksiyon         │
+5S: günlük/haftalık/aylık kontrol formu ─► uygunsuzluk listesi               │
                                                                              ▼
                                         PUAN LİSTESİ (aynı kişinin yazılışları birleşir)
                                                                              │
@@ -83,7 +83,7 @@ form öneriden doldurulur ve kaizen öneriye bağlanır.
 - **Ödüllendirme:** tur tamamlanınca **"Ödülleri İşle"** → 1./2./3. bölüm ekibine **100 / 75 / 50 puan**.
 - **Aksiyonlar:** açık/kapalı, tur → bölüm kırılımı. Bölümün ekip lideri (denetmen girişli) veya aksiyon yetkili
   yönetici kapatır; **açıklama + en az 1 fotoğraf zorunlu**.
-- **✅ T-FR016 Periyodik Kontrol Formu** (bölüm sayfasından): 10 günlük, 3 haftalık, 2 aylık madde. Bölümün ekip
+- **✅ Periyodik Kontrol Formu** (bölüm sayfasından): 10 günlük, 3 haftalık, 2 aylık madde. Bölümün ekip
   lideri günü **Türkçe takvimden** seçip *Uygun / Uygun Değil* işaretler; uygun değilde açıklama zorunlu
   (uygunsuzluklar formun altında ve Excel'de listelenir, formdan aksiyon açılmaz). Aylık tablo kâğıt formdaki gibi
   gün gün görünür. Haftalık **grup lideri** ve aylık **bölüm sorumlusu** kontrol imzası (bölümün lideri dışındaki
@@ -258,6 +258,17 @@ canlı veriye dokunmaz. (Bir kez `CREATE DATABASE yalin_e2e` + GRANT gerekir.)
 Eski hash'li şifreler (pbkdf2/scrypt) aynen tanınır — yönetici ve denetmenler mevcut
 şifreleriyle giriş yapmaya devam eder.
 
+### Canlı veritabanıyla yeni sürüme geçiş
+
+Mevcut MySQL veritabanı olduğu gibi kullanılır; uygulama ilk açılışta yalnız eksik tablo/kolonları ekler. Önce
+**salt-okunur ön kontrol** çalıştırın (veritabanına hiçbir şey yazmaz):
+
+```bash
+npm run gecis-kontrol > on_kontrol.md
+```
+
+Adım adım yedek, prova, güncelleme ve geri dönüş: **[VERITABANI_GECIS.md](VERITABANI_GECIS.md)**.
+
 ---
 
 ## Güvenlik Özeti
@@ -265,7 +276,8 @@ Eski hash'li şifreler (pbkdf2/scrypt) aynen tanınır — yönetici ve denetmen
 - Şifreler **pbkdf2 (600.000 iterasyon)** ile hash'lenir; düz metin saklanmaz.
 - Tüm POST isteklerinde **CSRF token** doğrulaması.
 - Girişte **kaba kuvvet koruması** (IP başına 10 dakikada 8 deneme); herkese açık yazma
-  uçlarında hız limiti.
+  uçlarında hız limiti; giriş sonrası yönlendirme yalnız site içi yollara.
+- CSRF belirteci sabit zamanlı karşılaştırılır; kullanıcı verisi şablonlarda otomatik kaçışlanır.
 - Yüklenen dosyalar uzantı **+ dosya imzası (magic bytes)** ile doğrulanıp **sharp ile
   yeniden kodlanır** (EXIF/konum verisi temizlenir, 1600 px'e küçültülür); görsel servis
   uçları path-traversal korumalıdır.
@@ -274,5 +286,7 @@ Eski hash'li şifreler (pbkdf2/scrypt) aynen tanınır — yönetici ve denetmen
 
 Ayrıntılar için: **[DEGISIKLIKLER.md](DEGISIKLIKLER.md)** (sürüm notları ve canlıya alma) ·
 **[TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md)** (mimari ve iç işleyiş) ·
-**[IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md)** (mimari/kod inceleme raporu ve iyileştirme önerileri) ·
+**[IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md)** (mimari ve güvenlik raporu, iyileştirme önerileri) ·
+**[GELISTIRME_RAPORU.md](GELISTIRME_RAPORU.md)** (Ekim 2026 sürümünde yapılanlar) ·
+**[VERITABANI_GECIS.md](VERITABANI_GECIS.md)** (canlı veritabanıyla geçiş) ·
 **[DAGITIM.md](DAGITIM.md)** (sunucuda devreye alma: sunucu özellikleri, kurulum, HTTPS, yedekleme).

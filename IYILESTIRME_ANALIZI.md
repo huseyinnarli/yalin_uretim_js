@@ -1,182 +1,231 @@
-# Mimari ve Kod İnceleme Raporu
+# Mimari ve Güvenlik Raporu
 
-Tarih: 2026-07-10 · Kapsam: tüm kaynak kod (3.228 satır JS + 22 EJS şablonu) + bağımlılıklar
-· Test durumu: `npm test` → **34/34 başarılı** (uçtan uca, izole veritabanı)
+Tarih: 05.10.2026 · Kapsam: tüm kaynak kod (4.818 satır JS, 29 EJS şablonu) + bağımlılıklar ·
+Test: `npm test` **136/136**, eski veritabanıyla geçiş doğrulaması **46/46** · Önceki rapor: 10.07.2026 (34 test).
 
-İlgili dokümanlar: [README.md](README.md) (kullanım) · [TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md)
-(iç işleyiş referansı) · [DAGITIM.md](DAGITIM.md) (sunucuda devreye alma rehberi)
-
----
-
-> **Ekim 2026 notu:** Bu rapor 10 Temmuz 2026 tarihlidir; satır sayıları ve test sayısı (bugün 122) eskidir.
-> O tarihten beri yapılanlar: işlem günlüğü (Ö3-b), öneri/kaizen listesi sayfalaması (Ö2'nin bir kısmı),
-> rol/yetki modelinin ayrıntılandırılması — bkz. [DEGISIKLIKLER.md](DEGISIKLIKLER.md).
-
-## 1. Yönetici Özeti
-
-Uygulama; Öneri, Kaizen ve 5S denetim süreçlerini tek yerde yöneten, puanları personel ödül
-sistemine dönüştüren bir fabrika içi web uygulamasıdır. **Node.js + Express + MySQL 8** üzerine
-katmanlı bir mimariyle kurulmuştur; arayüz sunucu tarafında render edilir (EJS), dış CDN
-bağımlılığı yoktur.
-
-**Karar:** Kod tabanı üretim kullanımına hazırdır. İlk incelemede tespit edilen yüksek ve orta
-öncelikli bulguların tamamı (open redirect, yükleme DoS'u, HTTPS/proxy desteği, görsel
-işleme/EXIF, yedek kapsamı, transaction bütünlüğü, bellek büyümesi, test eksikliği) kapatılmış
-ve düzeltmeler otomatik test paketiyle güvence altına alınmıştır. Açık kalanlar bilinçli
-tasarım kabulleri ve orta/uzun vadeli iyileştirme fırsatlarıdır (bkz. §5).
+İlgili: [GELISTIRME_RAPORU.md](GELISTIRME_RAPORU.md) (bu sürümde ne eklendi/değişti) ·
+[VERITABANI_GECIS.md](VERITABANI_GECIS.md) (canlıya alma) · [TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md) (iç işleyiş) ·
+[DAGITIM.md](DAGITIM.md) (sunucu kurulumu, sertleştirme).
 
 ---
 
-## 2. Mimari İnceleme
+## 1. Yönetici özeti
 
-### 2.1 Katmanlı yapı
+Uygulama katmanlı, test edilmiş ve canlıya alınabilir durumdadır. Bu incelemede çekirdek iş mantığı alan
+modüllerine bölündü, 7 güvenlik bulgusu kapatıldı ve bağımlılıklardaki 2 yüksek + 4 orta açık giderildi (§4).
 
-Bağımlılık yönü tek taraflıdır, döngü yoktur:
+Canlıya almadan önce veya hemen sonra yapılması gerekenler:
 
-```
-sabitler.js → puanlama.js → db.js → cekirdek.js → web.js → rotalar/* → server.js
-   (saf)        (saf)      (MySQL)  (iş mantığı)  (middleware)  (HTTP)   (kurulum)
-```
-
-**Değerlendirme — güçlü yönler:**
-- Saf modüller (sabitler, puanlama) IO'suz; kurallar tek yerde, test edilebilir.
-- `cekirdek.js` Express'e bağımlı değildir — oturumu parametre alır
-  (`aktifDenetmen(session)`); iş mantığı web çatısından bağımsız çalıştırılabilir.
-- Veri erişimi tek kapıdan geçer (`db.js`: `sorgu/tek/calistir/transaction`); SQL tamamen
-  parametrelidir, satır↔nesne dönüşümü tek yerde yapılır.
-- Rotalar `register(app)` deseniyle modülerdir; async hatalar `sar()` sarıcısıyla merkezî
-  hata işleyiciye düşer (Express 4'ün bilinen async boşluğu kapatılmıştır).
-
-### 2.2 Kod yapısı ve boyutlar
-
-| Dosya | Satır | Sorumluluk | Değerlendirme |
+| Öncelik | Konu | Neden | Efor |
 |---|---|---|---|
-| `src/cekirdek.js` | 728 | Tüm iş mantığı | ⚠ Büyümeye devam ederse bölünmeli (bkz. Ö7) |
-| `src/rotalar/bes_s.js` | 553 | 27 5S rotası | Kabul edilebilir — rota başına ~20 satır |
-| `src/db.js` | 240 | Havuz + şema + migrasyon + yedek | İyi |
-| `src/excel.js` | 232 | 8 Excel raporu | İyi — tekrar eden stil yardımcılara alınmış |
-| `src/rotalar/admin.js` | 225 | Giriş + panel + değerlendirme | İyi |
-| `src/puanlama.js` | 227 | Rubrik + 5S form soruları/kuralları (çoğu veri) | İyi |
-| `src/web.js` | 132 | Middleware'ler | İyi |
-| diğer rotalar + sabitler + server | ~380 | — | İyi |
-| `scripts/` | 508 | e2e test + 2 veri aktarımı | İyi |
+| 🔴 | GitHub deposunu **gizli** yapın; canlıda varsayılan yönetici şifresinin değiştirildiğini doğrulayın (Ö9) | Depo şu an **herkese açık**: kod, varsayılan şifre ve iç yapı herkes tarafından okunabilir. Eski sürümün herkese açık kılavuz sayfası da varsayılan şifreyi yazıyordu. | 5 dk |
+| 🟠 | Giriş sırasında tüm hesap şifrelerinin taranması (Ö10) | Her hatalı girişte hesap başına ~0,28 sn işlemci; bu sırada sunucu başka isteğe cevap veremez. 15 kişilik komite hesabı eklenirse belirginleşir. | ~1 saat (hızlı çözüm) |
+| 🟠 | Oturum: çıkışın GET ile yapılması, şifre değişince eski oturumların düşmemesi (Ö12) | Düşük etkili ama ucuz düzeltmeler | ~2 saat |
 
-22 EJS şablonu; tekrar eden bloklar partial'lardadır (`odul_siralama`, `aksiyon_kart`,
-header/footer). Adlandırma tutarlıdır (Türkçe alan/fonksiyon adları, eski sistemle birebir).
+---
 
-### 2.3 İstek yaşam döngüsü
+## 2. Mimari
 
-Güvenlik başlıkları → statik → gövde çözümleme (urlencoded 1 MB; multipart yalnızca 4 dosya
-rotasında, uca özel sınırla) → imzalı çerez oturumu → ortak şablon değişkenleri + CSRF üretimi
-→ CSRF doğrulama → yetki (`adminRequired`/`denetciRequired`) → iş mantığı → render/redirect →
-404/500 yakalayıcı. Sıralama doğrudur; kritik ayrıntı: dosya kabul etmeyen uçlara multipart
-gönderim daha kapıda reddedilir, bu sayede CSRF kontrolü gövde-çözümleme sırası üzerinden
-atlatılamaz.
+### 2.1 Katmanlar
 
-### 2.4 Veri modeli
+```
+saf modüller   sabitler · isim · yetkiler · kontrol · puanlama        (IO yok)
+      ↓
+db.js          MySQL havuzu · şema + EK_KOLONLAR (tek kaynak) · satır↔nesne · yedek
+      ↓
+servis/*       12 iş modülü, 5 katman (aşağıdaki modül yalnız alttakine dayanır)
+      ↓
+cekirdek.js    cephe — servisleri tek nesnede toplar; aynı adın iki kez tanımlanmasına izin vermez
+      ↓
+web.js         HTTP katmanı: sar · flash + işlem günlüğü · CSRF · güvenlik başlıkları · hız limiti ·
+               dosya yükleme · yetki middleware'leri · Excel/ZIP yanıtları
+      ↓
+rotalar/*      genel · oneri · kaizen · bes_s · kontrol · admin   (register(app) deseni)
+      ↓
+server.js      kurulum (oturum, statik, rota kaydı, 404/500)
+```
 
-14 tablo, InnoDB, `utf8mb4_turkish_ci`. Öne çıkan kararlar ve değerlendirmesi:
+Bağımlılık yönü tek taraflıdır, döngü yoktur. Servis katmanları: **0** guvenlik, yardimci, gunluk → **1** kayitlar,
+bes → **2** hesaplar, kontrolFormu → **3** isimler, aksiyon → **4** puan, gorevler, panel.
+
+### 2.2 Boyutlar
+
+| Dosya | Satır | Değerlendirme |
+|---|---|---|
+| `src/servis/*` (12 modül) | 24–300 | ✔ Her modül tek alan; en büyüğü `bes.js` (5S motoru) |
+| `src/cekirdek.js` | 35 | ✔ Yalnız cephe (önce 1.218 satırdı) |
+| `src/rotalar/bes_s.js` | 688 | ⚠ 5S'in plan, denetim, aksiyon, ödül ve görsel uçları bir arada — bölünebilir (Ö13) |
+| `src/rotalar/admin.js` | 440 | ⚠ Giriş, hesaplar ve değerlendirme aynı dosyada — bölünebilir (Ö13) |
+| `src/excel.js` | 408 | ✔ 9 rapor, ortak stil yardımcıları |
+| `src/db.js` | 356 | ✔ Şema, bildirimsel kolon ekleme listesi, yedek |
+| `src/web.js` | 262 | ✔ HTTP yardımcıları |
+| `src/puanlama.js` | 265 | ✔ Çoğu veri (rubrik + 5S formu) |
+| `scripts/e2e-test.js` | 692 | ⚠ Tek dosya; alanlara bölünmesi ve saf modüllere birim testi önerilir (Ö13) |
+
+### 2.3 Clean code değerlendirmesi
+
+**Güçlü yönler**
+- **Katman disiplini:** iş kuralları Express'ten bağımsızdır (oturum/yetki parametre alınır); rotalar ince kalır.
+- **Saf çekirdek kurallar:** isim karşılaştırma, yetki açılımı, kontrol formu takvimi, 5S puan kuralları IO'suz,
+  bağımsız denenebilir.
+- **Tek kapıdan veri erişimi:** `sorgu/tek/calistir/transaction`; tüm SQL parametreli; dinamik tablo/kolon adları
+  yalnız koddan gelir (bkz. §3).
+- **Tek kaynak şema:** yeni kolonlar `EK_KOLONLAR` listesinde; uygulama ve geçiş ön kontrol aracı aynı listeyi kullanır.
+- **Çift katman yetki:** her yetkili eylem hem rotada middleware ile hem şablonda `yetki()` ile korunur; testli.
+- **Ölü kod yok:** kullanılmayan fonksiyon/içe aktarma taraması bu incelemede temizlendi.
+- **Davranışı değiştirmeyen yeniden düzenleme:** bölünen 98 fonksiyonun gövdesi eskisiyle karakter karakter aynı.
+
+**Zayıf yönler (öneriler §5)**
+- İki büyük rota dosyası (`bes_s.js`, `admin.js`).
+- Adlandırma karışık: çoğunluk Türkçe (`puanDurumu`, `kontrolKaydet`), eski kısım İngilizce (`getRecord`, `loadBolumler`, `hashPassword`).
+- 9 şablonda satır içi `<script>` (CSP'de `'unsafe-inline'` zorunlu kalıyor).
+- Lint/biçimlendirici ve CI yok; tip denetimi yok.
+- Liste alanları TEXT içinde JSON; şemada yabancı anahtar (FK) yok.
+
+### 2.4 İstek yaşam döngüsü
+Güvenlik başlıkları → statik → gövde çözümleme (urlencoded 1 MB; multipart yalnız 5 dosya ucunda) → imzalı çerez
+oturumu → ortak şablon değişkenleri + yetki çözümü (her istekte veritabanından taze) → CSRF → rota middleware'i
+(giriş/yetki) → iş mantığı → render/yönlendirme → 404/500. Dosya kabul etmeyen uçlara multipart daha kapıda
+reddedilir; böylece CSRF denetimi gövde çözümleme sırası üzerinden atlatılamaz.
+
+### 2.5 Veri modeli
+19 tablo, InnoDB, `utf8mb4_turkish_ci`. Bu sürümde 3 tablo ve 24 kolon eklendi; hiçbir kolon silinmedi/değişmedi.
 
 | Karar | Değerlendirme |
 |---|---|
-| Liste/nesne alanları TEXT içinde JSON (`uyeler`, `puanlar`, `fotolar`…) | ✔ Eski şemayla uyum, az join; ✖ bu alanlarda SQL sorgusu/bütünlük yok — mevcut kullanım için doğru ödünleşim |
-| `odul_kayitlari` = kişi 5S puanlarının **tek kaynağı** | ✔ Denetim silinince puanın otomatik geri alınması bu tasarımın doğrudan sonucu — en kritik iş kuralı sağlam |
-| `denetimler.tarih` = tur kimliği | ✔ Basit; aynı tarihli ikinci tur uygulama kuralıyla engellenir |
-| Numara üretimi `sayaclar` tablosunda atomik sayaç | ✔ Eşzamanlı gönderimde mükerrer numara imkânsız; aktarım sonrası otomatik tohumlama var |
-| 5S formu = şirket şablonu, **kural tabanlı puanlama** | ✔ Sorular + kesme kuralları tek yerde (`puanlama.js`); denetmen bulgu sayısı girer, puan kuraldan hesaplanır (sunucu bağlayıcı); bulgu sayıları `bulgular` kolonunda saklanır |
-| FK bildirimi yok | ⚠ Yetim kayıt temizliği kod tarafında (transaction içinde) — çalışıyor, ama şema güvencesi yok (Ö4) |
+| Şema değişiklikleri yalnız ekleme (`CREATE IF NOT EXISTS` + `EK_KOLONLAR`) | ✔ Eski sürüme dönüş veri kaybı olmadan mümkün (denendi) |
+| İsimler tek alanda tam ad; karşılaştırma anahtarla | ✔ Eski veriyle tam uyum; ✖ aynı ad-soyadlı iki kişi ayrılamaz (Ö11) |
+| `odul_kayitlari` = kişi 5S puanlarının tek kaynağı | ✔ Denetim silinince puan kendiliğinden düşer |
+| Numara üretimi atomik sayaç (`sayaclar`) | ✔ Eşzamanlı gönderimde mükerrer numara yok |
+| Liste alanları JSON (TEXT) | ✔ Az join; ✖ bu alanlarda SQL sorgusu/bütünlük yok |
+| FK bildirimi yok | ⚠ Bütünlük kod tarafında, transaction içinde (Ö4) |
 
 ---
 
-## 3. Güvenlik Durumu
+## 3. Güvenlik durumu
 
 | Katman | Durum |
 |---|---|
-| SQL enjeksiyonu | Parametreli sorgular; dinamik tanımlayıcılar yalnızca koddan ✅ |
-| XSS | EJS otomatik kaçış; `<%- %>` yalnızca kod-üretimi içerikte ✅ |
-| CSRF | Oturum token'ı, tüm POST'larda; multipart bypass'ı kapalı ✅ |
-| Kimlik | pbkdf2 600k (werkzeug uyumlu), `timingSafeEqual`, brute-force limiti ✅ |
-| Open redirect | `//host` dahil reddedilir (testli) ✅ |
-| Dosya yükleme | Rota-bazlı multer, uca özel adet + 8 MB sınırı, imza kontrolü, **sharp ile yeniden kodlama** (EXIF/GPS temizliği, 1600px) ✅ |
-| Dosya servisi | Path-traversal korumalı; `data/` statik servis edilmez ✅ |
-| Başlıklar/çerez | CSP, nosniff, XFO DENY; HttpOnly + SameSite=Lax; `https` bayrağıyla Secure + HSTS ✅ |
-| Veritabanı | Yalnızca 127.0.0.1 dinler; uygulama kullanıcısı tek şemaya yetkili ✅ |
-| Yedek | 6 saatte bir ZIP (tablolar + görseller), yönlendirilebilir klasör, son 15 ✅ |
+| SQL enjeksiyonu | ✅ Parametreli sorgular. Dinamik tanımlayıcılar yalnız koddaki sabit listelerden; arşivden geri yüklemede kolonlar tablonun gerçek kolonlarıyla sınırlı |
+| XSS | ✅ EJS otomatik kaçış. `<%-` yalnız `include` ve koddan üretilen sayısal içerikte; kullanıcı verisi geçen ham HTML üretimi kaldırıldı |
+| CSRF | ✅ Oturum belirteci tüm POST'larda, sabit zamanlı karşılaştırma; multipart atlatma kapısı kapalı. ⚠ Çıkış GET ile (Ö12) |
+| Kimlik doğrulama | ✅ pbkdf2-sha256 600.000 tur (werkzeug uyumlu), `timingSafeEqual`, IP başına 10 dakikada 8 hatalı deneme sınırı. ⚠ Şifre=kimlik taraması (Ö10) |
+| Yetkilendirme | ✅ 10 ayrıntılı alan; ek yönetici hesapları ve işlem günlüğü yalnız ana yöneticide; rota + şablon çift katman; e2e'de yetki matrisi testli |
+| Oturum | ✅ İmzalı çerez, HttpOnly, SameSite=Lax, 12 saat; `https` bayrağıyla Secure + HSTS. Silinen hesabın oturumu bir sonraki istekte düşer. ⚠ Şifre değişiminde diğer oturumlar düşmez (Ö12) |
+| Açık yönlendirme | ✅ `//host`, `/\host` ve dizi parametresi reddedilir (testli) |
+| Dosya yükleme | ✅ Uca özel multer sınırı (adet + 8 MB), dosya imzası kontrolü, sharp ile yeniden kodlama (EXIF/GPS temizliği), giriş kontrolü yüklemeden önce |
+| Dosya servisi | ✅ Yol geçişi korumalı; kaizen görselleri girişe kapalı; 5S fotoğrafları (5S sonuçları gibi) herkese açık; `data/` statik servis edilmez |
+| Başlıklar | ✅ CSP, nosniff, X-Frame-Options DENY, Referrer-Policy. ⚠ CSP'de `script-src 'unsafe-inline'` (Ö1) |
+| Bağımlılıklar | ✅ `npm audit`: yüksek 0. ⚠ 2 orta (exceljs → uuid; uygulamanın kullanmadığı tampon parametresi yolu) |
+| Gizli bilgiler | ✅ Depoda veri/şifre yok (`data/` git dışında, geçmiş tarandı). ⚠ **Depo herkese açık**, varsayılan şifre kodda (Ö9) |
+| Yedek | ✅ 6 saatte bir ZIP (tablolar + görseller), son 15. ⚠ Yedekte şifre hash'leri var — klasör izinleri (Ö8) |
+| Denetim izi | ✅ Yönetici/denetmen başarılı işlemleri işlem günlüğüne (kim, ne, ne zaman, IP) |
 
 ---
 
-## 4. Kapatılmış Bulgular (geçmiş kayıt)
+## 4. Kapatılan bulgular
 
-İlk incelemede (2026-07-08) raporlanan R1–R9 bulgularından yüksek/orta öncelikli olanların
-tamamı kapatıldı: R1 open redirect · R2 yükleme bellek DoS'u · R3 HTTPS/proxy bayrakları ·
-R4 görsel işleme (sharp) · R5 yedek kapsamı/konumu · R6 transaction bütünlüğü ·
-R7 hız-limit bellek süpürmesi · R9 otomatik test paketi. Ayrıntılar git geçmişinde
-(commit mesajları) ve `scripts/e2e-test.js` kapsamındadır.
+**Bu incelemede (Ekim 2026)**
+
+| # | Bulgu | Düzeltme |
+|---|---|---|
+| B1 | Giriş sonrası `?next=/\site.com` kabul ediliyordu (bazı tarayıcılarda başka siteye gider) | Ortak `guvenliYol`; test |
+| B2 | `?next=` iki kez verilince 500 hatası | Dizi reddedilir; test |
+| B3 | Herkese açık kılavuz varsayılan yönetici şifresini yazıyordu | Kaldırıldı; ön kontrol aracı varsayılan şifreyi yakalar |
+| B4 | Arşivden geri yüklemede kolon adları arşiv JSON'undan | Tablonun gerçek kolonlarıyla sınırlandı |
+| B5 | CSRF belirteci `!==` ile karşılaştırılıyordu | `timingSafeEqual` |
+| B6 | Denetmen seçenekleri elle kaçışlanan HTML dizgisiyle | EJS otomatik kaçışlı partial |
+| B7 | `npm audit`: 2 yüksek (sharp/libheif, brace-expansion) + 4 orta (express, body-parser, qs, mysql2) | `npm audit fix` (kırıcı değişiklik yok): sharp 0.35.5, express 4.22.3, mysql2 3.24.5; ayrıca multer 1.x → 2.4.0 (1.x dalının bilinen çok parçalı form DoS düzeltmeleri) |
+| B8 | Ek yöneticiye "tam yetki" ile yönetici yönetimi verilebiliyordu | Kaldırıldı; yalnız ana yönetici |
+| B9 | Üst menü her istekte `static/` klasörünü tarıyordu | 5 dakikalık önbellek |
+
+**Önceki incelemelerde:** R1 açık yönlendirme · R2 yükleme bellek DoS'u · R3 HTTPS/proxy bayrakları · R4 görsel
+işleme · R5 yedek kapsamı · R6 transaction bütünlüğü · R7 hız-limit bellek süpürmesi · R9 otomatik test ·
+Ö2 (liste sayfalaması kısmı) · Ö3-b (işlem günlüğü) · Ö7 (çekirdeğin bölünmesi — bu incelemede).
 
 ---
 
-## 5. Açık Konular ve İyileştirme Önerileri
+## 5. Açık konular ve iyileştirme önerileri
 
-Öncelik: 🟡 orta vadede önerilir · ⚪ isteğe bağlı / koşula bağlı
+Öncelik: 🔴 hemen · 🟠 kısa vadede · 🟡 orta vadede · ⚪ isteğe bağlı
 
-### 🟡 Ö1 — CSP'de `'unsafe-inline'` script izni
-Şablonlardaki satır içi `<script>` blokları (sekme geçişi, canlı puan hesabı vb.) nedeniyle
-CSP `script-src 'unsafe-inline'` içerir; XSS savunmasının son katmanı zayıf kalır (ilk katman
-olan EJS kaçışı sağlamdır). **Öneri:** ~6 şablondaki inline JS'i `static/` altında dosyalara
-taşıyıp `script-src 'self'`e sertleştirmek. Efor: ~yarım gün.
+### 🔴 Ö9 — Herkese açık depo ve varsayılan şifre
+GitHub deposu **public**. Gizli bilgi yok (taranmıştır), ama varsayılan yönetici şifresi `admin123` kodda ve
+dokümanda yazıyor; eski sürümün herkese açık "Kullanım Kılavuzu" sayfası da bu şifreyi gösteriyordu.
+**Öneri:** (1) Depoyu GitHub › Settings › General › Danger Zone › *Change visibility* ile **Private** yapın.
+(2) Canlıda `npm run gecis-kontrol` çalıştırın; "VARSAYILAN ŞİFRE" uyarısı varsa hemen değiştirin.
+(3) Kalıcı çözüm: varsayılan şifreyle girişte şifre değiştirmeden başka sayfaya geçilememesi (zorunlu değişim). Efor: ~1 saat.
 
-### 🟡 Ö2 — `/liste` sayfalama + ağır Excel işleri
-Birleşik liste tüm kayıtları tek sayfada render eder; kayıt sayısı binleri bulunca sayfa
-büyür ve sorgu maliyeti artar. Görsel gömülü kaizen Excel'i CPU'yu istek süresince tutar
-(Node tek iş parçacığı — bu sırada diğer istekler bekler). **Öneri:** sayfalama (LIMIT/OFFSET
-+ sayfa bağlantıları) ve/veya Excel üretimini `worker_threads`'e almak. Efor: ~1 gün.
-Tetikleyici: kayıt sayısı ≳ 2.000 veya eşzamanlı kullanıcı ≳ 50.
+### 🟠 Ö10 — Giriş: "şifre = kimlik" taraması
+Kullanıcı adı olmadığı için giriş, şifreyi sırayla ana yönetici → tüm ek yöneticiler → tüm denetmenlerin hash'iyle
+dener. Bir doğrulama ~0,28 sn sürer ve `pbkdf2Sync` olduğu için **o sırada sunucu başka hiçbir isteğe cevap
+vermez**. 20 hesapta hatalı bir giriş ~5,5 sn kilitlenme demektir; farklı IP'lerden gelen denemeler sunucuyu
+yavaşlatabilir. Komite için 15 hesap eklenmesi bu durumu belirginleştirir.
+**Öneri:** (a) Hızlı: `crypto.pbkdf2` (asenkron) — sunucu kilitlenmez, ~1 saat. (b) Kalıcı: girişte önce kişi
+seçimi (veya kullanıcı adı), sonra yalnız o hesabın şifresi — tarama tamamen kalkar, hesap bazlı kilitleme
+mümkün olur, şifrelerin benzersiz olma zorunluluğu da kalkar. ~yarım gün.
 
-### 🟡 Ö3 — İşletim görünürlüğü: loglama + sağlık ucu
-Uygulama yalnızca hataları konsola yazar; kim ne zaman ne yaptı (özellikle yönetici silme /
-ödül işleme) kayıt altında değildir ve izleme sistemleri için bir sağlık ucu yoktur.
-**Öneri:** (a) `pino` ile yapılandırılmış istek/hata logu + günlük dosya rotasyonu,
-(b) yönetici eylemleri için `islem_gunlugu` tablosu (kim/ne/ne zaman), (c) `GET /saglik`
-ucu (DB ping + sürüm) — izleme ve yük dengeleyici kontrolleri için. Efor: ~1 gün.
+### 🟠 Ö12 — Oturum düzeltmeleri
+- Çıkış `GET /yonetici/cikis`: başka bir sitedeki bir resim etiketi kullanıcının oturumunu kapatabilir (yalnız
+  rahatsızlık). **Öneri:** POST + CSRF.
+- Şifre değiştirilince o hesabın açık oturumları 12 saat geçerli kalır. **Öneri:** hesaba `oturum_surumu` kolonu;
+  şifre değişince artar, oturumdaki sürüm eşleşmezse oturum düşer.
+- Yalnız mutlak süre (12 saat) var; **öneri:** paylaşılan fabrika bilgisayarları için 30–60 dk hareketsizlik süresi.
+Efor: ~2 saat.
 
-### 🟡 Ö4 — Şema düzeyinde FOREIGN KEY
-`bolum_id`/`denetim_id` ilişkileri FK olarak bildirilmemiştir; bütünlük kod disiplinine
-emanettir (bugün doğru işliyor). **Öneri:** `ON DELETE CASCADE/SET NULL` kararlarıyla FK'lı
-bir migrasyon; mevcut verideki olası yetimler önce temizlenmeli. Efor: ~yarım gün.
+### 🟡 Ö1 — CSP'de `'unsafe-inline'`
+9 şablonda satır içi script var (takvim davranışı, canlı puan hesabı, sekme geçişi, grafik etkileşimi vb.).
+**Öneri:** `static/js/*.js` dosyalarına taşıyıp `script-src 'self'`. EJS kaçışı ilk savunma hattı olarak sağlam;
+bu, son hattı güçlendirir. Efor: ~yarım gün.
 
 ### 🟡 Ö5 — Sürekli entegrasyon (CI)
-Test paketi var ama otomatik çalışmıyor. **Öneri:** GitHub Actions iş akışı — push'ta
-MySQL servisli bir job'da `npm ci && npm test` + `node --check`. Regresyonlar push anında
-yakalanır. Efor: ~2 saat.
+**Öneri:** GitHub Actions — her push'ta MySQL servisli işte `npm ci`, `node --check`, `npm test`, `npm audit
+--audit-level=high`. Bu incelemede yapılan türden yeniden düzenlemeler (fonksiyon taşıma) CI ile güvenle sürdürülür.
+Efor: ~2 saat.
 
-### ⚪ Ö6 — Kimlik modeli (bilinçli kabul)
-"Şifre = kimlik" modeli (kullanıcı adı yok) kolay kullanım için bilinçli tercihtir; zayıf bir
-denetmen şifresi o kimliği verir. Mevcut hafifletmeler: 6+ karakter, benzersizlik kontrolü,
-brute-force limiti. İnternete açık ve çok kullanıcılı bir senaryoya gidilirse kullanıcı
-adı + şifre modeline geçiş düşünülmelidir.
+### 🟡 Ö13 — Kod düzeninin sürdürülmesi
+- `rotalar/bes_s.js` → `bes_plan.js`, `bes_denetim.js`, `bes_aksiyon.js`, `bes_odul.js`;
+  `rotalar/admin.js` → `giris.js`, `hesaplar.js`, `degerlendirme.js` (servis bölünmesiyle aynı yöntem: taşı + karşılaştır + test).
+- Adlandırmayı Türkçede birleştirmek (`getRecord` → `kayitGetir` vb.) — kademeli, cephe üzerinden takma adla.
+- ESLint + Prettier (`npm run lint`), `// @ts-check` + JSDoc ile tip denetimi.
+- e2e testini alanlara bölmek; saf modüllere (`isim`, `yetkiler`, `kontrol`, `puanlama`) birim testi.
+Efor: 1–2 gün, parça parça.
 
-### ⚪ Ö7 — `cekirdek.js`'in bölünmesi
-728 satır — bugün yönetilebilir, ancak büyümeye devam ederse `kimlik.js` (şifre/denetmen),
-`kayitlar.js` (öneri/kaizen/puan durumu), `bes_s.js` (5S motoru) olarak üçe bölmek isabetli
-olur. Dışa açılan API aynı kalacağı için rotalara dokunmadan yapılabilir.
+### 🟡 Ö4 — Şema düzeyinde FOREIGN KEY
+`bolum_id`/`denetim_id` ilişkileri bildirilmemiş; bütünlük kodda. **Öneri:** önce yetim kayıt raporu, sonra
+`ON DELETE` kararlarıyla FK migrasyonu. Efor: ~yarım gün.
+
+### 🟡 Ö2 — Ağır Excel işleri
+Liste sayfalaması yapıldı. Görsel gömülü kaizen Excel'i istek boyunca işlemciyi tutar. **Öneri:** `worker_threads`.
+Tetikleyici: kayıt ≳ 2.000 veya eşzamanlı kullanıcı ≳ 50.
+
+### 🟡 Ö3 — İşletim görünürlüğü
+İşlem günlüğü yapıldı. Kalan: yapılandırılmış istek/hata logu (dosya rotasyonlu) ve `GET /saglik` (veritabanı
+ping + sürüm) — izleme için. Efor: ~yarım gün.
+
+### ⚪ Ö11 — Kişi kimliği (sicil numarası)
+İsim kişinin tek kimliği; yazım farkları anahtarla çözülüyor ama **aynı ad-soyadlı iki çalışan ayrılamaz**.
+Ödüller paraya döndüğü için orta vadede formlara isteğe bağlı sicil no alanı ve puanın sicil bazlı toplanması önerilir.
 
 ### ⚪ Ö8 — Küçük kalemler
-- **exceljs → uuid** zinciri `npm audit`te 2 "orta" bulgu üretir; pratik istismar yolu yok,
-  exceljs'in yeni sürümü çıkınca güncellenmeli. `npm audit fix --force` ÇALIŞTIRMAYIN
+- exceljs → uuid orta uyarısı: exceljs yeni sürüm çıkınca güncelleyin; `npm audit fix --force` **çalıştırmayın**
   (exceljs'i 3.4'e düşürür).
-- Oturum imza anahtarı ve şifre hash'leri aynı veritabanındadır; MySQL kullanıcı yetkileri ve
-  sunucu erişimi bu yüzden önemlidir (bkz. DAGITIM.md sertleştirme).
-- `data/db-config.json` düz metin DB şifresi içerir (git dışında; dosya sistemi izinlerine
-  emanet). İstenirse ortam değişkenine taşınabilir.
-- ESLint + `npm run lint` eklenmesi stil/hata yakalamayı otomatikleştirir. Efor: ~1 saat.
+- Otomatik yedekler (`data/_yedek_otomatik`) şifre hash'lerini içerir; klasör yalnız uygulama kullanıcısınca okunmalı.
+- `data/db-config.json` düz metin veritabanı şifresi içerir (git dışında); istenirse ortam değişkenine taşınabilir.
+- Hız limiti bellekte tutulur; tek süreçli kurulumda doğru, birden çok süreçte paylaşılan depo gerekir.
+- Karar bekliyor: denetim ZIP/Excel dosya adındaki tarih (tur tarihi mi, gerçekleşme tarihi mi).
 
-## 6. Önerilen Sıra
+---
+
+## 6. Önerilen sıra
 
 | Sıra | İş | Efor | Ne zaman |
 |---|---|---|---|
-| 1 | Ö5 CI (GitHub Actions'ta `npm test`) | ~2 saat | İlk fırsatta |
-| 2 | Ö3 loglama + işlem günlüğü + `/saglik` | ~1 gün | Devreye almayla birlikte |
-| 3 | Ö1 inline JS → dosya + CSP sertleştirme | ~yarım gün | Orta vade |
-| 4 | Ö4 FK migrasyonu | ~yarım gün | Orta vade |
-| 5 | Ö2 sayfalama + Excel worker | ~1 gün | Veri/kullanıcı artınca |
-| 6 | Ö7 cekirdek bölünmesi · Ö8 kalemleri | değişken | Fırsat buldukça |
+| 1 | Ö9 depoyu gizli yapma + varsayılan şifre kontrolü | 5 dk | Canlıya almadan önce |
+| 2 | Ö10-a asenkron şifre doğrulama | ~1 saat | Komite hesapları açılmadan önce |
+| 3 | Ö12 oturum düzeltmeleri · Ö9-3 zorunlu şifre değişimi | ~3 saat | İlk ay |
+| 4 | Ö5 CI | ~2 saat | İlk ay |
+| 5 | Ö1 inline script → dosya + CSP | ~yarım gün | Orta vade |
+| 6 | Ö13 rota dosyalarının bölünmesi, lint, birim testleri | 1–2 gün | Fırsat buldukça |
+| 7 | Ö10-b kullanıcı seçimli giriş · Ö11 sicil no | ~1 gün | Hesap/kişi sayısı arttıkça |
+| 8 | Ö4 FK · Ö2 Excel worker · Ö3 log + sağlık ucu | değişken | İhtiyaç oldukça |

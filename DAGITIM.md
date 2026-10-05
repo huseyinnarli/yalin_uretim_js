@@ -205,6 +205,7 @@ kanıtlanınca yedektir.
 ## 8. Güncelleme Prosedürü
 
 > Sürüme özel notlar (eklenen kolonlar/tablolar, canlıya alma sonrası yapılacaklar): **[DEGISIKLIKLER.md](DEGISIKLIKLER.md)**.
+> Eski sürümün veritabanıyla Ekim 2026 sürümüne geçiş (ön kontrol, prova, geri dönüş): **[VERITABANI_GECIS.md](VERITABANI_GECIS.md)**.
 
 ```bash
 cd /home/yalinapp/app
@@ -214,9 +215,9 @@ sudo -u yalinapp npm test          # isteğe bağlı ama önerilir (ayrı test D
 sudo systemctl restart yalin
 ```
 
-Şema değişikliği içeren sürümlerde tablolar `CREATE TABLE IF NOT EXISTS` ile kendiliğinden
-tamamlanır; kolon eklemeleri sürüm notunda `ALTER TABLE` olarak belirtilir. Güncelleme öncesi
-bir `mysqldump` alın.
+Şema değişikliği içeren sürümlerde eksik tablolar (`CREATE TABLE IF NOT EXISTS`) ve kolonlar (`db.js` →
+`EK_KOLONLAR`) açılışta kendiliğinden eklenir — yalnız ekleme yapılır. Güncelleme öncesi bir `mysqldump` alın ve
+`npm run gecis-kontrol` ile salt-okunur ön kontrolü çalıştırın.
 
 ## 9. İzleme ve Sorun Giderme
 

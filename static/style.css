@@ -860,7 +860,7 @@ div.hub-box { cursor: default; }
 .foto-mevcut { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; font-size: .78rem; }
 .bolum-tablo td { vertical-align: middle; }
 
-/* 5S Periyodik Kontrol Formu (T-FR016) */
+/* 5S Periyodik Kontrol Formu */
 .kontrol-doldur { margin-bottom: 20px; }
 .kontrol-grup { margin: 16px 0 6px; color: var(--primary); border-bottom: 1px solid var(--line); padding-bottom: 4px; }
 .kontrol-madde { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; padding: 10px 0; border-bottom: 1px dashed var(--line); }

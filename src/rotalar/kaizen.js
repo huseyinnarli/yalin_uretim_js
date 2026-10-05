@@ -5,9 +5,8 @@ const C = require("../cekirdek");
 const X = require("../excel");
 const { calistir, transaction, js } = require("../db");
 const {
-  sar, flash, yetkiGerek, girisRequired, alan, kisiOku, guvenliYol, hizLimitAsildi, dosyaYukleyici,
+  sar, flash, xlsxGonder, yetkiGerek, girisRequired, alan, kisiOku, guvenliYol, hizLimitAsildi, dosyaYukleyici,
 } = require("../web");
-const { xlsxGonder } = require("./genel");
 
 // Ekip: lider + en fazla 2 üye, her biri ayrı ad/soyad kutularından
 function ekipOku(req) {
