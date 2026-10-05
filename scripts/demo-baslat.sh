@@ -13,7 +13,8 @@ if [ ! -d "$VERI/mysql" ]; then
 fi
 
 # Az bellekli ayarlar (Render ücretsiz plan ~512 MB)
-mariadbd --user=root --datadir="$VERI" --socket="$SOKET" --port=3306 --bind-address=127.0.0.1 \
+mariadbd --user=root --datadir="$VERI" --socket="$SOKET" --pid-file="$VERI/mysqld.pid" \
+  --port=3306 --bind-address=127.0.0.1 \
   --skip-name-resolve --skip-log-bin --performance-schema=OFF --innodb-buffer-pool-size=32M \
   --innodb-log-file-size=16M --key-buffer-size=4M --max-connections=30 --table-open-cache=200 \
   >/tmp/demo-mariadb.log 2>&1 &
