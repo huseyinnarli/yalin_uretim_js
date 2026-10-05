@@ -1,10 +1,19 @@
 <%- include('partials/header') %>
+<% const son = trend.length ? trend[trend.length - 1] : null;
+   const l1 = adBol(lider1), l2 = adBol(lider2); %>
 
 <div class="list-head">
     <h1 class="page-title">🧹 <%= b.ad %></h1>
     <div class="list-actions">
-        <a class="btn ghost" href="/5s">← Bölümler</a>
+        <a class="btn ghost" href="/5s#bolumler">← Bölümler</a>
     </div>
+</div>
+
+<div class="ozet-kutular">
+    <div class="ozet-kutu"><span class="ok-deger"><%= personel_sayisi %></span><span class="ok-etiket">Personel</span></div>
+    <a class="ozet-kutu" href="/5s/aksiyonlar"><span class="ok-deger <%= acik_aksiyon ? 'uyari' : '' %>"><%= acik_aksiyon %></span><span class="ok-etiket">Açık aksiyon</span></a>
+    <div class="ozet-kutu"><span class="ok-deger"><%= son ? son.puan : '—' %></span><span class="ok-etiket">Son skor<%= son ? ' · ' + trdate(son.tarih) : '' %></span></div>
+    <div class="ozet-kutu"><span class="ok-deger"><%= trend.length %></span><span class="ok-etiket">Tamamlanan denetim</span></div>
 </div>
 
 <div class="iki-kolon">
@@ -14,11 +23,14 @@
         <div class="kisi-satir lider">
             <span>👤 <strong><%= b.sorumlu || '—' %></strong> <span class="rol">ekip lideri</span></span>
         </div>
-        <% if (yetki('bes_s')) { %>
+        <% if (yetki('bes_plan')) { %>
         <form method="post" action="/5s/bolum/<%= b.id %>/lider" class="satir-form lider-form"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-            <input type="text" name="lider1" value="<%= lider1 %>" placeholder="1. Ekip Lideri (Ad Soyad)">
-            <input type="text" name="lider2" value="<%= lider2 %>" placeholder="2. Ekip Lideri (Ad Soyad)"
-                   class="lider2-input"<%= !lider2 ? ' hidden' : '' %>>
+            <input type="text" name="lider1_ad" value="<%= l1.ad %>" placeholder="1. Ekip Lideri — Ad">
+            <input type="text" name="lider1_soyad" value="<%= l1.soyad %>" placeholder="Soyad">
+            <span class="lider2-alan"<%= !lider2 ? ' hidden' : '' %>>
+                <input type="text" name="lider2_ad" value="<%= l2.ad %>" placeholder="2. Ekip Lideri — Ad">
+                <input type="text" name="lider2_soyad" value="<%= l2.soyad %>" placeholder="Soyad">
+            </span>
             <button type="button" class="btn-mini ekle-lider2"<%= lider2 ? ' hidden' : '' %>>+ 2. Ekip Lideri</button>
             <button type="submit" class="btn-mini edit">Kaydet</button>
         </form>
@@ -26,7 +38,7 @@
         <% for (const k of b.kisiler) { %>
         <div class="kisi-satir">
             <span><%= k %></span>
-            <% if (yetki('bes_s')) { %>
+            <% if (yetki('bes_plan')) { %>
             <form method="post" action="/5s/bolum/<%= b.id %>/kisi/sil" style="display:inline"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="ad" value="<%= k %>">
                 <button type="submit" class="btn-mini del" title="Sil">×</button>
@@ -36,9 +48,10 @@
         <% } %>
         <% if (!b.kisiler.length) { %><p class="bos-not">Henüz üye eklenmemiş.</p><% } %>
 
-        <% if (yetki('bes_s')) { %>
+        <% if (yetki('bes_plan')) { %>
         <form method="post" action="/5s/bolum/<%= b.id %>/kisi/ekle" class="satir-form mt"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-            <input type="text" name="ad" placeholder="Kişi ekle (Ad Soyad)" required>
+            <input type="text" name="kisi_ad" placeholder="Ad" required>
+            <input type="text" name="kisi_soyad" placeholder="Soyad" required>
             <button type="submit" class="btn primary">+ Ekle</button>
         </form>
         <% } %>
@@ -53,7 +66,7 @@
             <tbody>
                 <% for (const d of denetimler) { %>
                 <tr>
-                    <td data-label="Tarih"><%= trdate(d.tarih) %></td>
+                    <td data-label="Tarih"><%= trdate(d.denetim_tarihi || d.tarih) %></td>
                     <td data-label="Skor">
                         <% if (d.puan !== null) { %>
                             <span class="skor-rozet <%= d.puan >= 80 ? 'iyi' : (d.puan >= 60 ? 'orta' : 'dusuk') %>"><%= d.puan %>/100</span>
@@ -61,10 +74,10 @@
                             <span class="skor-rozet bekle">Yapılacak</span>
                         <% } %>
                     </td>
-                    <td data-label="">
+                    <td data-label="" class="nowrap">
                         <% if (d.puan !== null) { %>
                         <a class="btn-mini eval" href="/5s/denetim/<%= d.id %>">Formu Gör</a>
-                        <% } else if (yetki('bes_s')) { %>
+                        <% } else if (yetki('bes_denetim')) { %>
                         <a class="btn-mini edit" href="/5s/bolum/<%= b.id %>/denetim">Doldur</a>
                         <% } %>
                     </td>
@@ -78,11 +91,66 @@
     </div>
 </div>
 
+<!-- 5S skor trendi + S1–S5 kırılımı -->
+<h2 class="bolum-baslik" style="margin-top:24px">📈 5S Skor Trendi</h2>
+<% if (trend.length) {
+   const W = 720, H = 220, SOL = 34, SAG = 16, UST = 14, ALT = 28;
+   const n = trend.length;
+   const x = (i) => n === 1 ? (SOL + W - SAG) / 2 : SOL + 10 + i * (W - SOL - SAG - 20) / (n - 1);
+   const y = (v) => UST + (H - UST - ALT) * (1 - v / 100);
+   const yol = trend.map((t, i) => (i ? 'L' : 'M') + x(i) + ',' + y(t.puan)).join(' '); %>
+<div class="grafik-kart">
+    <svg class="trend-svg" viewBox="0 0 <%= W %> <%= H %>" role="img" aria-label="<%= b.ad %> 5S skor trendi">
+        <% for (const t of [0, 25, 50, 75, 100]) { %>
+        <line x1="<%= SOL %>" x2="<%= W - SAG %>" y1="<%= y(t) %>" y2="<%= y(t) %>" class="grafik-grid"/>
+        <text x="<%= SOL - 6 %>" y="<%= y(t) + 4 %>" class="grafik-eksen" text-anchor="end"><%= t %></text>
+        <% } %>
+        <path d="<%= yol %>" class="grafik-cizgi"/>
+        <% trend.forEach(function (t, i) { %>
+        <g>
+            <circle cx="<%= x(i) %>" cy="<%= y(t.puan) %>" r="12" class="grafik-hedef"><title><%= t.tur_adi || 'Denetim' %> · <%= trdate(t.tarih) %> — Skor <%= t.puan %> (S1 <%= t.s.s1 %> · S2 <%= t.s.s2 %> · S3 <%= t.s.s3 %> · S4 <%= t.s.s4 %> · S5 <%= t.s.s5 %>)</title></circle>
+            <circle cx="<%= x(i) %>" cy="<%= y(t.puan) %>" r="4.5" class="grafik-nokta"/>
+            <% if (i === n - 1 || n <= 8) { %><text x="<%= x(i) %>" y="<%= y(t.puan) - 9 %>" class="grafik-deger" text-anchor="middle"><%= t.puan %></text><% } %>
+            <% if (n <= 12 || i % Math.ceil(n / 12) === 0 || i === n - 1) { %>
+            <text x="<%= x(i) %>" y="<%= H - 9 %>" class="grafik-eksen" text-anchor="middle"><%= trdate(t.tarih).slice(0, 5) %>.<%= String(t.tarih).slice(2, 4) %></text>
+            <% } %>
+        </g>
+        <% }); %>
+    </svg>
+</div>
+
+<div class="table-wrap" style="margin-top:10px">
+<table class="data-table mini-tablo s-kirilim">
+    <thead>
+        <tr><th>Tarih</th><th>Denetim</th>
+            <% for (const s of bess) { %><th title="<%= s.ad %>"><%= s.kod.toUpperCase() %> <small>/<%= s.puan %></small></th><% } %>
+            <th>Toplam</th><th></th></tr>
+    </thead>
+    <tbody>
+        <% trend.slice().reverse().forEach(function (t) { %>
+        <tr>
+            <td class="nowrap" data-label="Tarih"><%= trdate(t.tarih) %></td>
+            <td data-label="Denetim"><%= t.tur_adi || '—' %></td>
+            <% for (const s of bess) { const v = t.s[s.kod]; const oran = v / s.puan; %>
+            <td data-label="<%= s.kod.toUpperCase() %>" class="<%= oran >= 0.8 ? 's-iyi' : (oran >= 0.6 ? 's-orta' : 's-dusuk') %>"><%= v %></td>
+            <% } %>
+            <td data-label="Toplam"><span class="skor-rozet <%= t.puan >= 80 ? 'iyi' : (t.puan >= 60 ? 'orta' : 'dusuk') %>"><%= t.puan %></span></td>
+            <td data-label=""><a class="btn-mini eval" href="/5s/denetim/<%= t.id %>">Form</a></td>
+        </tr>
+        <% }); %>
+    </tbody>
+</table>
+</div>
+<p class="bos-not">S sütunları o bölümün aldığı puandır (sütun başlığında en fazla puan); %80 ve üzeri yeşil, %60 altı kırmızı.</p>
+<% } else { %>
+<div class="empty">Tamamlanmış denetim olunca skor trendi burada görünür.</div>
+<% } %>
+
 <script>
 document.querySelectorAll('.ekle-lider2').forEach(function (btn) {
     btn.addEventListener('click', function () {
-        var inp = btn.parentElement.querySelector('.lider2-input');
-        if (inp) { inp.hidden = false; inp.focus(); }
+        var alan = btn.parentElement.querySelector('.lider2-alan');
+        if (alan) { alan.hidden = false; var i = alan.querySelector('input'); if (i) i.focus(); }
         btn.hidden = true;
     });
 });

@@ -7,11 +7,20 @@
     <div class="list-actions">
         <a class="btn ghost" href="<%= geri %>">← Geri</a>
         <% if (b) { %><a class="btn ghost" href="/5s/bolum/<%= b.id %>">🏭 Bölüm</a><% } %>
-        <% if (yetki('bes_s')) { %>
+        <% if (yetki('bes_revize')) { %>
+            <% if (tur_islendi) { %>
+            <span class="btn ghost devre-disi" title="Bu turun 5S ödülleri işlendiği için revize edilemez">🔒 Revize kapalı (ödül işlendi)</span>
+            <% } else { %>
+            <a class="btn primary" href="/5s/denetim/<%= d.id %>/revize">✏ Revize Et</a>
+            <% } %>
+        <% } %>
+        <% if (yetki('bes_odul')) { %>
         <% if (fotoSayisi) { %>
-        <a class="btn primary" href="/5s/denetim/<%= d.id %>/fotolar.zip">⬇ Tüm Fotoğraflar (<%= fotoSayisi %>)</a>
+        <a class="btn ghost" href="/5s/denetim/<%= d.id %>/fotolar.zip">⬇ Tüm Fotoğraflar (<%= fotoSayisi %>)</a>
         <% } %>
         <a class="btn ghost" href="/5s/denetim/<%= d.id %>/excel">⬇ Form Excel</a>
+        <% } %>
+        <% if (yetki('bes_revize')) { %>
         <form method="post" action="/5s/denetim/<%= d.id %>/sil" style="display:inline"
               onsubmit="return confirm('Bu denetim kalıcı olarak silinsin mi? Dağıtılmış 5S ödül puanı varsa geri alınır.');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <input type="hidden" name="geri" value="/5s">
@@ -31,6 +40,12 @@
         <div><span class="dl">Denetmen</span><span class="dv"><%= d.denetmen || '—' %><% if (d.planlanan_denetmen && d.planlanan_denetmen != d.denetmen) { %> <small>(planlanan: <%= d.planlanan_denetmen %>)</small><% } %></span></div>
         <% if (d.misafir_denetmen) { %><div><span class="dl">Misafir Denetmen</span><span class="dv">🎫 <%= d.misafir_denetmen %></span></div><% } %>
         <div><span class="dl">Kayıt</span><span class="dv"><%= d.kayit_zamani %></span></div>
+        <% if (d.revize_zamani) { %><div><span class="dl">Revize</span><span class="dv">✏ <%= d.revize_eden || '—' %> · <%= d.revize_zamani %></span></div><% } %>
+    </div>
+    <div class="s-ozet">
+        <% for (const s of bess) { %>
+        <span class="s-ozet-kutu <%= s_toplam[s.kod] === s.puan ? 'tam' : '' %>"><b><%= s.ad.split(' · ')[0] %></b> <%= s_toplam[s.kod] %>/<%= s.puan %></span>
+        <% } %>
     </div>
 
     <% for (const s of bess) { %>

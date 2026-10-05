@@ -1,0 +1,91 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">🔗 İsim Birleştirme</h1>
+    <div class="list-actions"><a class="btn ghost" href="/puan-durumu">← Puan Listesi</a></div>
+</div>
+
+<div class="kural-kutu">
+    Aynı kişinin farklı yazılışları <b>puan listesinde tek kişi</b> sayılır. Büyük/küçük harf, fazla boşluk
+    ve Türkçe karakter farkları (<em>ALİ YILMAZ · ali yilmaz · Ali Yılmaz</em>) <b>otomatik</b> birleşir.
+    Yazım hatalarını (<em>Ali Yılmz</em>) aşağıdan <b>elle</b> birleştirebilirsiniz.
+    Öneri, kaizen ve ödül kayıtlarındaki isimler <b>değişmez</b>; birleştirme istenince geri alınabilir.
+</div>
+
+<% const secenekler = gruplar.map((g) => ({ v: g.anahtar, ad: g.ad })); %>
+<h2 class="bolum-baslik">Elle birleştir</h2>
+<form method="post" action="/isimler/birlestir" class="form-card satir-form" id="birlestirForm"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <select name="kaynak" required>
+        <option value="">— yanlış/eksik yazılış —</option>
+        <% for (const s of secenekler) { %><option value="<%= s.v %>"><%= s.ad %></option><% } %>
+    </select>
+    <span class="inline-label">→ şu kişiyle aynı:</span>
+    <select name="hedef" required>
+        <option value="">— doğru kişi —</option>
+        <% for (const s of secenekler) { %><option value="<%= s.v %>"><%= s.ad %></option><% } %>
+    </select>
+    <button type="submit" class="btn primary">🔗 Birleştir</button>
+</form>
+
+<% if (oneriler.length) { %>
+<h2 class="bolum-baslik">Olası yazım hataları <span class="rozet-acik"><%= oneriler.length %></span></h2>
+<p class="bos-not">Birbirine çok benzeyen isimler. Gerçekten aynı kişiyse birleştirin; farklı kişilerse dokunmayın.</p>
+<div class="gorev-liste">
+    <% for (const o of oneriler) { %>
+    <form method="post" action="/isimler/birlestir" class="gorev-satir"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+        <input type="hidden" name="kaynak" value="<%= o.kaynak.anahtar %>"><input type="hidden" name="kaynak_ad" value="<%= o.kaynak.ad %>">
+        <input type="hidden" name="hedef" value="<%= o.hedef.anahtar %>"><input type="hidden" name="hedef_ad" value="<%= o.hedef.ad %>">
+        <span class="gs-govde"><strong><%= o.kaynak.ad %></strong> <small>(<%= o.kaynak.toplam %> kayıt)</small>
+            → <strong><%= o.hedef.ad %></strong> <small>(<%= o.hedef.toplam %> kayıt)</small></span>
+        <button type="submit" class="btn-mini onay">🔗 Birleştir</button>
+    </form>
+    <% } %>
+</div>
+<% } %>
+
+<% if (elle.length) { %>
+<h2 class="bolum-baslik">Elle yapılan birleştirmeler</h2>
+<div class="gorev-liste">
+    <% for (const e of elle) { %>
+    <form method="post" action="/isimler/ayir" class="gorev-satir"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+        <input type="hidden" name="kaynak" value="<%= e.kaynak %>"><input type="hidden" name="kaynak_ad" value="<%= e.kaynak_ad %>">
+        <span class="gs-govde"><strong><%= e.kaynak_ad %></strong> → <strong><%= e.hedef_ad %></strong>
+            <small><%= e.olusturan || '' %> · <%= e.zaman || '' %></small></span>
+        <button type="submit" class="btn-mini del">Ayır</button>
+    </form>
+    <% } %>
+</div>
+<% } %>
+
+<h2 class="bolum-baslik">Tüm kişiler <span class="rozet-kapali"><%= gruplar.length %></span></h2>
+<div class="table-wrap">
+<table class="data-table">
+    <thead><tr><th>Kişi</th><th>Kayıtlardaki yazılışları</th><th>Geçtiği yerler</th></tr></thead>
+    <tbody>
+        <% for (const g of gruplar) { %>
+        <tr>
+            <td data-label="Kişi"><strong><%= g.ad %></strong><% if (g.birlesen) { %> <span class="durum-badge onay" title="Birden fazla yazılış tek kişi sayılıyor">birleşik</span><% } %></td>
+            <td data-label="Yazılışlar"><% for (const y of g.yazimlar) { %><span class="tag"><%= y.yazim %> ×<%= y.adet %></span> <% } %></td>
+            <td data-label="Geçtiği yerler" class="bos-not"><%= Object.entries(g.kaynaklar).map(([k, n]) => k + ' ' + n).join(' · ') %></td>
+        </tr>
+        <% } %>
+    </tbody>
+</table>
+</div>
+
+<script>
+// Elle birleştirme formu: seçilen adları da gönder (işlem günlüğünde okunur mesaj için)
+(function () {
+    var f = document.getElementById('birlestirForm');
+    if (!f) return;
+    f.addEventListener('submit', function () {
+        ['kaynak', 'hedef'].forEach(function (n) {
+            var sel = f.querySelector('select[name="' + n + '"]');
+            var h = document.createElement('input');
+            h.type = 'hidden'; h.name = n + '_ad'; h.value = sel.options[sel.selectedIndex].text;
+            f.appendChild(h);
+        });
+    });
+})();
+</script>
+<%- include('partials/footer') %>

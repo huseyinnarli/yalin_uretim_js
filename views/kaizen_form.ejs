@@ -1,5 +1,13 @@
 <%- include('partials/header') %>
 <h1 class="page-title">🔧 <%= duzenle ? "Kaizen Düzenle" : "Yeni Kaizen Formu" %></h1>
+<% if (kayit.kaynak_oneri_no && !duzenle) { %>
+<div class="gorev-kutu"><strong>💡 <%= kayit.kaynak_oneri_no %> önerisi kaizene dönüştürülüyor.</strong>
+    <small>Konu ve açıklamalar öneriden aktarıldı; uygulamaya göre düzenleyip fotoğrafları ekleyin.</small></div>
+<% } %>
+<% if (duzenle && kayit.durum == 'Düzeltme İsteniyor' && kayit.revize_notu) { %>
+<div class="gorev-kutu"><strong>✏ İstenen düzeltme:</strong> <%= kayit.revize_notu %>
+    <small>Kaydettiğinizde kaizen yeniden değerlendirmeye gönderilir.</small></div>
+<% } %>
 <% if (duzenle) { %>
 <p class="subtitle">Kaizen No: <strong class="mono"><%= kayit.no %></strong> (numara değişmez).</p>
 <% } else { %>
@@ -7,6 +15,7 @@
 <% } %>
 
 <form class="form-card" method="post" action="<%= action_url %>" enctype="multipart/form-data" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <% if (kayit.kaynak_oneri_no && !duzenle) { %><input type="hidden" name="kaynak_oneri" value="<%= kayit.kaynak_oneri_no %>"><% } %>
     <div class="row">
         <div class="field small">
             <label>Başlangıç Tarihi *</label>
@@ -30,21 +39,27 @@
     </div>
 
     <fieldset class="ekip">
-        <legend>Ekip (en fazla 3 kişi)</legend>
-        <div class="row">
+        <legend>Ekip (en fazla 3 kişi) — ad ve soyadı ayrı kutulara yazın</legend>
+        <% const uy = kayit.uyeler || [];
+           const kisiler = [
+             { onek: 'lider', etiket: 'Kaizen Lideri *', not: 'puanın %50\'si', v: adBol(kayit.lider || ''), zorunlu: true },
+             { onek: 'uye1', etiket: 'Üye 2', not: 'puanın %25\'i', v: adBol(uy[0] || ''), zorunlu: false },
+             { onek: 'uye2', etiket: 'Üye 3', not: 'puanın %25\'i', v: adBol(uy[1] || ''), zorunlu: false },
+           ]; %>
+        <% for (const k of kisiler) { %>
+        <div class="row ekip-satir">
             <div class="field">
-                <label>Kaizen Lideri (Ad Soyad) * <small>(puanın %50'si)</small></label>
-                <input type="text" name="lider" required value="<%= kayit.lider || '' %>" placeholder="Örn. Ahmet Yılmaz">
+                <label><%= k.etiket %> — Ad <small>(<%= k.not %>)</small></label>
+                <input type="text" name="<%= k.onek %>_ad" value="<%= k.v.ad %>" <%= k.zorunlu ? 'required' : '' %>
+                       placeholder="<%= k.zorunlu ? 'Örn. Ahmet' : 'Opsiyonel' %>">
             </div>
             <div class="field">
-                <label>Üye 2 (Ad Soyad) <small>(puanın %25'i)</small></label>
-                <input type="text" name="uye1" value="<%= (kayit.uyeler && kayit.uyeler[0]) || '' %>" placeholder="Opsiyonel">
-            </div>
-            <div class="field">
-                <label>Üye 3 (Ad Soyad) <small>(puanın %25'i)</small></label>
-                <input type="text" name="uye2" value="<%= (kayit.uyeler && kayit.uyeler[1]) || '' %>" placeholder="Opsiyonel">
+                <label>Soyad<%= k.zorunlu ? ' *' : '' %></label>
+                <input type="text" name="<%= k.onek %>_soyad" value="<%= k.v.soyad %>" <%= k.zorunlu ? 'required' : '' %>
+                       placeholder="<%= k.zorunlu ? 'Örn. Yılmaz' : 'Opsiyonel' %>">
             </div>
         </div>
+        <% } %>
     </fieldset>
 
     <fieldset class="kazanc">
@@ -89,7 +104,7 @@
 
     <div class="form-actions">
         <button type="submit" class="btn primary"><%= duzenle ? "Değişiklikleri Kaydet" : "Kaizeni Kaydet" %></button>
-        <a class="btn ghost" href="<%= duzenle ? '/liste' : '/' %>">İptal</a>
+        <a class="btn ghost" href="<%= duzenle ? '/detay?tip=kaizen&no=' + encodeURIComponent(kayit.no) + (geri ? '&geri=' + encodeURIComponent(geri) : '') : (kayit.kaynak_oneri_no ? '/detay?tip=oneri&no=' + encodeURIComponent(kayit.kaynak_oneri_no) : '/') %>">İptal</a>
     </div>
 </form>
 <%- include('partials/footer') %>

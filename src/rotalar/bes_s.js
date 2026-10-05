@@ -7,7 +7,8 @@ const P = require("../puanlama");
 const C = require("../cekirdek");
 const X = require("../excel");
 const { sorgu, tek, calistir, transaction, js, aksiyonRow } = require("../db");
-const { sar, flash, yetkiGerek, denetciRequired, alan, hizLimitAsildi, dosyaYukleyici } = require("../web");
+const I = require("../isim");
+const { sar, flash, yetkiGerek, denetciRequired, alan, kisiOku, guvenliYol, hizLimitAsildi, dosyaYukleyici } = require("../web");
 const { xlsxGonder } = require("./genel");
 
 function zipGonder(res, ad, ekleyici) {
@@ -19,11 +20,48 @@ function zipGonder(res, ad, ekleyici) {
   arch.finalize();
 }
 
+// Bölümdeki benzersiz kişi sayısı (ekip liderleri + üyeler; aynı isim bir kez sayılır)
+function bolumPersonelSayisi(b) {
+  const set = new Set([...C.bolumLiderleri(b), ...(b.kisiler || [])].map(I.isimAnahtar).filter(Boolean));
+  return set.size;
+}
+
+// Bir denetimin form alanlarından puan/bulgu/açıklama hesapları (yeni denetim ve revize ortak)
+function denetimFormuOku(req) {
+  const puanlar = {};
+  const bulgular = {};
+  let skor = 0;
+  for (const k of P.BESS_TUM_KRITERLER) {
+    let b = parseInt(req.body[`bulgu_${k}`], 10);
+    if (Number.isNaN(b) || b < 0) b = 0;
+    bulgular[k] = b;
+    const v = P.bessKriterPuanla(k, b);
+    puanlar[k] = v;
+    skor += v;
+  }
+  const aciklamalar = {};
+  for (const k of P.BESS_TUM_KRITERLER) {
+    const v = String(req.body[`aciklama_${k}`] || "").trim();
+    if (v) aciklamalar[k] = v;
+  }
+  return {
+    puanlar, bulgular, skor, aciklamalar, not_: alan(req, "not"),
+    checked: P.BESS_TUM_KRITERLER.filter((k) => puanlar[k] === P.BESS_KRITER_MAX[k]),
+    uygunsuz: P.BESS_TUM_KRITERLER.filter((k) => puanlar[k] < P.BESS_KRITER_MAX[k]),
+  };
+}
+
 module.exports = function register(app) {
   app.get("/5s", sar(async (req, res) => {
+    // Bölüm listesi: son denetim + personel sayısı + açık aksiyon sayısı
+    const acikAks = {};
+    for (const a of await sorgu("SELECT bolum_id FROM aksiyonlar WHERE durum = 'acik'")) {
+      acikAks[a.bolum_id] = (acikAks[a.bolum_id] || 0) + 1;
+    }
     const bolumler = [];
     for (const b of await C.loadBolumler()) {
-      bolumler.push({ ...b, _son: await C.sonDenetim(b.id) });
+      bolumler.push({ ...b, _son: await C.sonDenetim(b.id), _personel: bolumPersonelSayisi(b),
+        _acik_aksiyon: acikAks[b.id] || 0 });
     }
     const islenen = await C.odulIslenenler();
     const sonucTur = await C.besSSonSonucTur();
@@ -67,7 +105,7 @@ module.exports = function register(app) {
     });
   }));
 
-  app.post("/5s/odul-isle", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/5s/odul-isle", yetkiGerek("bes_odul"), sar(async (req, res) => {
     const tarih = alan(req, "tarih");
     if (!tarih) {
       flash(req, "error", "İşlenecek tur tarihi gerekli.");
@@ -78,17 +116,17 @@ module.exports = function register(app) {
     res.redirect("/5s");
   }));
 
-  app.post("/5s/bolum/ekle", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/5s/bolum/ekle", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const ad = alan(req, "ad");
     if (ad) {
       await calistir("INSERT INTO bolumler(id, ad, sorumlu, kisiler) VALUES(?,?,?,'[]')",
-        [C.uid(), ad, alan(req, "sorumlu")]);
+        [C.uid(), ad, kisiOku(req, "sorumlu").tam]);
       flash(req, "success", `Bölüm eklendi: ${ad}`);
     }
     res.redirect("/5s#bolumler");
   }));
 
-  app.post("/5s/bolum/sil", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/5s/bolum/sil", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const bid = req.body.id || "";
     // Bölümün denetim fotoğraflarını diskten temizle
     for (const d of await C.loadDenetimler()) {
@@ -106,7 +144,7 @@ module.exports = function register(app) {
     res.redirect("/5s#bolumler");
   }));
 
-  app.post("/5s/denetim-turu", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/5s/denetim-turu", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const baslangic = alan(req, "baslangic");
     const bitis = alan(req, "bitis") || baslangic;
     let turAdi = baslangic ? C.turAdiUret(baslangic) : "";
@@ -144,7 +182,7 @@ module.exports = function register(app) {
     res.redirect("/5s#plan");
   }));
 
-  app.post("/5s/plan/kaydet", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/5s/plan/kaydet", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const did = req.body.denetim_id || "";
     const d = await C.denetimById(did);
     if (d) {
@@ -163,7 +201,7 @@ module.exports = function register(app) {
   }));
 
   // Toplu denetmen dağıtımı: kendi / çapraz (+ misafirler dengeli rastgele)
-  app.post("/5s/plan/dagit", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/5s/plan/dagit", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const mod = req.body.mod || "";
     const tarih = req.body.tarih || "";
     const bekleyenler = (await C.loadDenetimler()).filter((d) => d.tarih === tarih && d.puan === null);
@@ -244,7 +282,7 @@ module.exports = function register(app) {
   }));
 
   // Sadece bekleyen (puanlanmamış) denetimleri sil — tamamlananlar korunur
-  app.post("/5s/plan/sil", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/5s/plan/sil", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const tarih = req.body.tarih || "";
     for (const d of await C.loadDenetimler()) {
       if (d.tarih === tarih && d.puan === null) {
@@ -311,7 +349,7 @@ module.exports = function register(app) {
     res.redirect("/5s/aksiyonlar#a-" + aid);
   }));
 
-  app.post("/5s/aksiyon/:aid/sil", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/5s/aksiyon/:aid/sil", yetkiGerek("bes_aksiyon"), sar(async (req, res) => {
     const a = await C.aksiyonById(req.params.aid);
     if (!a) return res.status(404).send("Aksiyon bulunamadı.");
     for (const fn of C.aksiyonFotolari(a)) {
@@ -328,11 +366,11 @@ module.exports = function register(app) {
     res.sendFile(fpath);
   });
 
-  app.get("/5s/aksiyonlar/excel", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.get("/5s/aksiyonlar/excel", yetkiGerek("bes_aksiyon"), sar(async (req, res) => {
     xlsxGonder(res, await X.generateAksiyonExcel(), "5S_Aksiyonlar.xlsx");
   }));
 
-  app.get("/5s/aksiyonlar/fotolar.zip", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.get("/5s/aksiyonlar/fotolar.zip", yetkiGerek("bes_aksiyon"), sar(async (req, res) => {
     let sayi = 0;
     const parcalar = [];
     for (const a of await C.loadAksiyonlar()) {
@@ -357,23 +395,35 @@ module.exports = function register(app) {
     const b = await C.bolumById(req.params.bid);
     if (!b) return res.status(404).send("Bölüm bulunamadı.");
     const liderler = C.bolumLiderleri(b);
+    const denetimler = await C.bolumDenetimleri(b.id);
+    // Trend: tamamlanan denetimler eskiden yeniye; toplam skor + S1–S5 kırılımı
+    const trend = denetimler.filter((d) => d.puan !== null).map((d) => ({
+      id: d.id, tarih: C.denetimTarihi(d), tur_adi: d.tur_adi || "", puan: d.puan,
+      s: P.bessBolumToplamlari(C.denetimKriterPuanlari(d)),
+    })).sort((x, y) => String(x.tarih).localeCompare(String(y.tarih)));
+    const acikAksiyon = (await sorgu(
+      "SELECT COUNT(*) AS n FROM aksiyonlar WHERE bolum_id = ? AND durum = 'acik'", [b.id]))[0].n;
     res.render("5s_bolum", {
-      title: `${b.ad} · 5S`, b, denetimler: await C.bolumDenetimleri(b.id),
+      title: `${b.ad} · 5S`, b, denetimler, trend, bess: P.BESS,
+      acik_aksiyon: Number(acikAksiyon), personel_sayisi: bolumPersonelSayisi(b),
       lider1: liderler[0] || "", lider2: liderler[1] || "",
     });
   }));
 
-  app.post("/5s/bolum/:bid/kisi/ekle", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/5s/bolum/:bid/kisi/ekle", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const b = await C.bolumById(req.params.bid);
-    const ad = alan(req, "ad");
-    if (b && ad) {
+    const k = kisiOku(req, "kisi");
+    const ad = k.tam;
+    if (b && k.eksik) flash(req, "error", "Kişinin adını ve soyadını yazın.");
+    else if (b && b.kisiler.some((x) => I.isimEsit(x, ad))) flash(req, "error", `${ad} zaten bu bölümde.`);
+    else if (b && ad) {
       b.kisiler.push(ad);
       await calistir("UPDATE bolumler SET kisiler = ? WHERE id = ?", [js(b.kisiler), b.id]);
     }
     res.redirect("/5s/bolum/" + req.params.bid);
   }));
 
-  app.post("/5s/bolum/:bid/kisi/sil", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/5s/bolum/:bid/kisi/sil", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const b = await C.bolumById(req.params.bid);
     if (b) {
       const kalan = b.kisiler.filter((k) => k !== (req.body.ad || ""));
@@ -383,10 +433,10 @@ module.exports = function register(app) {
   }));
 
   // 1. ve 2. ekip liderini birleştir → "Ali / Veli"
-  app.post("/5s/bolum/:bid/lider", yetkiGerek("bes_s"), sar(async (req, res) => {
-    const l1 = alan(req, "lider1");
-    const l2 = alan(req, "lider2");
-    const yeni = (l1 || l2) ? [l1, l2].filter(Boolean).join(" / ") : alan(req, "sorumlu");
+  app.post("/5s/bolum/:bid/lider", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    const l1 = kisiOku(req, "lider1").tam;
+    const l2 = kisiOku(req, "lider2").tam;
+    const yeni = (l1 || l2) ? [l1, l2].filter(Boolean).join(" / ") : kisiOku(req, "sorumlu").tam;
     await calistir("UPDATE bolumler SET sorumlu = ? WHERE id = ?", [yeni, req.params.bid]);
     flash(req, "success", "Ekip lideri güncellendi.");
     res.redirect("/5s/bolum/" + req.params.bid);
@@ -402,10 +452,10 @@ module.exports = function register(app) {
   // Denetmen kısıtı: 5S yetkili yönetici her bölümü denetleyebilir; değilse (denetmen)
   // yalnızca KENDİSİNE planlanan bölümü denetleyebilir.
   async function denetmenYetkiKontrol(req, bekleyen) {
-    if (req.superAdmin || (req.yetkiler || []).includes("bes_s")) return null;
-    const dHesap = await C.aktifDenetmen(req.session);
+    if ((req.yetkiler || []).includes("bes_denetim")) return null;
+    const dHesap = req.denetmen;
     const planlanan = ((bekleyen || {}).planlanan_denetmen || "").trim();
-    if (!dHesap || !bekleyen || !C.isimListesi(planlanan).includes(dHesap.ad)) {
+    if (!dHesap || !bekleyen || !I.isimIcerir(planlanan, dHesap.ad)) {
       return "Yalnızca size planlanan bölümün denetimini yapabilirsiniz.";
     }
     return null;
@@ -428,8 +478,9 @@ module.exports = function register(app) {
 
   // Sınır = form üzerindeki dosya kutusu sayısı (soru × 3) — tarayıcı BOŞ dosya
   // kutularını da multipart parçası olarak gönderir ve multer bunları da sayar.
-  app.post("/5s/bolum/:bid/denetim", ...dosyaYukleyici(3 * P.BESS_TUM_KRITERLER.length),
-    denetciRequired, sar(async (req, res) => {
+  // Giriş/yetki kontrolü dosya yüklemesinden ÖNCE (girişsiz istek belleğe dosya alamaz)
+  app.post("/5s/bolum/:bid/denetim", denetciRequired, ...dosyaYukleyici(3 * P.BESS_TUM_KRITERLER.length),
+    sar(async (req, res) => {
     const bid = req.params.bid;
     const b = await C.bolumById(bid);
     if (!b) return res.status(404).send("Bölüm bulunamadı.");
@@ -440,28 +491,10 @@ module.exports = function register(app) {
     S.ensureDirs();
     // Denetmen bulgu sayısı (veya Evet/Hayır) girer; puan form kurallarından hesaplanır
     // (ör. "her bulgu −3 puan; 5+ bulguda tamamı gider") — bkz. puanlama.js
-    const puanlar = {};
-    const bulgular = {};
-    let skor = 0;
-    for (const k of P.BESS_TUM_KRITERLER) {
-      let b = parseInt(req.body[`bulgu_${k}`], 10);
-      if (Number.isNaN(b) || b < 0) b = 0;
-      bulgular[k] = b;
-      const v = P.bessKriterPuanla(k, b);
-      puanlar[k] = v;
-      skor += v;
-    }
-    const checked = P.BESS_TUM_KRITERLER.filter((k) => puanlar[k] === P.BESS_KRITER_MAX[k]);
-    const uygunsuz = P.BESS_TUM_KRITERLER.filter((k) => puanlar[k] < P.BESS_KRITER_MAX[k]);
-    const not_ = alan(req, "not");
+    const { puanlar, bulgular, skor, aciklamalar, not_, checked, uygunsuz } = denetimFormuOku(req);
     // Denetmen girişliyse adı OTOMATİK oturumdan (form değiştiremez)
-    const dHesap = await C.aktifDenetmen(req.session);
+    const dHesap = req.denetmen;
     const denetmen = dHesap ? dHesap.ad : alan(req, "denetmen");
-    const aciklamalar = {};
-    for (const k of P.BESS_TUM_KRITERLER) {
-      const v = String(req.body[`aciklama_${k}`] || "").trim();
-      if (v) aciklamalar[k] = v;
-    }
     const now = S.zamanTr();
     const bugunIso = S.bugunIso();
     const did = bekleyen ? bekleyen.id : C.uid();
@@ -508,16 +541,90 @@ module.exports = function register(app) {
     for (const a of (await sorgu("SELECT * FROM aksiyonlar WHERE denetim_id = ?", [d.id])).map(aksiyonRow)) {
       (aksiyonMap[a.kriter_k] = aksiyonMap[a.kriter_k] || []).push(a);
     }
-    const geri = req.query.geri || (b ? "/5s/bolum/" + b.id : "/5s");
+    const geri = guvenliYol(req.query.geri, b ? "/5s/bolum/" + b.id : "/5s");
     res.render("5s_denetim_goster", {
       title: `Denetim Formu · ${b ? b.ad : ""}`, d, b, bess: P.BESS,
+      tur_islendi: await C.turIslendi(d.tarih),
+      s_toplam: P.bessBolumToplamlari(C.denetimKriterPuanlari(d)),
       kriter_puan: P.BESS_KRITER_PUAN, gosterilen_tarih: C.denetimTarihi(d),
       aksiyon_map: aksiyonMap, geri, kriter_puanlari: C.denetimKriterPuanlari(d),
     });
   }));
 
+  // ----- Denetim revize: yapılmış denetimin düzeltilmesi ('bes_revize' yetkisi) -----
+  // Ödülleri işlenmiş turdaki denetim revize edilemez (dağıtılmış puanlar değişmesin).
+  async function revizeHedefi(req, res) {
+    const d = await C.denetimById(req.params.did);
+    if (!d || d.puan === null) { res.status(404).send("Tamamlanmış denetim bulunamadı."); return null; }
+    if (await C.turIslendi(d.tarih)) {
+      flash(req, "error", "Bu turun 5S ödülleri işlenmiş — denetim revize edilemez.");
+      res.redirect("/5s/denetim/" + d.id);
+      return null;
+    }
+    return d;
+  }
+
+  app.get("/5s/denetim/:did/revize", yetkiGerek("bes_revize"), sar(async (req, res) => {
+    const d = await revizeHedefi(req, res);
+    if (!d) return;
+    const b = await C.bolumById(d.bolum_id);
+    if (!b) return res.status(404).send("Bölüm bulunamadı.");
+    // Ön-doldurma: kayıtlı bulgu sayıları (eski kayıtlarda puandan tahmin)
+    const kp = C.denetimKriterPuanlari(d);
+    const bulgular = {};
+    for (const k of P.BESS_TUM_KRITERLER) {
+      const v = (d.bulgular || {})[k];
+      bulgular[k] = (v !== undefined && v !== null) ? v : P.bessBulguTahmin(k, kp[k]);
+    }
+    const acikAks = {};
+    for (const a of await sorgu("SELECT kriter_k FROM aksiyonlar WHERE denetim_id = ? AND durum = 'acik'", [d.id])) {
+      acikAks[a.kriter_k] = (acikAks[a.kriter_k] || 0) + 1;
+    }
+    res.render("5s_denetim", {
+      title: `Denetim Revize · ${b.ad}`, b, bess: P.BESS, bekleyen: d, bugun: S.bugunIso(),
+      denetim_gunu: C.denetimTarihi(d) || S.bugunIso(), kural_metni: P.bessKuralMetni,
+      revize: { d, bulgular, acik_aksiyon: acikAks },
+    });
+  }));
+
+  app.post("/5s/denetim/:did/revize", yetkiGerek("bes_revize"),
+    ...dosyaYukleyici(3 * P.BESS_TUM_KRITERLER.length), sar(async (req, res) => {
+    const d = await revizeHedefi(req, res);
+    if (!d) return;
+    const b = await C.bolumById(d.bolum_id);
+    S.ensureDirs();
+    const f = denetimFormuOku(req);
+    // Silinmek üzere işaretlenen fotoğraflar (yalnızca bu denetime ait olanlar)
+    let silinecek = req.body.foto_sil || [];
+    if (!Array.isArray(silinecek)) silinecek = [silinecek];
+    const mevcutTum = new Set(C.denetimFotolari(d));
+    silinecek = silinecek.filter((fn) => mevcutTum.has(fn));
+    const kalan = {};
+    for (const [k, fl] of Object.entries(d.fotolar || {})) {
+      const l = fl.filter((fn) => !silinecek.includes(fn));
+      if (l.length) kalan[k] = l;
+    }
+    const fotolar = await C.saveDenetimFotolar(d.id, kalan, req.files);
+    const eskiPuan = d.puan;
+    const kim = req.yetkiBilgi.ana ? "Ana Yönetici" : (req.yetkiBilgi.ad || "Yönetici");
+    await calistir(
+      `UPDATE denetimler SET puan = ?, puanlar = ?, bulgular = ?, checked = ?, uygunsuz = ?,
+         notu = ?, aciklamalar = ?, fotolar = ?, revize_eden = ?, revize_zamani = ? WHERE id = ?`,
+      [f.skor, js(f.puanlar), js(f.bulgular), js(f.checked), js(f.uygunsuz), f.not_,
+        js(f.aciklamalar), js(fotolar), kim, S.zamanTr(), d.id]);
+    for (const fn of silinecek) {
+      try { fs.unlinkSync(path.join(S.BESS_FOTO_DIR, fn)); } catch {}
+    }
+    const eklenen = await C.syncDenetimAksiyonlari(d.id, {
+      tarih: C.denetimTarihi(d), tur_adi: d.tur_adi || "", bolum_id: d.bolum_id, bolum_ad: b ? b.ad : "",
+    }, req.body);
+    flash(req, "success", `${b ? b.ad : ""} denetimi revize edildi — Skor: ${eskiPuan} → ${f.skor}` +
+      (eklenen ? ` · ${eklenen} aksiyon eklendi` : ""));
+    res.redirect("/5s/denetim/" + d.id);
+  }));
+
   // Denetimi sil — işlenmiş ödül turundaysa bölümün 5S ödül kaydı da geri alınır
-  app.post("/5s/denetim/:did/sil", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/5s/denetim/:did/sil", yetkiGerek("bes_revize"), sar(async (req, res) => {
     const d = await C.denetimById(req.params.did);
     if (!d) return res.status(404).send("Denetim bulunamadı.");
     const { tarih, bolum_id } = d;
@@ -546,7 +653,7 @@ module.exports = function register(app) {
     });
     flash(req, "success", odulGeriAlindi
       ? "Denetim silindi ve dağıtılan 5S ödül puanı geri alındı." : "Denetim silindi.");
-    res.redirect(req.body.geri || "/5s");
+    res.redirect(guvenliYol(req.body.geri, "/5s"));
   }));
 
   app.get("/5s/gorsel/:filename", (req, res) => {
@@ -555,7 +662,7 @@ module.exports = function register(app) {
     res.sendFile(fpath);
   });
 
-  app.get("/5s/denetim/:did/fotolar.zip", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.get("/5s/denetim/:did/fotolar.zip", yetkiGerek("bes_odul"), sar(async (req, res) => {
     const d = await C.denetimById(req.params.did);
     if (!d) return res.status(404).send("Denetim bulunamadı.");
     if (!C.denetimFotolari(d).length) {
@@ -574,11 +681,11 @@ module.exports = function register(app) {
     });
   }));
 
-  app.get("/5s/denetim-excel", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.get("/5s/denetim-excel", yetkiGerek("bes_odul"), sar(async (req, res) => {
     xlsxGonder(res, await X.generate5sExcel(), "5s_denetimler.xlsx");
   }));
 
-  app.get("/5s/denetim/:did/excel", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.get("/5s/denetim/:did/excel", yetkiGerek("bes_odul"), sar(async (req, res) => {
     const d = await C.denetimById(req.params.did);
     if (!d) return res.status(404).send("Denetim bulunamadı.");
     const b = await C.bolumById(d.bolum_id);

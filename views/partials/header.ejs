@@ -14,10 +14,17 @@
             <span><%= marka_adi %></span>
         </a>
         <nav>
+            <% if (girisli) { %>
+                <a href="/panel">📊 Panel</a>
+                <a href="/liste">💡🔧 Öneri &amp; Kaizen</a>
+                <% if (denetmen_adi || yetki('degerlendir')) { %>
+                <a href="/gorevlerim">📋 Görevlerim<% if (gorev_sayisi) { %> <span class="nav-rozet"><%= gorev_sayisi %></span><% } %></a>
+                <% } %>
+            <% } %>
             <a href="/yardim">📖 Kılavuz</a>
             <% if (admin) { %>
-                <% if (yonetici_adi) { %><span class="nav-kisi">👤 <%= yonetici_adi %> <small>yönetici</small></span><% } %>
-                <a class="nav-admin" href="/yonetici">Yönetici Paneli</a>
+                <span class="nav-kisi">👤 <%= yonetici_adi || 'Ana Yönetici' %> <small>yönetici</small></span>
+                <a class="nav-admin" href="/yonetici">🛠 Yönetim</a>
                 <a href="/yonetici/cikis">Çıkış</a>
             <% } else if (denetmen_adi) { %>
                 <span class="nav-kisi">👤 <%= denetmen_adi %> <small>denetmen</small></span>

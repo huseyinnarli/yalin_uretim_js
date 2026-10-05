@@ -1,20 +1,46 @@
 <%- include('partials/header') %>
+<% const d = r.durum || 'Değerlendiriliyor';
+   const detayGeri = '&geri=' + encodeURIComponent(geri);
+   const benimRevizem = !silinen && denetmen && d == 'Düzeltme İsteniyor' && r.revize_atanan_id == denetmen.id; %>
 
 <div class="list-head">
     <h1 class="page-title">
         <% if (tip == 'kaizen') { %>🔧 Kaizen Detayı<% } else { %>💡 Öneri Detayı<% } %>
     </h1>
     <div class="list-actions">
-        <a class="btn ghost" href="<%= geri %>">← Listeye Dön</a>
-        <% if (yetki('kayit')) { %>
-            <% if (tip == 'oneri') { %>
-            <a class="btn primary" href="/oneri/duzenle?no=<%= encodeURIComponent(r.no) %>">Düzenle</a>
-            <% } else { %>
-            <a class="btn primary" href="/kaizen/duzenle?no=<%= encodeURIComponent(r.no) %>">Düzenle</a>
-            <% } %>
+        <a class="btn ghost" href="<%= geri %>">← <%= silinen ? 'Arşive Dön' : 'Listeye Dön' %></a>
+        <% if (duzenleyebilir) { %>
+        <a class="btn primary" href="/<%= tip %>/duzenle?no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">✏ Düzenle</a>
+        <% } %>
+        <% if (!silinen && yetki('puanla') && d == 'Onaylandı') { %>
+        <a class="btn primary" href="/degerlendir/puan?tip=<%= tip %>&no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">★ <%= r.puanlama ? 'Puanı Düzenle' : 'Puanla' %></a>
+        <% } %>
+        <% if (donusturebilir) { %>
+        <a class="btn primary" href="/kaizen/yeni?oneri=<%= encodeURIComponent(r.no) %>">🔧 Kaizene Dönüştür</a>
         <% } %>
     </div>
 </div>
+
+<% if (silinen) { %>
+<div class="uyari-kutu">🗑 Bu kayıt <strong><%= silinen.silme_zamani %></strong> tarihinde <strong><%= silinen.silen %></strong>
+    tarafından silindi — yalnızca görüntüleniyor.
+    <% if (yetki('kayit')) { %>
+    <form method="post" action="/silinenler/geri" style="display:inline"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+        <input type="hidden" name="id" value="<%= silinen.id %>">
+        <button type="submit" class="btn-mini onay">↩ Geri Yükle</button>
+    </form>
+    <% } %>
+</div>
+<% } %>
+
+<% if (benimRevizem) { %>
+<div class="gorev-kutu">
+    <strong>✏ Bu kaydın düzeltmesi size atandı.</strong>
+    <p><%= r.revize_notu %></p>
+    <small>İsteyen: <%= r.revize_isteyen || '—' %> · <%= r.revize_zamani || '' %></small>
+    <div><a class="btn primary" href="/<%= tip %>/duzenle?no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">Düzeltmeyi Yap</a></div>
+</div>
+<% } %>
 
 <div class="detail-card">
     <div class="detail-top">
@@ -22,7 +48,6 @@
         <% if (r.form_no) { %><span class="mono badge form-no-badge">Form No: <%= r.form_no %></span><% } %>
         <% if (tip == 'kaizen') { %><span class="tip-badge kaizen">KAIZEN</span>
         <% } else { %><span class="tip-badge oneri">ÖNERİ</span><% } %>
-        <% const d = r.durum || 'Değerlendiriliyor'; %>
         <% if (d == 'Onaylandı') { %><span class="durum-badge onay"><%= d %></span>
         <% } else if (d == 'Reddedildi') { %><span class="durum-badge red"><%= d %></span>
         <% } else if (d == 'Düzeltme İsteniyor') { %><span class="durum-badge revize"><%= d %></span>
@@ -111,8 +136,118 @@
     <div class="detail-block"><h3>Değerlendirme Notu</h3><p><%= r.degerlendirme_notu %></p></div>
     <% } %>
 
+    <% if (d == 'Reddedildi' && r.red_nedeni) { %>
+    <div class="detail-block red-blok"><h3>✕ Red Nedeni</h3><p><%= r.red_nedeni %></p></div>
+    <% } %>
+
+    <% if (r.revize_notu) { %>
+    <div class="detail-block"><h3>✏ Düzeltme Talebi</h3>
+        <p><%= r.revize_notu %></p>
+        <small class="bos-not">Atanan: <strong><%= r.revize_atanan_ad || '—' %></strong> · İsteyen: <%= r.revize_isteyen || '—' %>
+            · <%= r.revize_zamani || '' %><% if (r.revize_tamamlandi) { %> · ✔ Düzeltildi: <%= r.revize_tamamlandi %><% } %></small>
+    </div>
+    <% } %>
+
+    <% if (tip == 'oneri' && (r.gorev_atanan_ad || r.kaizen_no)) { %>
+    <div class="detail-block"><h3>📌 Uygulama Görevi</h3>
+        <% if (r.gorev_atanan_ad) { %>
+        <p><strong><%= r.gorev_atanan_ad %></strong><% if (r.gorev_termin) { %> · Termin: <%= trdate(r.gorev_termin) %><% } %></p>
+        <% if (r.gorev_notu) { %><p><%= r.gorev_notu %></p><% } %>
+        <small class="bos-not">Atayan: <%= r.gorev_atayan || '—' %> · <%= r.gorev_zamani || '' %></small>
+        <% } %>
+        <% if (r.kaizen_no) { %>
+        <p>✔ Kaizene dönüştürüldü: <a href="/detay?tip=kaizen&no=<%= encodeURIComponent(r.kaizen_no) %>" class="mono"><%= r.kaizen_no %></a></p>
+        <% } else if (r.gorev_atanan_ad) { %><p class="bos-not">⏳ Henüz kaizene dönüştürülmedi.</p><% } %>
+    </div>
+    <% } %>
+
+    <% if (tip == 'kaizen' && r.kaynak_oneri_no) { %>
+    <div class="detail-block"><h3>💡 Kaynak Öneri</h3>
+        <p>Bu kaizen <a href="/detay?tip=oneri&no=<%= encodeURIComponent(r.kaynak_oneri_no) %>" class="mono"><%= r.kaynak_oneri_no %></a> önerisinden dönüştürüldü.</p>
+    </div>
+    <% } %>
+
     <% if (r.guncelleme_zamani) { %>
     <div class="kc-foot">Son güncelleme: <%= r.guncelleme_zamani %></div>
     <% } %>
 </div>
+
+<% if (!silinen && yetki('degerlendir')) { %>
+<h2 class="bolum-baslik" id="degerlendir">⚖ Değerlendirme</h2>
+<% const denetmenSecim = (ad, secili) => denetmenler.map((dm) =>
+     '<option value="' + dm.id + '"' + (dm.id === secili ? ' selected' : '') + '>' +
+     String(dm.ad).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;') + '</option>').join(''); %>
+<% if (!denetmenler.length) { %>
+<p class="uyari-kutu">Düzeltme veya görev atamak için önce <a href="/yonetici#denetmenler">Yönetim › Denetmenler</a>'den denetmen hesabı açın.</p>
+<% } %>
+<div class="degerlendir-grid">
+    <% if (d != 'Onaylandı') { %>
+    <form method="post" action="/durum" class="panel degerlendir-kart onay-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+        <input type="hidden" name="tip" value="<%= tip %>"><input type="hidden" name="no" value="<%= r.no %>">
+        <input type="hidden" name="durum" value="Onaylandı"><input type="hidden" name="don" value="<%= bu_sayfa %>">
+        <h3>✓ Onayla</h3>
+        <% if (tip == 'oneri') { %>
+        <p class="bos-not">İsterseniz uygulayıp kaizene dönüştürecek kişiyi şimdi atayın:</p>
+        <select name="gorev_denetmen"><option value="">— görev atama (isteğe bağlı) —</option><%- denetmenSecim() %></select>
+        <input type="date" name="gorev_termin" title="Termin (isteğe bağlı)">
+        <textarea name="gorev_notu" rows="2" placeholder="Görev notu (isteğe bağlı)"></textarea>
+        <% } else { %>
+        <p class="bos-not">Onaylanınca form numarası atanır; ardından puanlanabilir.</p>
+        <% } %>
+        <button type="submit" class="btn primary">✓ Onayla</button>
+    </form>
+
+    <% if (d != 'Reddedildi') { %>
+    <form method="post" action="/durum" class="panel degerlendir-kart red-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+        <input type="hidden" name="tip" value="<%= tip %>"><input type="hidden" name="no" value="<%= r.no %>">
+        <input type="hidden" name="durum" value="Reddedildi"><input type="hidden" name="don" value="<%= bu_sayfa %>">
+        <h3>✕ Reddet</h3>
+        <textarea name="red_nedeni" rows="3" required placeholder="Red nedeni — zorunlu"></textarea>
+        <button type="submit" class="btn-mini reddet">✕ Reddet</button>
+    </form>
+    <% } else { %>
+    <form method="post" action="/durum" class="panel degerlendir-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+        <input type="hidden" name="tip" value="<%= tip %>"><input type="hidden" name="no" value="<%= r.no %>">
+        <input type="hidden" name="durum" value="Değerlendiriliyor"><input type="hidden" name="don" value="<%= bu_sayfa %>">
+        <h3>↩ Değerlendirmeye Geri Al</h3>
+        <p class="bos-not">Reddedilen kayıt yeniden "Değerlendiriliyor" durumuna alınır.</p>
+        <button type="submit" class="btn-mini edit">↩ Geri Al</button>
+    </form>
+    <% } %>
+
+    <% if (denetmenler.length) { %>
+    <form method="post" action="/durum" class="panel degerlendir-kart revize-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+        <input type="hidden" name="tip" value="<%= tip %>"><input type="hidden" name="no" value="<%= r.no %>">
+        <input type="hidden" name="durum" value="Düzeltme İsteniyor"><input type="hidden" name="don" value="<%= bu_sayfa %>">
+        <h3>✏ Düzeltme İste<%= d == 'Düzeltme İsteniyor' ? ' (yeniden ata)' : '' %></h3>
+        <select name="revize_denetmen" required><option value="">— düzeltmeyi yapacak denetmen —</option><%- denetmenSecim(null, r.revize_atanan_id) %></select>
+        <textarea name="revize_notu" rows="3" required placeholder="Neyin düzeltilmesi gerekiyor — zorunlu"><%= d == 'Düzeltme İsteniyor' ? (r.revize_notu || '') : '' %></textarea>
+        <button type="submit" class="btn-mini revize">✏ Düzeltme İste</button>
+    </form>
+    <% } %>
+    <% } else if (tip == 'oneri' && !r.kaizen_no && denetmenler.length) { %>
+    <form method="post" action="/gorev" class="panel degerlendir-kart onay-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+        <input type="hidden" name="no" value="<%= r.no %>"><input type="hidden" name="don" value="<%= bu_sayfa %>">
+        <h3>📌 <%= r.gorev_atanan_id ? 'Görevi Değiştir' : 'Uygulama Görevi Ata' %></h3>
+        <p class="bos-not">Atanan kişi öneriyi uygular ve kaizene dönüştürür.</p>
+        <select name="gorev_denetmen" required><option value="">— denetmen seçin —</option><%- denetmenSecim(null, r.gorev_atanan_id) %></select>
+        <input type="date" name="gorev_termin" value="<%= r.gorev_termin || '' %>" title="Termin (isteğe bağlı)">
+        <textarea name="gorev_notu" rows="2" placeholder="Görev notu (isteğe bağlı)"><%= r.gorev_notu || '' %></textarea>
+        <button type="submit" class="btn primary">📌 Kaydet</button>
+        <% if (r.gorev_atanan_id) { %>
+        <button type="submit" name="kaldir" value="1" class="btn-mini del" formnovalidate>Görevi Kaldır</button>
+        <% } %>
+    </form>
+    <% } %>
+</div>
+<% } %>
+
+<% if (!silinen && yetki('kayit')) { %>
+<form method="post" action="/sil" class="sil-satir"
+      onsubmit="return confirm('Bu kayıt silinsin mi? (Reddedilen &amp; Silinen arşivinden geri yüklenebilir)');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <input type="hidden" name="tip" value="<%= tip %>"><input type="hidden" name="no" value="<%= r.no %>">
+    <input type="hidden" name="don" value="<%= geri %>">
+    <button type="submit" class="btn-mini del">🗑 Kaydı Sil</button>
+</form>
+<% } %>
 <%- include('partials/footer') %>

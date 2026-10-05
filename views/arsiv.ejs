@@ -1,0 +1,78 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">🗂 Reddedilen &amp; Silinen Kayıtlar</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/liste">← Öneri &amp; Kaizen</a>
+    </div>
+</div>
+
+<p class="subtitle">Reddedilen ve silinen öneri/kaizenler ana listede görünmez; burada toplanır.
+    <% if (!yetki('degerlendir') && !yetki('kayit')) { %>Bu sayfa sizin için yalnızca görüntüleme amaçlıdır.<% } %></p>
+
+<h2 class="bolum-baslik" id="reddedilenler">✕ Reddedilenler <span class="rozet-acik"><%= reddedilenler.length %></span></h2>
+<% if (reddedilenler.length) { %>
+<div class="table-wrap">
+<table class="data-table">
+    <thead><tr><th>Tür</th><th>No</th><th>Tarih</th><th>Konu</th><th>Kişi</th><th>Red Nedeni</th></tr></thead>
+    <tbody>
+        <% for (const r of reddedilenler) { %>
+        <tr>
+            <td data-label="Tür"><% if (r.tip == 'kaizen') { %><span class="tip-badge kaizen">KAIZEN</span><% } else { %><span class="tip-badge oneri">ÖNERİ</span><% } %></td>
+            <td class="mono nowrap" data-label="No"><%= r.no %></td>
+            <td class="nowrap" data-label="Tarih"><%= trdate(r.sort_date) %></td>
+            <td data-label="Konu"><a class="title-link" href="/detay?tip=<%= r.tip %>&no=<%= encodeURIComponent(r.no) %>&geri=<%= encodeURIComponent('/arsiv') %>"><%= r.baslik || '(başlıksız)' %></a></td>
+            <td data-label="Kişi"><%= r.kisi %></td>
+            <td data-label="Red Nedeni"><%= r.red_nedeni || '—' %></td>
+        </tr>
+        <% } %>
+    </tbody>
+</table>
+</div>
+<% } else { %>
+<div class="empty">Reddedilmiş kayıt yok.</div>
+<% } %>
+
+<h2 class="bolum-baslik" id="silinenler">🗑 Silinenler <span class="rozet-kapali"><%= silinenler.length %></span></h2>
+<% if (silinenler.length) { %>
+<div class="table-wrap">
+<table class="data-table">
+    <thead>
+        <tr><th>Tür</th><th>No</th><th>Tarih</th><th>Konu</th><th>Kişi</th><th>Durum</th><th>Silen</th><th>Silme Zamanı</th>
+            <% if (yetki('kayit')) { %><th>İşlem</th><% } %></tr>
+    </thead>
+    <tbody>
+        <% for (const k of silinenler) { %>
+        <tr>
+            <td data-label="Tür"><% if (k.tip == 'kaizen') { %><span class="tip-badge kaizen">KAIZEN</span><% } else { %><span class="tip-badge oneri">ÖNERİ</span><% } %></td>
+            <td class="mono nowrap" data-label="No"><%= k.no %></td>
+            <td class="nowrap" data-label="Tarih"><%= trdate(k.tarih) %></td>
+            <td data-label="Konu"><a class="title-link" href="/arsiv/silinen/<%= k.id %>"><%= k.konu || '(başlıksız)' %></a></td>
+            <td data-label="Kişi"><%= k.kisi %></td>
+            <td class="nowrap" data-label="Durum"><span class="durum-badge <%= k.durum == 'Onaylandı' ? 'onay' : (k.durum == 'Reddedildi' ? 'red' : (k.durum == 'Düzeltme İsteniyor' ? 'revize' : 'bekle')) %>"><%= k.durum || 'Değerlendiriliyor' %></span></td>
+            <td data-label="Silen"><%= k.silen %></td>
+            <td class="nowrap" data-label="Silme Zamanı"><%= k.silme_zamani %></td>
+            <% if (yetki('kayit')) { %>
+            <td class="nowrap islem-hucre" data-label="İşlem">
+                <form method="post" action="/silinenler/geri" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                    <input type="hidden" name="id" value="<%= k.id %>">
+                    <button type="submit" class="btn-mini onay" title="Listeye geri al">↩ Geri Yükle</button>
+                </form>
+                <form method="post" action="/silinenler/sil" style="display:inline"
+                      onsubmit="return confirm('Bu kayıt KALICI olarak silinsin mi? Bu işlem geri alınamaz.');">
+                    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                    <input type="hidden" name="id" value="<%= k.id %>">
+                    <button type="submit" class="btn-mini del">Kalıcı Sil</button>
+                </form>
+            </td>
+            <% } %>
+        </tr>
+        <% } %>
+    </tbody>
+</table>
+</div>
+<% } else { %>
+<div class="empty">Silinmiş kayıt yok.</div>
+<% } %>
+<%- include('partials/footer') %>

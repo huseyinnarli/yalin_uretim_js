@@ -156,6 +156,27 @@ function bessKriterPuanla(k, bulgu) {
   return Math.max(0, kr.puan - ku.dusus * bulgu);
 }
 
+// Bulgu sayısı kaydı olmayan eski denetimlerde puandan geri tahmin (revize formunu ön-doldurmak için)
+function bessBulguTahmin(k, puan) {
+  const kr = _BESS_KRITERLER[k];
+  if (!kr) return 0;
+  puan = parseInt(puan, 10);
+  if (Number.isNaN(puan) || puan >= kr.puan) return 0;
+  const ku = kr.kural;
+  if (ku.tip === "evet_hayir") return 1;
+  if (puan <= 0 || !ku.dusus) return ku.sifir;
+  return Math.min(ku.sifir, Math.round((kr.puan - puan) / ku.dusus));
+}
+
+// Kriter puanlarından S bölümü toplamları: { s1: 22, s2: 35, s3: 20, s4: 4, s5: 16 }
+function bessBolumToplamlari(kriterPuanlari) {
+  const out = {};
+  for (const s of BESS) {
+    out[s.kod] = s.kriterler.reduce((t, kr) => t + (parseInt((kriterPuanlari || {})[kr.k], 10) || 0), 0);
+  }
+  return out;
+}
+
 // Kuralın kullanıcıya gösterilecek kısa açıklaması.
 function bessKuralMetni(kr) {
   const ku = kr.kural;
@@ -239,6 +260,6 @@ function puanlamaOzet(p) {
 module.exports = {
   PUAN_TEMEL, PUAN_ETKI, PUAN_MALIYET, PUAN_YAYGIN, PUAN_EFOR, PUAN_MAX,
   BESS, BESS_KRITER_PUAN, BESS_TUM_KRITERLER, BESS_KRITER_MAX,
-  bessKriterPuanla, bessKuralMetni,
+  bessKriterPuanla, bessKuralMetni, bessBulguTahmin, bessBolumToplamlari,
   hesaplaPuanlama, puanlamaOzet,
 };

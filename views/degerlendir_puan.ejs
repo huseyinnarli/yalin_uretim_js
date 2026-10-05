@@ -3,8 +3,8 @@
 <div class="list-head">
     <h1 class="page-title">★ Puanlama</h1>
     <div class="list-actions">
-        <a class="btn ghost" href="/liste">← Listeye Dön</a>
-        <a class="btn ghost" href="/detay?tip=<%= tip %>&no=<%= encodeURIComponent(r.no) %>&geri=%2Fliste">Detayı Gör</a>
+        <a class="btn ghost" href="<%= detay_url %>">← <%= tip == 'kaizen' ? 'Kaizene' : 'Öneriye' %> Dön</a>
+        <a class="btn ghost" href="<%= geri %>">← Listeye Dön</a>
     </div>
 </div>
 
@@ -32,6 +32,7 @@
     <form method="post" action="/degerlendir/puan" id="puanForm"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
         <input type="hidden" name="tip" value="<%= tip %>">
         <input type="hidden" name="no" value="<%= r.no %>">
+        <input type="hidden" name="geri" value="<%= geri %>">
 
         <!-- 1) TEMEL ŞARTLAR -->
         <fieldset class="puan-blok">
@@ -124,7 +125,7 @@
 
         <div class="form-actions">
             <button type="submit" class="btn primary">Puanlamayı Kaydet</button>
-            <a class="btn ghost" href="/liste">İptal</a>
+            <a class="btn ghost" href="<%= detay_url %>">İptal</a>
         </div>
     </form>
 </div>

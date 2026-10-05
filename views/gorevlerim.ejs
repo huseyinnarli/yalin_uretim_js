@@ -1,0 +1,99 @@
+<%- include('partials/header') %>
+<% const kayitLink = (r) => '/detay?tip=' + r.tip + '&no=' + encodeURIComponent(r.no) + '&geri=' + encodeURIComponent('/gorevlerim'); %>
+
+<div class="list-head">
+    <h1 class="page-title">📋 Görevlerim</h1>
+    <div class="list-actions"><a class="btn ghost" href="/liste">💡🔧 Öneri &amp; Kaizen</a></div>
+</div>
+
+<% if (benim) { %>
+<h2 class="bolum-baslik">✏ Düzeltmesi bana atanan kayıtlar <span class="rozet-acik"><%= benim.revizeler.length %></span></h2>
+<% if (benim.revizeler.length) { %>
+<div class="gorev-liste">
+    <% for (const r of benim.revizeler) { %>
+    <div class="gorev-satir">
+        <span class="tip-badge <%= r.tip %>"><%= r.tip == 'kaizen' ? 'KAIZEN' : 'ÖNERİ' %></span>
+        <span class="gs-govde"><a class="title-link" href="<%= kayitLink(r) %>"><span class="mono"><%= r.no %></span> · <%= r.konu || '(başlıksız)' %></a>
+            <small>İstenen: <%= r.revize_notu %> — <%= r.revize_isteyen || '' %>, <%= r.revize_zamani || '' %></small></span>
+        <a class="btn-mini edit" href="/<%= r.tip %>/duzenle?no=<%= encodeURIComponent(r.no) %>&geri=%2Fgorevlerim">Düzeltmeyi Yap</a>
+    </div>
+    <% } %>
+</div>
+<% } else { %><p class="bos-not">Size atanmış bekleyen düzeltme yok.</p><% } %>
+
+<h2 class="bolum-baslik">📌 Uygulama ve kaizene dönüştürme görevlerim <span class="rozet-acik"><%= benim.acikGorevler.length %></span></h2>
+<% if (benim.acikGorevler.length) { %>
+<div class="gorev-liste">
+    <% for (const r of benim.acikGorevler) { %>
+    <div class="gorev-satir">
+        <span class="tip-badge oneri">ÖNERİ</span>
+        <span class="gs-govde"><a class="title-link" href="<%= kayitLink(r) %>"><span class="mono"><%= r.no %></span> · <%= r.konu || '(başlıksız)' %></a>
+            <small><% if (r.gorev_termin) { %>Termin: <%= trdate(r.gorev_termin) %> · <% } %><%= r.gorev_notu || '' %></small></span>
+        <a class="btn-mini onay" href="/kaizen/yeni?oneri=<%= encodeURIComponent(r.no) %>">🔧 Kaizene Dönüştür</a>
+    </div>
+    <% } %>
+</div>
+<% } else { %><p class="bos-not">Bekleyen göreviniz yok.</p><% } %>
+<% if (benim.biten.length) { %>
+<details class="tur-blok"><summary class="tur-summary"><span class="tur-ok">▸</span><span class="tur-ad">Tamamlanan görevler</span>
+    <span class="tur-bolum-sayisi"><%= benim.biten.length %></span></summary>
+    <div class="gorev-liste">
+    <% for (const r of benim.biten) { %>
+        <div class="gorev-satir"><span class="gs-govde"><span class="mono"><%= r.no %></span> · <%= r.konu %>
+            → <a class="mono" href="/detay?tip=kaizen&no=<%= encodeURIComponent(r.kaizen_no) %>"><%= r.kaizen_no %></a></span></div>
+    <% } %>
+    </div>
+</details>
+<% } %>
+
+<h2 class="bolum-baslik">🧹 Bana planlanan 5S denetimleri <span class="rozet-acik"><%= benim.denetimler.length %></span></h2>
+<% if (benim.denetimler.length) { %>
+<div class="gorev-liste">
+    <% for (const d of benim.denetimler) { %>
+    <div class="gorev-satir">
+        <span class="gs-govde"><strong><%= d.bolum_ad %></strong> · <%= d.tur_adi || trdate(d.tarih) %>
+            <small><% if (d.plan_gun) { %>Gün: <%= trdate(d.plan_gun) %><% if (d.plan_saat) { %> <%= d.plan_saat %><% } %><% } %></small></span>
+        <a class="btn-mini edit" href="/5s/bolum/<%= d.bolum_id %>/denetim">📋 Denetimi Yap</a>
+    </div>
+    <% } %>
+</div>
+<% } else { %><p class="bos-not">Size planlanmış bekleyen denetim yok.</p><% } %>
+
+<h2 class="bolum-baslik">⚑ Kapatmam gereken 5S aksiyonları <span class="rozet-acik"><%= benim.aksiyonlar.length %></span></h2>
+<% if (benim.aksiyonlar.length) { %>
+<div class="gorev-liste">
+    <% for (const a of benim.aksiyonlar) { %>
+    <div class="gorev-satir">
+        <span class="gs-govde"><strong><%= a.bolum_ad %></strong> · <%= a.aksiyon %>
+            <small><%= a.kriter_m %><% if (a.termin) { %> · Termin: <%= trdate(a.termin) %><% } %></small></span>
+        <a class="btn-mini edit" href="/5s/aksiyonlar#a-<%= a.id %>">Aksiyona Git</a>
+    </div>
+    <% } %>
+</div>
+<% } else { %><p class="bos-not">Kapatmanız gereken açık aksiyon yok.</p><% } %>
+<% } %>
+
+<% if (tumu) { %>
+<h2 class="bolum-baslik">👥 Tüm açık atamalar (takip)</h2>
+<div class="iki-kolon">
+    <div class="panel">
+        <h3>✏ Düzeltme bekleyenler (<%= tumu.revizeler.length %>)</h3>
+        <% if (tumu.revizeler.length) { for (const r of tumu.revizeler) { %>
+        <div class="gorev-satir"><span class="gs-govde"><a class="title-link" href="<%= kayitLink(r) %>"><span class="mono"><%= r.no %></span> · <%= r.konu %></a>
+            <small>👤 <%= r.revize_atanan_ad || '—' %> · <%= r.revize_zamani || '' %></small></span></div>
+        <% } } else { %><p class="bos-not">Yok.</p><% } %>
+    </div>
+    <div class="panel">
+        <h3>📌 Kaizene dönüştürülmeyi bekleyen görevler (<%= tumu.gorevler.length %>)</h3>
+        <% if (tumu.gorevler.length) { for (const r of tumu.gorevler) { %>
+        <div class="gorev-satir"><span class="gs-govde"><a class="title-link" href="<%= kayitLink(r) %>"><span class="mono"><%= r.no %></span> · <%= r.konu %></a>
+            <small>👤 <%= r.gorev_atanan_ad %><% if (r.gorev_termin) { %> · Termin: <%= trdate(r.gorev_termin) %><% } %></small></span></div>
+        <% } } else { %><p class="bos-not">Yok.</p><% } %>
+    </div>
+</div>
+<% } %>
+
+<% if (!benim && !tumu) { %>
+<div class="empty">Size atanmış görev yok.</div>
+<% } %>
+<%- include('partials/footer') %>

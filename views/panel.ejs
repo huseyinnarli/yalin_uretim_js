@@ -1,0 +1,171 @@
+<%- include('partials/header') %>
+
+<div class="list-head">
+    <h1 class="page-title">📊 Panel</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/puan-durumu">🏆 Puan Listesi</a>
+        <a class="btn ghost" href="/liste">📋 Öneri &amp; Kaizen</a>
+        <a class="btn ghost" href="/5s">🧹 5S</a>
+        <% if (super_admin) { %><a class="btn ghost" href="/yonetici/gunluk">📜 İşlem Günlüğü</a><% } %>
+    </div>
+</div>
+
+<!-- Öneri & Kaizen istatistikleri: tek tablo, dönem butonları -->
+<div class="list-head" style="margin-bottom:10px">
+    <h2 class="bolum-baslik" style="margin:0">💡🔧 Öneri &amp; Kaizen</h2>
+    <div class="donem-butonlar" role="group" aria-label="Dönem">
+        <% ist.donemler.forEach(function (dn, i) { %>
+        <button type="button" class="btn-mini donem-btn<%= i === 0 ? ' aktif' : '' %>" data-donem="<%= dn.k %>"><%= dn.ad %></button>
+        <% }); %>
+    </div>
+</div>
+<div class="table-wrap">
+<table class="data-table istatistik-tablo">
+    <thead>
+        <tr><th></th><th>Gelen</th><th>⏳ Değerlendiriliyor</th><th>✏ Düzeltme</th><th>✓ Onaylandı</th>
+            <th>★ Puan Alan</th><th>✕ Reddedildi</th></tr>
+    </thead>
+    <% ist.donemler.forEach(function (dn, i) { %>
+    <tbody class="donem-govde" data-donem="<%= dn.k %>"<%= i === 0 ? '' : ' hidden' %>>
+        <% for (const [etiket, x, sinif] of [['💡 Öneri', dn.oneri, ''], ['🔧 Kaizen', dn.kaizen, ''], ['Toplam', dn.toplam, 'toplam-satir']]) { %>
+        <tr class="<%= sinif %>">
+            <th scope="row"><%= etiket %></th>
+            <td data-label="Gelen"><strong><%= x.toplam %></strong></td>
+            <td data-label="Değerlendiriliyor"><%= x.bekle %></td>
+            <td data-label="Düzeltme"><%= x.revize %></td>
+            <td data-label="Onaylandı"><%= x.onay %></td>
+            <td data-label="Puan Alan"><%= x.puanli %></td>
+            <td data-label="Reddedildi"><%= x.red %></td>
+        </tr>
+        <% } %>
+    </tbody>
+    <% }); %>
+    <tfoot>
+        <tr class="sabit-toplam">
+            <th scope="row">Tüm zamanlar</th>
+            <td colspan="6">💡 <strong><%= ist.tum.oneri.toplam %></strong> öneri · 🔧 <strong><%= ist.tum.kaizen.toplam %></strong> kaizen ·
+                toplam <strong><%= ist.tum.toplam.toplam %></strong> kayıt
+                <span class="bos-not">— puan alan: <%= ist.tum.oneri.puanli %> öneri, <%= ist.tum.kaizen.puanli %> kaizen</span></td>
+        </tr>
+    </tfoot>
+</table>
+</div>
+
+<!-- Son 12 ay: gelen vs onaylanıp puan alan -->
+<% const tr = ist.trend;
+   const gelen = tr.map((t) => t.gelen_oneri + t.gelen_kaizen);
+   const puanli = tr.map((t) => t.puanli_oneri + t.puanli_kaizen);
+   const hamMax = Math.max(1, ...gelen);
+   const adim = hamMax <= 5 ? 1 : Math.ceil(hamMax / 4 / 5) * 5 || 1;
+   const yMax = Math.ceil(hamMax / adim) * adim;
+   const W = 720, H = 240, SOL = 34, SAG = 8, UST = 12, ALT = 26;
+   const genis = (W - SOL - SAG) / tr.length, bar = Math.min(18, genis / 2 - 4);
+   const y = (v) => UST + (H - UST - ALT) * (1 - v / yMax);
+   const cubuk = (x, v) => { const ust = y(v), taban = y(0), h = taban - ust;
+       if (h <= 0) return '';
+       const r = Math.min(4, h, bar / 2);
+       return 'M' + x + ',' + taban + 'V' + (ust + r) + 'Q' + x + ',' + ust + ' ' + (x + r) + ',' + ust +
+              'H' + (x + bar - r) + 'Q' + (x + bar) + ',' + ust + ' ' + (x + bar) + ',' + (ust + r) + 'V' + taban + 'Z'; };
+   const ticks = []; for (let v = 0; v <= yMax; v += adim) ticks.push(v); %>
+<h2 class="bolum-baslik" style="margin-top:26px">📈 Son 12 Ay — Gelen ve Puan Alan</h2>
+<p class="bos-not" style="margin-top:-6px">Her ay o ay gelen öneri+kaizen ile bunlardan onaylanıp puan alanlar (gerçekleşen). Çubuğun üzerine gelince ayrıntı görünür.</p>
+<div class="grafik-kart">
+    <div class="grafik-lejant">
+        <span><i class="lejant-renk" style="background:var(--seri-1)"></i>Gelen</span>
+        <span><i class="lejant-renk" style="background:var(--seri-2)"></i>Puan alan (onaylı)</span>
+    </div>
+    <svg class="trend-svg" viewBox="0 0 <%= W %> <%= H %>" role="img" aria-label="Son 12 ay gelen ve puan alan öneri-kaizen sayıları">
+        <% for (const t of ticks) { %>
+        <line x1="<%= SOL %>" x2="<%= W - SAG %>" y1="<%= y(t) %>" y2="<%= y(t) %>" class="grafik-grid"/>
+        <text x="<%= SOL - 6 %>" y="<%= y(t) + 4 %>" class="grafik-eksen" text-anchor="end"><%= t %></text>
+        <% } %>
+        <% tr.forEach(function (t, i) { const x0 = SOL + i * genis + (genis - (2 * bar + 2)) / 2; %>
+        <g class="grafik-ay">
+            <rect x="<%= SOL + i * genis %>" y="<%= UST %>" width="<%= genis %>" height="<%= H - UST - ALT %>" class="grafik-hedef">
+                <title><%= t.etiket %> — Gelen: <%= gelen[i] %> (<%= t.gelen_oneri %> öneri, <%= t.gelen_kaizen %> kaizen) · Puan alan: <%= puanli[i] %> (<%= t.puanli_oneri %> öneri, <%= t.puanli_kaizen %> kaizen)</title>
+            </rect>
+            <path d="<%= cubuk(x0, gelen[i]) %>" fill="var(--seri-1)"/>
+            <path d="<%= cubuk(x0 + bar + 2, puanli[i]) %>" fill="var(--seri-2)"/>
+            <% if (i === tr.length - 1) { %>
+            <text x="<%= x0 + bar / 2 %>" y="<%= y(gelen[i]) - 4 %>" class="grafik-deger" text-anchor="middle"><%= gelen[i] %></text>
+            <text x="<%= x0 + bar * 1.5 + 2 %>" y="<%= y(puanli[i]) - 4 %>" class="grafik-deger" text-anchor="middle"><%= puanli[i] %></text>
+            <% } %>
+            <text x="<%= SOL + i * genis + genis / 2 %>" y="<%= H - 8 %>" class="grafik-eksen" text-anchor="middle"><%= t.etiket %></text>
+        </g>
+        <% }); %>
+        <line x1="<%= SOL %>" x2="<%= W - SAG %>" y1="<%= y(0) %>" y2="<%= y(0) %>" class="grafik-taban"/>
+    </svg>
+    <details class="grafik-tablo">
+        <summary>Tablo olarak göster</summary>
+        <div class="table-wrap">
+        <table class="data-table mini-tablo">
+            <thead><tr><th>Ay</th><th>Gelen öneri</th><th>Gelen kaizen</th><th>Puan alan öneri</th><th>Puan alan kaizen</th></tr></thead>
+            <tbody>
+                <% for (const t of tr) { %>
+                <tr><td data-label="Ay"><%= t.etiket %></td><td data-label="Gelen öneri"><%= t.gelen_oneri %></td>
+                    <td data-label="Gelen kaizen"><%= t.gelen_kaizen %></td><td data-label="Puan alan öneri"><%= t.puanli_oneri %></td>
+                    <td data-label="Puan alan kaizen"><%= t.puanli_kaizen %></td></tr>
+                <% } %>
+            </tbody>
+        </table>
+        </div>
+    </details>
+</div>
+
+<!-- 5S trendi -->
+<div class="list-head" style="margin-top:26px">
+    <h2 class="bolum-baslik" style="margin:0">🧹 Bölümlerin 5S Trendi</h2>
+    <% if (trend_basliklar.length && yetki('bes_odul')) { %>
+    <a class="btn ghost" href="/yonetici/5s-trend/excel">⬇ Trend Excel</a>
+    <% } %>
+</div>
+<% if (trend_basliklar.length) { %>
+<div class="table-wrap">
+<table class="data-table trend-tablo" style="min-width:0">
+    <thead>
+        <tr>
+            <th>Bölüm</th>
+            <% for (const b of trend_basliklar) { %>
+            <th><%= b.ad %><br><small><%= trdate(b.tarih) %></small></th>
+            <% } %>
+        </tr>
+    </thead>
+    <tbody>
+        <% for (const s of trend_satirlar) { %>
+        <tr>
+            <td data-label="Bölüm"><strong><%= s.ad %></strong></td>
+            <% s.hucreler.forEach(function (h, hi) { %>
+            <td data-label="<%= trend_basliklar[hi].ad %>" class="trend-hucre">
+                <% if (h) { %>
+                    <span class="trend-puan <%= (h.fark !== null && h.fark < 0) ? 'dusus' : ((h.fark !== null && h.fark > 0) ? 'artis' : '') %>">
+                        <%= h.puan %>
+                        <% if (h.fark !== null && h.fark < 0) { %><small>▼ <%= h.fark %></small>
+                        <% } else if (h.fark !== null && h.fark > 0) { %><small>▲ +<%= h.fark %></small>
+                        <% } else if (h.fark !== null) { %><small>—</small><% } %>
+                    </span>
+                <% } else { %><span class="trend-bos">—</span><% } %>
+            </td>
+            <% }); %>
+        </tr>
+        <% } %>
+    </tbody>
+</table>
+</div>
+<% } else { %>
+<div class="empty">Henüz puanlanmış 5S denetimi yok.</div>
+<% } %>
+
+<script>
+(function () {
+    var btns = document.querySelectorAll('.donem-btn');
+    btns.forEach(function (b) {
+        b.addEventListener('click', function () {
+            btns.forEach(function (x) { x.classList.toggle('aktif', x === b); });
+            document.querySelectorAll('.donem-govde').forEach(function (g) {
+                g.hidden = g.dataset.donem !== b.dataset.donem;
+            });
+        });
+    });
+})();
+</script>
+<%- include('partials/footer') %>

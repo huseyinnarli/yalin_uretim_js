@@ -161,14 +161,48 @@ CREATE TABLE IF NOT EXISTS silinen_kayitlar (
   tip VARCHAR(10), no VARCHAR(32), veri TEXT,
   silen VARCHAR(191), silme_zamani VARCHAR(20)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
+
+CREATE TABLE IF NOT EXISTS isim_eslestirme (
+  kaynak VARCHAR(191) PRIMARY KEY,
+  hedef  VARCHAR(191) NOT NULL,
+  olusturan VARCHAR(191), zaman VARCHAR(20)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
 `;
 
-// Şemayı kurar — uygulama açılışında bir kez çağrılır.
+// Kolon yoksa ekler (yalnızca EKLEME — mevcut satırlar ve kolonlar değişmez).
+// MySQL 8'de sona kolon ekleme "instant" işlemdir; tablo yeniden yazılmaz.
+async function kolonEkle(tablo, kolon, tanim) {
+  const [c] = await pool.query(`SHOW COLUMNS FROM ${tablo} LIKE ?`, [kolon]);
+  if (!c.length) await pool.query(`ALTER TABLE ${tablo} ADD COLUMN \`${kolon}\` ${tanim}`);
+}
+
+// Öneri + kaizen ortak değerlendirme kolonları (red gerekçesi, düzeltme ataması)
+const _DEGERLENDIRME_KOLONLARI = [
+  ["red_nedeni", "TEXT"],
+  ["revize_notu", "TEXT"],
+  ["revize_atanan_id", "VARCHAR(16)"],
+  ["revize_atanan_ad", "VARCHAR(191)"],
+  ["revize_isteyen", "VARCHAR(191)"],
+  ["revize_zamani", "VARCHAR(20)"],
+  ["revize_tamamlandi", "VARCHAR(20)"],
+];
+// Yalnız öneri: onaylanan öneriyi uygulayıp kaizene dönüştürme görevi
+const _GOREV_KOLONLARI = [
+  ["gorev_atanan_id", "VARCHAR(16)"],
+  ["gorev_atanan_ad", "VARCHAR(191)"],
+  ["gorev_termin", "VARCHAR(10)"],
+  ["gorev_notu", "TEXT"],
+  ["gorev_atayan", "VARCHAR(191)"],
+  ["gorev_zamani", "VARCHAR(20)"],
+  ["kaizen_no", "VARCHAR(32)"],
+];
+
+// Şemayı kurar — uygulama açılışında bir kez çağrılır. Var olan tabloya/veriye dokunmaz.
 async function init() {
   for (const ddl of SEMA.split(";").map((s) => s.trim()).filter(Boolean)) {
     await pool.query(ddl);
   }
-  // Mevcut kurulumlar için küçük migrasyonlar (CREATE IF NOT EXISTS kolon eklemez)
+  // Mevcut kurulumlar için migrasyonlar (CREATE IF NOT EXISTS kolon eklemez)
   const [kolon] = await pool.query("SHOW COLUMNS FROM denetimler LIKE 'bulgular'");
   if (!kolon.length) {
     await pool.query("ALTER TABLE denetimler ADD COLUMN bulgular TEXT AFTER puanlar");
@@ -178,6 +212,14 @@ async function init() {
     const [c] = await pool.query(`SHOW COLUMNS FROM ${t} LIKE 'form_no'`);
     if (!c.length) await pool.query(`ALTER TABLE ${t} ADD COLUMN form_no VARCHAR(20) AFTER \`no\``);
   }
+  // Ekim 2026: red gerekçesi, düzeltme ataması, görev ataması, denetim revizesi
+  for (const t of ["oneriler", "kaizenler"]) {
+    for (const [k, tanim] of _DEGERLENDIRME_KOLONLARI) await kolonEkle(t, k, tanim);
+  }
+  for (const [k, tanim] of _GOREV_KOLONLARI) await kolonEkle("oneriler", k, tanim);
+  await kolonEkle("kaizenler", "kaynak_oneri_no", "VARCHAR(32)");
+  await kolonEkle("denetimler", "revize_eden", "VARCHAR(191)");
+  await kolonEkle("denetimler", "revize_zamani", "VARCHAR(20)");
 }
 
 // --- JSON kolon yardımcıları ---
@@ -238,7 +280,7 @@ function yoneticiRow(r) {
 const _YEDEK_TABLOLAR = ["config", "oneriler", "kaizenler", "bolumler", "denetimler",
   "aksiyonlar", "odul_islenen", "odul_kayitlari", "odul_arsiv", "silinen_kisiler",
   "denetmenler", "misafirler", "yoneticiler", "sayaclar", "islem_gunlugu",
-  "silinen_kayitlar"];
+  "silinen_kayitlar", "isim_eslestirme"];
 const _YEDEK_GORSEL_DIRLER = [
   ["kaizen_gorseller", S.KAIZEN_IMG_DIR],
   ["bes_s_gorseller", S.BESS_FOTO_DIR],

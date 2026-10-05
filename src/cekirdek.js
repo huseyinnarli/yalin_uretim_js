@@ -7,6 +7,8 @@ const path = require("path");
 
 const S = require("./sabitler");
 const P = require("./puanlama");
+const I = require("./isim");
+const Y = require("./yetkiler");
 const {
   sorgu, tek, calistir, transaction, js, configGet, configSet,
   oneriRow, kaizenRow, bolumRow, denetimRow, aksiyonRow, odulKayitRow, yoneticiRow,
@@ -216,17 +218,33 @@ async function combinedRecords() {
   return out;
 }
 
-function filtrele(records, tip, ay, q) {
-  q = (q || "").trim().toLowerCase();
+// Liste filtresi. Reddedilen kayıtlar ana listede yer almaz ("Reddedilen & Silinen"
+// sayfasında toplanır). durum: "" (tümü) | "bekle" | "revize" | "onay"
+function filtrele(records, tip, ay, q, durum = "") {
+  q = (q || "").trim().toLocaleLowerCase("tr");
   return records.filter((r) => {
+    if (r.durum === "Reddedildi") return false;
     if ((tip === "oneri" || tip === "kaizen") && r.tip !== tip) return false;
     if (ay && !r.sort_date.startsWith(ay)) return false;
+    if (durum === "bekle" && r.durum !== S.VARSAYILAN_DURUM) return false;
+    if (durum === "revize" && r.durum !== "Düzeltme İsteniyor") return false;
+    if (durum === "onay" && r.durum !== "Onaylandı") return false;
     if (q) {
-      const hay = `${r.baslik || ""} ${r.kisi || ""} ${r.no || ""}`.toLowerCase();
+      const hay = `${r.baslik || ""} ${r.kisi || ""} ${r.no || ""} ${r.form_no || ""}`.toLocaleLowerCase("tr");
       if (!hay.includes(q)) return false;
     }
     return true;
   });
+}
+
+// Sayfalama: { kayitlar, sayfa, sayfaSayisi, toplam, bas, son }
+function sayfala(liste, sayfa, boyut = S.SAYFA_BOYUTU) {
+  const toplam = liste.length;
+  const sayfaSayisi = Math.max(1, Math.ceil(toplam / boyut));
+  const s = Math.min(Math.max(1, parseInt(sayfa, 10) || 1), sayfaSayisi);
+  const bas = (s - 1) * boyut;
+  return { kayitlar: liste.slice(bas, bas + boyut), sayfa: s, sayfaSayisi, toplam,
+    bas: toplam ? bas + 1 : 0, son: Math.min(bas + boyut, toplam) };
 }
 
 function mevcutAylar(records) {
@@ -235,85 +253,219 @@ function mevcutAylar(records) {
 }
 
 // ---------------------------------------------------------------------------
+// İsim birleştirme: aynı kişinin farklı yazılışları puan listesinde TEK kişi sayılır.
+//  - Otomatik: isimAnahtar() büyük/küçük harf, boşluk ve Türkçe karakter farkını yok sayar.
+//  - Elle: isim_eslestirme tablosu (kaynak anahtar -> hedef anahtar), yazım hataları için.
+// Öneri/kaizen/ödül kayıtlarındaki isimler DEĞİŞMEZ; birleştirme yalnızca hesaplamadadır.
+// ---------------------------------------------------------------------------
+async function isimEslestirmeleri() {
+  const m = new Map();
+  for (const r of await sorgu("SELECT kaynak, hedef FROM isim_eslestirme")) m.set(r.kaynak, r.hedef);
+  return m;
+}
+function kokAnahtar(anahtar, esles) {
+  let k = anahtar;
+  const gorulen = new Set();
+  while (esles.has(k) && !gorulen.has(k)) { gorulen.add(k); k = esles.get(k); }
+  return k;
+}
+// ad -> kök anahtar çözücüsü (eşleştirmeler bir kez okunur)
+async function isimCozucu() {
+  const esles = await isimEslestirmeleri();
+  return (ad) => kokAnahtar(I.isimAnahtar(ad), esles);
+}
+// Grubun görünen adı: kök anahtarın kendi yazılışı > Türkçe karakterli yazılış > en sık kullanılan
+function gorunenAd(kok, yazimlar) {
+  const adaylar = [...yazimlar.entries()];
+  adaylar.sort((a, b) => {
+    const ka = I.isimAnahtar(a[0]) === kok ? 1 : 0, kb = I.isimAnahtar(b[0]) === kok ? 1 : 0;
+    if (ka !== kb) return kb - ka;
+    const ta = I.turkceKarakterSayisi(a[0]), tb = I.turkceKarakterSayisi(b[0]);
+    if (ta !== tb) return tb - ta;
+    return b[1] - a[1];
+  });
+  return I.adDuzelt(adaylar.length ? adaylar[0][0] : kok);
+}
+
+// ---------------------------------------------------------------------------
 // Puan durumu (öneri %10, kaizen lider %50 / üye %25, 5S ödül defteri)
 // ---------------------------------------------------------------------------
 async function puanDurumu() {
-  const tablo = {};
-  const detaylar = {};
+  const kokBul = await isimCozucu();
+  const tablo = new Map(); // kök anahtar -> satır
 
-  function puanEkle(ad, alan, puan) {
+  function satir(ad) {
     ad = (ad || "").trim();
-    if (!ad || puan <= 0) return;
-    if (!tablo[ad]) tablo[ad] = { ad, oneri: 0, kaizen: 0, bes_s: 0 };
-    tablo[ad][alan] += puan;
+    const kok = ad ? kokBul(ad) : "";
+    if (!kok) return null;
+    if (!tablo.has(kok)) {
+      tablo.set(kok, { anahtar: kok, _yazim: new Map(), oneri: 0, kaizen: 0, bes_s: 0, detay: [] });
+    }
+    const s = tablo.get(kok);
+    s._yazim.set(ad, (s._yazim.get(ad) || 0) + 1);
+    return s;
   }
-  function detayEkle(ad, tip, etiket, puan, no = "") {
-    ad = (ad || "").trim();
-    if (!ad || puan <= 0) return;
-    (detaylar[ad] = detaylar[ad] || []).push({ tip, etiket, no, puan: Math.round(puan * 100) / 100 });
+  function puanEkle(ad, alan, tip, etiket, puan, no = "") {
+    if (!(puan > 0)) return;
+    const s = satir(ad);
+    if (!s) return;
+    s[alan] += puan;
+    s.detay.push({ tip, etiket, no, puan: Math.round(puan * 100) / 100 });
   }
 
   for (const r of (await sorgu("SELECT * FROM oneriler WHERE puan IS NOT NULL")).map(oneriRow)) {
     const p = parseFloat(r.puan);
     if (!p) continue;
-    const pay = Math.round(p * 10) / 100;
-    puanEkle(r.sahibi, "oneri", pay);
-    detayEkle(r.sahibi, "oneri", r.konu || "Öneri", pay, r.no);
+    puanEkle(r.sahibi, "oneri", "oneri", r.konu || "Öneri", Math.round(p * 10) / 100, r.no);
   }
   for (const r of (await sorgu("SELECT * FROM kaizenler WHERE puan IS NOT NULL")).map(kaizenRow)) {
     const p = parseFloat(r.puan);
     if (!p) continue;
-    const liderPay = Math.round(p * 50) / 100;
-    puanEkle(r.lider, "kaizen", liderPay);
-    detayEkle(r.lider, "kaizen", (r.konu || "Kaizen") + " (Lider)", liderPay, r.no);
+    puanEkle(r.lider, "kaizen", "kaizen", (r.konu || "Kaizen") + " (Lider)", Math.round(p * 50) / 100, r.no);
     for (const u of (r.uyeler || []).slice(0, 2)) {
-      const uyePay = Math.round(p * 25) / 100;
-      puanEkle(u, "kaizen", uyePay);
-      detayEkle(u, "kaizen", (r.konu || "Kaizen") + " (Üye)", uyePay, r.no);
+      puanEkle(u, "kaizen", "kaizen", (r.konu || "Kaizen") + " (Üye)", Math.round(p * 25) / 100, r.no);
     }
   }
   for (const k of (await sorgu("SELECT * FROM odul_kayitlari")).map(odulKayitRow)) {
-    let etiket = k.tur_adi || "5S Denetim";
-    etiket = `${etiket} — ${k.bolum_ad || ""} (${k.sira ?? "?"}.)`;
-    for (const ad of k.kisiler || []) {
-      puanEkle(ad, "bes_s", k.puan || 0);
-      detayEkle(ad, "5s", etiket, k.puan || 0, k.tarih || "");
-    }
+    const etiket = `${k.tur_adi || "5S Denetim"} — ${k.bolum_ad || ""} (${k.sira ?? "?"}.)`;
+    for (const ad of k.kisiler || []) puanEkle(ad, "bes_s", "5s", etiket, k.puan || 0, k.tarih || "");
   }
 
-  const harcanan = {};
+  const harcanan = new Map();
   for (const r of await sorgu("SELECT * FROM odul_arsiv")) {
-    harcanan[r.ad] = (harcanan[r.ad] || 0) + (r.puan || S.ODUL_ESIK);
+    const kok = kokBul(r.ad);
+    harcanan.set(kok, (harcanan.get(kok) || 0) + (r.puan || S.ODUL_ESIK));
   }
-  const silinen = new Set((await sorgu("SELECT ad FROM silinen_kisiler")).map((r) => r.ad));
+  const silinen = new Set((await sorgu("SELECT ad FROM silinen_kisiler")).map((r) => kokBul(r.ad)));
 
   const sonuc = [];
-  for (const k of Object.values(tablo)) {
-    if (silinen.has(k.ad)) continue;
+  for (const k of tablo.values()) {
+    if (silinen.has(k.anahtar)) continue;
+    k.ad = gorunenAd(k.anahtar, k._yazim);
+    k.yazimlar = [...k._yazim.keys()];
+    delete k._yazim;
     k.kazanilan = Math.round((k.oneri + k.kaizen + k.bes_s) * 100) / 100;
-    k.harcanan = harcanan[k.ad] || 0;
+    k.harcanan = harcanan.get(k.anahtar) || 0;
     k.odul_sayisi = Math.floor(k.harcanan / S.ODUL_ESIK);
     k.net = Math.round((k.kazanilan - k.harcanan) * 100) / 100;
-    k.detay = detaylar[k.ad] || [];
     if (k.net > 0) sonuc.push(k); // net 0 ise listeden çıkar
   }
   sonuc.sort((a, b) => b.net - a.net);
   return sonuc;
 }
 
+// İsim birleştirme ekranı: tüm kaynaklardaki isimler (otomatik + elle birleşmiş gruplar),
+// yazım hatası olabilecek benzer grup önerileri ve mevcut elle eşleştirmeler.
+async function isimGruplari() {
+  const esles = await isimEslestirmeleri();
+  const gruplar = new Map();
+  const anahtarYazim = new Map(); // anahtar -> örnek yazılış (elle eşleştirme listesinde göstermek için)
+  function ekle(ad, kaynak) {
+    ad = (ad || "").trim();
+    const anahtar = I.isimAnahtar(ad);
+    if (!anahtar) return;
+    if (!anahtarYazim.has(anahtar)) anahtarYazim.set(anahtar, ad);
+    const kok = kokAnahtar(anahtar, esles);
+    if (!gruplar.has(kok)) {
+      gruplar.set(kok, { anahtar: kok, _yazim: new Map(), anahtarlar: new Set(), kaynaklar: {}, toplam: 0 });
+    }
+    const g = gruplar.get(kok);
+    g._yazim.set(ad, (g._yazim.get(ad) || 0) + 1);
+    g.anahtarlar.add(anahtar);
+    g.kaynaklar[kaynak] = (g.kaynaklar[kaynak] || 0) + 1;
+    g.toplam += 1;
+  }
+  for (const r of await sorgu("SELECT sahibi FROM oneriler")) ekle(r.sahibi, "Öneri");
+  for (const r of (await sorgu("SELECT lider, uyeler FROM kaizenler")).map(kaizenRow)) {
+    ekle(r.lider, "Kaizen");
+    for (const u of r.uyeler || []) ekle(u, "Kaizen");
+  }
+  for (const k of (await sorgu("SELECT kisiler FROM odul_kayitlari")).map(odulKayitRow)) {
+    for (const ad of k.kisiler || []) ekle(ad, "5S ödülü");
+  }
+  for (const r of await sorgu("SELECT ad FROM odul_arsiv")) ekle(r.ad, "Verilen ödül");
+  for (const b of await loadBolumler()) {
+    for (const ad of I.isimListesi(b.sorumlu)) ekle(ad, "Bölüm");
+    for (const ad of b.kisiler || []) ekle(ad, "Bölüm");
+  }
+  for (const d of await loadDenetmenler()) ekle(d.ad, "Denetmen");
+
+  const liste = [...gruplar.values()].map((g) => ({
+    anahtar: g.anahtar,
+    ad: gorunenAd(g.anahtar, g._yazim),
+    yazimlar: [...g._yazim.entries()].map(([yazim, adet]) => ({ yazim, adet })),
+    birlesen: g.anahtarlar.size > 1 || g._yazim.size > 1,
+    kaynaklar: g.kaynaklar,
+    toplam: g.toplam,
+  }));
+  liste.sort((a, b) => a.ad.localeCompare(b.ad, "tr"));
+
+  // Benzer anahtarlı gruplar (yazım hatası adayları); hedef = daha çok kullanılan
+  const oneriler = [];
+  for (let i = 0; i < liste.length; i++) {
+    for (let j = i + 1; j < liste.length; j++) {
+      const a = liste[i].anahtar, b = liste[j].anahtar;
+      const sinir = Math.min(a.length, b.length) >= 10 ? 2 : 1;
+      if (Math.abs(a.length - b.length) > sinir) continue;
+      if (I.uzaklik(a, b) <= sinir) {
+        const [kaynak, hedef] = liste[i].toplam <= liste[j].toplam ? [liste[i], liste[j]] : [liste[j], liste[i]];
+        oneriler.push({ kaynak, hedef });
+      }
+    }
+  }
+
+  const adMap = new Map(liste.map((g) => [g.anahtar, g.ad]));
+  const elle = (await sorgu("SELECT * FROM isim_eslestirme ORDER BY zaman DESC")).map((r) => ({
+    kaynak: r.kaynak, hedef: r.hedef,
+    kaynak_ad: anahtarYazim.get(r.kaynak) || r.kaynak,
+    hedef_ad: adMap.get(kokAnahtar(r.hedef, esles)) || anahtarYazim.get(r.hedef) || r.hedef,
+    olusturan: r.olusturan, zaman: r.zaman,
+  }));
+  return { gruplar: liste, oneriler, elle };
+}
+
+// Elle birleştirme: kaynak grubun kökü hedef grubun köküne bağlanır (döngü engellenir)
+async function isimBirlestir(kaynakAnahtar, hedefAnahtar, olusturan) {
+  const esles = await isimEslestirmeleri();
+  const kaynak = kokAnahtar(kaynakAnahtar, esles);
+  const hedef = kokAnahtar(hedefAnahtar, esles);
+  if (!kaynak || !hedef) return [false, "İsim bulunamadı."];
+  if (kaynak === hedef) return [false, "Bu iki isim zaten aynı kişi olarak sayılıyor."];
+  await calistir(
+    "INSERT INTO isim_eslestirme(kaynak, hedef, olusturan, zaman) VALUES(?,?,?,?) " +
+    "ON DUPLICATE KEY UPDATE hedef = VALUES(hedef), olusturan = VALUES(olusturan), zaman = VALUES(zaman)",
+    [kaynak, hedef, olusturan || "", S.zamanTr()]);
+  return [true, ""];
+}
+
+async function isimAyir(kaynakAnahtar) {
+  const r = await calistir("DELETE FROM isim_eslestirme WHERE kaynak = ?", [kaynakAnahtar]);
+  return r.affectedRows > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Panel istatistikleri: dönem tablosu (öneri/kaizen ayrı) + son 12 ay trendi
+// ---------------------------------------------------------------------------
+function puanVar(r) {
+  return r.puan !== null && r.puan !== undefined && r.puan !== "";
+}
+
 function sayDurum(records) {
-  const d = { toplam: 0, oneri: 0, kaizen: 0, onay: 0, red: 0, bekle: 0, revize: 0 };
+  const d = { toplam: 0, onay: 0, puanli: 0, red: 0, bekle: 0, revize: 0 };
   for (const r of records) {
     d.toplam += 1;
-    d[r.tip] += 1;
     const du = r.durum || S.VARSAYILAN_DURUM;
-    if (du === "Onaylandı") d.onay += 1;
-    else if (du === "Reddedildi") d.red += 1;
+    if (du === "Onaylandı") {
+      d.onay += 1;
+      if (puanVar(r)) d.puanli += 1;
+    } else if (du === "Reddedildi") d.red += 1;
     else if (du === "Düzeltme İsteniyor") d.revize += 1;
     else d.bekle += 1;
   }
   return d;
 }
+
+const _KISA_AY = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
 
 async function dashboardIstatistik() {
   const recs = await combinedRecords();
@@ -323,12 +475,34 @@ async function dashboardIstatistik() {
   const buYil = String(now.getFullYear());
   const c6 = new Date(now.getTime() - 180 * 24 * 3600 * 1000);
   const cutoff6 = `${c6.getFullYear()}-${p(c6.getMonth() + 1)}-${p(c6.getDate())}`;
-  return {
-    bu_ay: sayDurum(recs.filter((r) => r.sort_date.startsWith(buAy))),
-    son_6ay: sayDurum(recs.filter((r) => r.sort_date && r.sort_date >= cutoff6)),
-    bu_yil: sayDurum(recs.filter((r) => r.sort_date.startsWith(buYil))),
-    tum: sayDurum(recs),
+
+  const donem = (k, ad, f) => {
+    const rs = recs.filter(f);
+    return { k, ad, oneri: sayDurum(rs.filter((r) => r.tip === "oneri")),
+      kaizen: sayDurum(rs.filter((r) => r.tip === "kaizen")), toplam: sayDurum(rs) };
   };
+  const donemler = [
+    donem("ay", "Bu Ay", (r) => r.sort_date.startsWith(buAy)),
+    donem("6ay", "Son 6 Ay", (r) => r.sort_date && r.sort_date >= cutoff6),
+    donem("yil", "Bu Yıl", (r) => r.sort_date.startsWith(buYil)),
+    donem("tum", "Tüm Zamanlar", () => true),
+  ];
+
+  // Son 12 ay (bu ay dahil): o ay gelenler ve bunlardan onaylanıp puan alanlar
+  const trend = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const ay = `${d.getFullYear()}-${p(d.getMonth() + 1)}`;
+    const rs = recs.filter((r) => r.sort_date.startsWith(ay));
+    const puanli = (tip) => rs.filter((r) => r.tip === tip && r.durum === "Onaylandı" && puanVar(r)).length;
+    trend.push({
+      ay, etiket: `${_KISA_AY[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`,
+      gelen_oneri: rs.filter((r) => r.tip === "oneri").length,
+      gelen_kaizen: rs.filter((r) => r.tip === "kaizen").length,
+      puanli_oneri: puanli("oneri"), puanli_kaizen: puanli("kaizen"),
+    });
+  }
+  return { donemler, tum: donemler[3], trend };
 }
 
 // ---------------------------------------------------------------------------
@@ -557,7 +731,7 @@ async function besSPlanSatirlari(tarih, aktifDenetmenAd) {
       denetim_id: d.id, bolum_id: d.bolum_id, bolum_ad: b ? b.ad : "?",
       lider: b ? b.sorumlu || "" : "",
       planlanan_denetmen: planlanan,
-      benim: Boolean(aktifDenetmenAd && isimListesi(planlanan).includes(aktifDenetmenAd)),
+      benim: Boolean(aktifDenetmenAd && I.isimIcerir(planlanan, aktifDenetmenAd)),
       misafir_denetmen: d.misafir_denetmen || "", denetmen: d.denetmen || "",
       plan_gun: d.plan_gun || "", plan_saat: d.plan_saat || "",
       denetim_tarihi: denetimTarihi(d),
@@ -596,9 +770,7 @@ async function besSTrendTablo() {
 // Çoklu lider / denetmen
 // ---------------------------------------------------------------------------
 // 'Ali / Veli' → ['Ali', 'Veli'] — ayraç: / , ;
-function isimListesi(s) {
-  return String(s || "").replace(/[,;]/g, "/").split("/").map((x) => x.trim()).filter(Boolean);
-}
+const isimListesi = I.isimListesi;
 function bolumLiderleri(b) {
   return isimListesi((b || {}).sorumlu);
 }
@@ -652,6 +824,101 @@ async function aktifYonetici(session) {
   if (!y) { delete session.yonetici_id; delete session.yonetici_ad; delete session.admin; }
   return y;
 }
+
+// Oturumun yetki durumu (Express'ten bağımsız): ana yönetici / tam yetkili ek yönetici /
+// ayrıntılı yetki listesi. Ek yönetici yetkileri her çağrıda veritabanından TAZE okunur.
+async function oturumYetkileri(session) {
+  const bos = { yonetici: false, ana: false, tam: false, yetkiler: [], ad: null };
+  if (!session || !session.admin) return bos;
+  if (session.super) {
+    return { yonetici: true, ana: true, tam: true, yetkiler: [...Y.TUM_YETKILER], ad: "Ana Yönetici" };
+  }
+  const y = await aktifYonetici(session);
+  if (!y) return bos;
+  const g = Y.yetkiGenislet(y.yetkiler);
+  return { yonetici: true, ana: false, tam: g.tam, yetkiler: g.yetkiler, ad: y.ad };
+}
+
+async function denetmenById(id) {
+  return id ? tek("SELECT * FROM denetmenler WHERE id = ?", [id]) : null;
+}
+
+// ---------------------------------------------------------------------------
+// Düzeltme (revize) ve görev atamaları
+// ---------------------------------------------------------------------------
+// Kaydı düzenleyebilir mi: 'kayit' yetkisi VEYA düzeltmesi bu denetmene atanmış
+function kayitDuzenleyebilir(rec, yetkiler, denetmen) {
+  if (!rec) return false;
+  if ((yetkiler || []).includes("kayit")) return true;
+  return Boolean(denetmen && rec.durum === "Düzeltme İsteniyor" && rec.revize_atanan_id === denetmen.id);
+}
+
+// Onaylanan öneri kaizene dönüştürülebilir mi (henüz dönüştürülmemiş + yetkili ya da atanan kişi)
+function kaizeneDonusturebilir(oneri, yetkiler, denetmen) {
+  if (!oneri || oneri.durum !== "Onaylandı" || oneri.kaizen_no) return false;
+  if ((yetkiler || []).some((k) => k === "degerlendir" || k === "kayit")) return true;
+  return Boolean(denetmen && oneri.gorev_atanan_id === denetmen.id);
+}
+
+async function _revizeKayitlari(sart, params) {
+  const out = [];
+  for (const [tablo, row] of [["oneriler", oneriRow], ["kaizenler", kaizenRow]]) {
+    for (const r of (await sorgu(`SELECT * FROM ${tablo} WHERE durum = 'Düzeltme İsteniyor'${sart}`, params)).map(row)) {
+      out.push(r);
+    }
+  }
+  return out.sort((a, b) => String(b.revize_zamani || "").localeCompare(String(a.revize_zamani || "")));
+}
+
+// Denetmenin "Görevlerim" sayfası
+async function gorevlerim(denetmen) {
+  const id = denetmen.id;
+  const revizeler = await _revizeKayitlari(" AND revize_atanan_id = ?", [id]);
+  const gorevler = (await sorgu(
+    "SELECT * FROM oneriler WHERE gorev_atanan_id = ? ORDER BY gorev_zamani DESC", [id])).map(oneriRow);
+  const bolumlar = await bolumMap();
+  const denetimler = [];
+  for (const d of await sorgu("SELECT * FROM denetimler WHERE puan IS NULL ORDER BY tarih DESC")) {
+    if (I.isimIcerir(d.planlanan_denetmen, denetmen.ad)) {
+      const b = bolumlar[d.bolum_id];
+      denetimler.push({ ...d, bolum_ad: b ? b.ad : "?" });
+    }
+  }
+  const aksiyonlar = [];
+  for (const a of (await sorgu("SELECT * FROM aksiyonlar WHERE durum = 'acik'")).map(aksiyonRow)) {
+    if (I.isimIcerir(await aksiyonAtanan(a, bolumlar), denetmen.ad)) aksiyonlar.push(a);
+  }
+  return {
+    revizeler,
+    acikGorevler: gorevler.filter((g) => !g.kaizen_no),
+    biten: gorevler.filter((g) => g.kaizen_no).slice(0, 10),
+    denetimler, aksiyonlar,
+  };
+}
+
+// Yönetici takip listesi: açık düzeltme ve görev atamaları (kimde ne var)
+async function acikAtamalar() {
+  const revizeler = await _revizeKayitlari("", []);
+  const gorevler = (await sorgu(
+    "SELECT * FROM oneriler WHERE gorev_atanan_id IS NOT NULL AND gorev_atanan_id != '' " +
+    "AND (kaizen_no IS NULL OR kaizen_no = '') ORDER BY gorev_zamani DESC")).map(oneriRow);
+  return { revizeler, gorevler };
+}
+
+// Üst menü rozeti: denetmene atanmış bekleyen düzeltme + kaizene dönüştürme görevi sayısı
+async function gorevSayisi(denetmenId) {
+  const r = await tek(
+    "SELECT (SELECT COUNT(*) FROM oneriler WHERE durum = 'Düzeltme İsteniyor' AND revize_atanan_id = ?)" +
+    " + (SELECT COUNT(*) FROM kaizenler WHERE durum = 'Düzeltme İsteniyor' AND revize_atanan_id = ?)" +
+    " + (SELECT COUNT(*) FROM oneriler WHERE gorev_atanan_id = ? AND (kaizen_no IS NULL OR kaizen_no = ''))" +
+    " AS n", [denetmenId, denetmenId, denetmenId]);
+  return r ? Number(r.n) : 0;
+}
+
+// Bir 5S turunun ödülleri işlendi mi (işlendiyse o turdaki denetimler revize edilemez)
+async function turIslendi(tarih) {
+  return Boolean(await tek("SELECT 1 FROM odul_islenen WHERE tarih = ?", [tarih || ""]));
+}
 // ---------------------------------------------------------------------------
 // İşlem günlüğü (denetim izi) — yönetici/denetmen eylemleri kaydedilir
 // ---------------------------------------------------------------------------
@@ -690,26 +957,25 @@ async function aksiyonAtanan(a, bolumlar = null) {
   return (a.atanan_lider || "").trim();
 }
 // Yönetici her zaman; denetmen yalnızca kendi bölümünün lideri olarak atanmışsa
-async function aksiyonKapatabilir(a, session, bolumlar = null) {
+// Aksiyon yetkili yönetici her zaman; denetmen yalnızca bölümün ekip lideriyse
+async function aksiyonKapatabilir(a, session, bolumlar = null, yetki = null) {
   if (a.durum === "kapali") return false;
-  if (session && session.super) return true;              // ana yönetici
-  if (session && session.yonetici_id) {                    // 5S yetkili ek yönetici
-    const y = await aktifYonetici(session);
-    if (y && (y.yetkiler || []).includes("bes_s")) return true;
-  }
+  const y = yetki || await oturumYetkileri(session);
+  if (y.yetkiler.includes("bes_aksiyon")) return true;
   const d = await aktifDenetmen(session);                  // atanan bölüm lideri
   if (!d) return false;
-  return isimListesi(await aksiyonAtanan(a, bolumlar)).includes(d.ad);
+  return I.isimIcerir(await aksiyonAtanan(a, bolumlar), d.ad);
 }
 
 // Aksiyonları iki seviyede gruplar: denetim TURU → BÖLÜM → aksiyonlar
 async function aksiyonGruplari(durum, session) {
   const bolumlar = await bolumMap();
+  const yetki = await oturumYetkileri(session);
   const turlar = new Map();
   for (const a of await loadAksiyonlar()) {
     if (durum && a.durum !== durum) continue;
     a._atanan = await aksiyonAtanan(a, bolumlar);
-    a._kapatabilir = await aksiyonKapatabilir(a, session, bolumlar);
+    a._kapatabilir = await aksiyonKapatabilir(a, session, bolumlar, yetki);
     const turAdi = a.tur_adi || turAdiUret(a.tarih || "");
     const anahtar = `${a.tarih || ""}|${turAdi}`;
     if (!turlar.has(anahtar)) {
@@ -838,8 +1104,11 @@ module.exports = {
   hashPassword, hashMi, checkPassword, getAdminPassword, adminSifreDogru,
   setAdminPassword, sifreleriHashle, getSecretKey,
   uid, nextNumber, nextFormNo, safeName, allowedFile, guvenliYol, trdate, ayEtiketi, puanfmt,
-  gorselKaydet, getRecord, updateRecord, combinedRecords, filtrele, mevcutAylar,
-  puanDurumu, dashboardIstatistik,
+  gorselKaydet, getRecord, updateRecord, combinedRecords, filtrele, sayfala, mevcutAylar,
+  puanDurumu, dashboardIstatistik, puanVar,
+  isimCozucu, isimGruplari, isimBirlestir, isimAyir,
+  oturumYetkileri, denetmenById, kayitDuzenleyebilir, kaizeneDonusturebilir,
+  gorevlerim, acikAtamalar, gorevSayisi, turIslendi,
   loadBolumler, bolumById, bolumMap, loadDenetimler, denetimById, loadAksiyonlar, aksiyonById,
   loadDenetmenler, loadMisafirler, odulIslenenler, odulKayitlari,
   bolumDenetimleri, sonDenetim, denetimKriterPuanlari, denetimTarihi, denetimFotolari,

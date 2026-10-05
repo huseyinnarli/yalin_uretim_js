@@ -38,6 +38,7 @@ const ADMIN_PASSWORD = "admin123"; // ilk kurulum varsayılanı — panelden de�
 const MARKA_ADI = "Öztaş Global Soğutma";
 const ODUL_MAP = { 0: 100, 1: 75, 2: 50 }; // 1./2./3. bölüm
 const ALAN_MAX = 5000;   // tek metin alanı üst sınırı
+const SAYFA_BOYUTU = 20; // öneri/kaizen listesinde sayfa başına kayıt
 const GORSEL_MAX_BAYT = 8 * 1024 * 1024; // tek görsel üst sınırı (multer + gorselKaydet)
 const GORSEL_MAX_KENAR = 1600; // yüklenen fotoğraflar bu boyuta küçültülür (disk + bant genişliği)
 
@@ -88,6 +89,6 @@ module.exports = {
   BASE_DIR, DATA_DIR, DB_PATH, KAIZEN_IMG_DIR, BESS_FOTO_DIR,
   BESS_AKSIYON_FOTO_DIR, YEDEK_DIR, STATIC_DIR, ensureDirs,
   ODUL_ESIK, ALLOWED_EXT, KAZANC_BASLIKLARI, TR_AYLAR, DURUMLAR,
-  VARSAYILAN_DURUM, ADMIN_PASSWORD, MARKA_ADI, ODUL_MAP, ALAN_MAX,
+  VARSAYILAN_DURUM, ADMIN_PASSWORD, MARKA_ADI, ODUL_MAP, ALAN_MAX, SAYFA_BOYUTU,
   GORSEL_MAX_BAYT, GORSEL_MAX_KENAR, siteKonfig, nowTr, bugunIso, zamanTr,
 };

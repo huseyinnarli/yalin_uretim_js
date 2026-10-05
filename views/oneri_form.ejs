@@ -1,5 +1,9 @@
 <%- include('partials/header') %>
 <h1 class="page-title">💡 <%= duzenle ? "Öneri Düzenle" : "Yeni Öneri Formu" %></h1>
+<% if (duzenle && kayit.durum == 'Düzeltme İsteniyor' && kayit.revize_notu) { %>
+<div class="gorev-kutu"><strong>✏ İstenen düzeltme:</strong> <%= kayit.revize_notu %>
+    <small>Kaydettiğinizde öneri yeniden değerlendirmeye gönderilir.</small></div>
+<% } %>
 <% if (duzenle) { %>
 <p class="subtitle">Öneri No: <strong class="mono"><%= kayit.no %></strong> (numara değişmez).</p>
 <% } else { %>
@@ -8,9 +12,14 @@
 
 <form class="form-card" method="post" action="<%= action_url %>" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
     <div class="row">
+        <% const sahip = adBol(kayit.sahibi || ''); %>
         <div class="field">
-            <label>Öneri Sahibi (Ad Soyad) *</label>
-            <input type="text" name="sahibi" required value="<%= kayit.sahibi || '' %>" placeholder="Örn. Ahmet Yılmaz">
+            <label>Öneri Sahibi — Ad *</label>
+            <input type="text" name="sahibi_ad" required value="<%= sahip.ad %>" placeholder="Örn. Ahmet">
+        </div>
+        <div class="field">
+            <label>Soyad *</label>
+            <input type="text" name="sahibi_soyad" required value="<%= sahip.soyad %>" placeholder="Örn. Yılmaz">
         </div>
         <div class="field">
             <label>Görevi *</label>
@@ -64,7 +73,7 @@
 
     <div class="form-actions">
         <button type="submit" class="btn primary"><%= duzenle ? "Değişiklikleri Kaydet" : "Öneriyi Kaydet" %></button>
-        <a class="btn ghost" href="<%= duzenle ? '/liste' : '/' %>">İptal</a>
+        <a class="btn ghost" href="<%= duzenle ? '/detay?tip=oneri&no=' + encodeURIComponent(kayit.no) + (geri ? '&geri=' + encodeURIComponent(geri) : '') : '/' %>">İptal</a>
     </div>
 </form>
 <%- include('partials/footer') %>

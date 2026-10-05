@@ -3,7 +3,7 @@
     <div class="ak-ust">
         <span class="ak-durum-rozet <%= a.durum %>"><%= a.durum == 'kapali' ? '✔ Kapalı' : '● Açık' %></span>
         <span class="ak-kriter"><%= a.kriter_m %></span>
-        <% if (yetki('bes_s')) { %>
+        <% if (yetki('bes_aksiyon')) { %>
         <form method="post" action="/5s/aksiyon/<%= a.id %>/sil" style="display:inline"
               onsubmit="return confirm('Bu aksiyon silinsin mi?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <button type="submit" class="btn-mini del">Sil</button>
@@ -47,6 +47,6 @@
     </details>
     <% } else { %>
     <p class="ak-kilitli">🔒 Bu aksiyonu <strong><%= a._atanan || 'bölüm ekip lideri' %></strong> kapatabilir
-        (o kişi denetmen olarak giriş yapmalı).</p>
+        (o kişi denetmen olarak giriş yapmalı) ya da aksiyon yetkili yönetici.</p>
     <% } %>
 </div>

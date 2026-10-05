@@ -771,3 +771,94 @@ tr.benim-satirim td { background: var(--primary-tint) !important; }
     .puan-madde { padding: 9px 11px; gap: 10px; }
     .madde-puan { width: 58px; font-size: .98rem; }
 }
+
+/* ===================== Ekim 2026: roller, görevler, panel ===================== */
+/* Grafik serileri (referans paletin doğrulanmış ilk iki kategorik rengi) */
+:root { --seri-1: #2a78d6; --seri-2: #eb6834; }
+
+.nav-rozet { display: inline-block; min-width: 18px; padding: 0 6px; margin-left: 4px; border-radius: 10px;
+    background: #fff; color: var(--primary-d); font-size: .75rem; font-weight: 700; text-align: center; }
+
+/* Anasayfa öneri/kaizen kutusu */
+.hub-linkler { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 6px 0 10px; }
+.hub-not { color: var(--muted); font-size: .88rem; }
+div.hub-box { cursor: default; }
+
+/* Sayfalama */
+.sayfalama { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin: 16px 0; }
+.sayfalama .btn-mini { background: #fff; color: var(--primary); }
+.sayfalama .btn-mini.aktif { background: var(--primary); color: #fff; border-color: var(--primary); }
+.sayfa-bosluk { color: var(--muted); padding: 5px 2px; }
+
+/* Detay: değerlendirme kartları + atama kutuları */
+.degerlendir-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.degerlendir-kart { display: flex; flex-direction: column; gap: 8px; }
+.degerlendir-kart h3 { margin: 0; border: 0; padding: 0; }
+.degerlendir-kart select, .degerlendir-kart textarea, .degerlendir-kart input[type=date] {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+.degerlendir-kart button { align-self: flex-start; }
+.onay-kart { border-top: 3px solid #1e8449; }
+.red-kart { border-top: 3px solid #c0392b; }
+.revize-kart { border-top: 3px solid #d4a017; }
+.gorev-kutu { background: #fff8e6; border: 1px solid #f0dca6; border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; }
+.gorev-kutu p { margin: 6px 0; white-space: pre-wrap; }
+.gorev-kutu small { display: block; color: var(--muted); margin: 4px 0; }
+.red-blok h3 { color: #a4322a; }
+.sil-satir { margin: 10px 0 0; text-align: right; }
+
+/* Görev / isim listeleri */
+.gorev-liste { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.gorev-satir { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 0; }
+.gs-govde { flex: 1 1 260px; min-width: 0; }
+.gs-govde small { display: block; color: var(--muted); }
+
+/* Yönetim: gruplanmış yetki kutuları */
+.yetki-grup { margin: 8px 0; }
+.yetki-grup-ad { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.yetki-kutulari .chk span small { display: block; font-weight: 400; color: var(--muted); font-size: .76rem; }
+.tam-chk { background: var(--primary-tint); margin: 8px 0 4px; }
+
+/* Panel: dönem butonları + istatistik tablosu */
+.donem-butonlar { display: flex; gap: 6px; flex-wrap: wrap; }
+.donem-btn { background: #fff; color: var(--primary); }
+.donem-btn.aktif { background: var(--primary); color: #fff; border-color: var(--primary); }
+.istatistik-tablo { min-width: 0; }
+.istatistik-tablo th[scope=row] { text-align: left; white-space: nowrap; }
+.istatistik-tablo td { text-align: center; }
+.istatistik-tablo .toplam-satir { background: var(--primary-tint); font-weight: 700; }
+.istatistik-tablo .sabit-toplam td { text-align: left; }
+.istatistik-tablo tfoot tr { border-top: 2px solid var(--line); }
+
+/* Grafikler (SVG) */
+.grafik-kart { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); padding: 14px 16px; }
+.trend-svg { width: 100%; height: auto; display: block; }
+.grafik-grid { stroke: #e9edf2; stroke-width: 1; }
+.grafik-taban { stroke: #b9c2cc; stroke-width: 1; }
+.grafik-eksen { fill: var(--muted); font-size: 11px; }
+.grafik-deger { fill: var(--ink); font-size: 11px; font-weight: 600; }
+.grafik-hedef { fill: transparent; }
+.grafik-ay:hover .grafik-hedef { fill: rgba(42, 120, 214, .06); }
+.grafik-cizgi { fill: none; stroke: var(--seri-1); stroke-width: 2; stroke-linejoin: round; }
+.grafik-nokta { fill: var(--seri-1); stroke: #fff; stroke-width: 2; }
+.grafik-lejant { display: flex; gap: 16px; flex-wrap: wrap; font-size: .85rem; color: var(--ink); margin-bottom: 6px; }
+.lejant-renk { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.grafik-tablo summary { cursor: pointer; color: var(--primary); font-size: .88rem; margin-top: 8px; }
+
+/* 5S bölüm sayfası */
+.ozet-kutular { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.ozet-kutu { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); padding: 14px 16px;
+    display: flex; flex-direction: column; color: var(--ink); }
+.ok-deger { font-size: 1.6rem; font-weight: 700; }
+.ok-deger.uyari { color: #b4322a; }
+.ok-etiket { color: var(--muted); font-size: .85rem; }
+.s-kirilim td { text-align: center; }
+.s-iyi { color: #1e6b43; font-weight: 600; }
+.s-orta { color: #8a6300; font-weight: 600; }
+.s-dusuk { color: #a4322a; font-weight: 600; }
+.s-ozet { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 4px; }
+.s-ozet-kutu { border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-size: .88rem; background: #fafbfc; }
+.s-ozet-kutu.tam { background: #e4f6ec; border-color: #b7e4c9; }
+.btn.devre-disi, .btn.disabled { opacity: .6; cursor: not-allowed; }
+.foto-mevcut { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; font-size: .78rem; }
+.bolum-tablo td { vertical-align: middle; }

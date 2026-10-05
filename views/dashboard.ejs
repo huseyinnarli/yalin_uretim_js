@@ -1,119 +1,85 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">🛠️ Yönetici Paneli</h1>
+    <h1 class="page-title">🛠 Yönetim</h1>
     <div class="list-actions">
-        <a class="btn ghost" href="/puan-durumu">🏆 Puan Listesi</a>
-        <a class="btn ghost" href="/liste">📋 Öneri &amp; Kaizen</a>
-        <a class="btn ghost" href="/5s">🧹 5S</a>
+        <a class="btn ghost" href="/panel">📊 Panel</a>
+        <% if (yetki('odul')) { %><a class="btn ghost" href="/isimler">🔗 İsim Birleştirme</a><% } %>
         <% if (super_admin) { %><a class="btn ghost" href="/yonetici/gunluk">📜 İşlem Günlüğü</a><% } %>
     </div>
 </div>
 
-<!-- İstatistikler -->
-<h2 class="bolum-baslik">📊 Öneri &amp; Kaizen İstatistikleri</h2>
-<div class="dash-grid">
-    <% for (const [etiket, d] of [['Bu Ay', ist.bu_ay], ['Son 6 Ay', ist.son_6ay], ['Bu Yıl', ist.bu_yil], ['Tüm Zamanlar', ist.tum]]) { %>
-    <div class="dash-card">
-        <div class="dash-donem"><%= etiket %></div>
-        <div class="dash-toplam"><%= d.toplam %></div>
-        <div class="dash-alt">💡 <%= d.oneri %> öneri · 🔧 <%= d.kaizen %> kaizen</div>
-        <div class="dash-durumlar">
-            <span class="dd onay">✓ Onay <b><%= d.onay %></b></span>
-            <span class="dd red">✕ Red <b><%= d.red %></b></span>
-            <span class="dd bekle">⏳ Bekleyen <b><%= d.bekle %></b></span>
-            <span class="dd revize">✏ Revize <b><%= d.revize %></b></span>
-        </div>
-    </div>
-    <% } %>
-</div>
-
-<!-- 5S trendi -->
-<div class="list-head" style="margin-top:26px">
-    <h2 class="bolum-baslik" style="margin:0">🧹 Bölümlerin 5S Trendi</h2>
-    <% if (trend_basliklar.length && yetki('bes_s')) { %>
-    <a class="btn ghost" href="/yonetici/5s-trend/excel">⬇ Trend Excel</a>
-    <% } %>
-</div>
-<% if (trend_basliklar.length) { %>
-<div class="table-wrap">
-<table class="data-table trend-tablo" style="min-width:0">
-    <thead>
-        <tr>
-            <th>Bölüm</th>
-            <% for (const b of trend_basliklar) { %>
-            <th><%= b.ad %><br><small><%= trdate(b.tarih) %></small></th>
-            <% } %>
-        </tr>
-    </thead>
-    <tbody>
-        <% for (const s of trend_satirlar) { %>
-        <tr>
-            <td data-label="Bölüm"><strong><%= s.ad %></strong></td>
-            <% s.hucreler.forEach(function (h, hi) { %>
-            <td data-label="<%= trend_basliklar[hi].ad %>" class="trend-hucre">
-                <% if (h) { %>
-                    <span class="trend-puan <%= (h.fark !== null && h.fark < 0) ? 'dusus' : ((h.fark !== null && h.fark > 0) ? 'artis' : '') %>">
-                        <%= h.puan %>
-                        <% if (h.fark !== null && h.fark < 0) { %><small>▼ <%= h.fark %></small>
-                        <% } else if (h.fark !== null && h.fark > 0) { %><small>▲ +<%= h.fark %></small>
-                        <% } else if (h.fark !== null) { %><small>—</small><% } %>
-                    </span>
-                <% } else { %><span class="trend-bos">—</span><% } %>
-            </td>
-            <% }); %>
-        </tr>
-        <% } %>
-    </tbody>
-</table>
-</div>
-<% } else { %>
-<div class="empty">Henüz puanlanmış 5S denetimi yok. <a href="/5s">5S sayfasından</a> denetim yapın.</div>
+<% if (!yetki('kullanici') && !yetki('bes_plan') && !super_admin) { %>
+<div class="empty">Bu sayfada yönetebileceğiniz bir alan yok. İstatistikler için <a href="/panel">Panel</a>'e gidin.</div>
 <% } %>
 
-<% if (yetki('bes_s')) { %>
+<% if (yetki('kullanici')) { %>
 <!-- Denetmenler -->
-<h2 class="bolum-baslik" id="denetmenler">👥 5S Denetmenleri</h2>
+<h2 class="bolum-baslik" id="denetmenler">👥 Denetmenler</h2>
 <div class="form-card">
-    <p class="subtitle" style="margin-bottom:14px">Denetmenler = <strong>bölüm ekip liderleri</strong> (otomatik listelenir; bölümlerden yönetilir).
-        Siz yalnızca <strong>şifre belirlersiniz</strong> — denetmen şifresiyle giriş yapar, sistem onu tanır ve
-        yaptığı denetime adı otomatik yazılır. Her şifre farklı olmalıdır.</p>
+    <p class="subtitle" style="margin-bottom:14px"><strong>Denetmen</strong> şifresiyle giriş yapan saha hesabıdır:
+        kendisine planlanan <strong>5S denetimini</strong> yapar, ekip lideri olduğu bölümün <strong>aksiyonlarını</strong> kapatır,
+        öneri ve kaizenleri <strong>görüntüler</strong>, kendisine atanan <strong>düzeltme</strong> ve <strong>kaizene dönüştürme
+        görevlerini</strong> yapar. Bölüm lideri olması gerekmez. Her şifre farklı olmalıdır.</p>
 
-    <% if (denetmen_adaylar.length) { %>
+    <% if (denetmenler.length) { %>
     <div class="denetmen-liste">
-        <% for (const a of denetmen_adaylar) { const kayit = denetmenler.find(function (d) { return d.ad === a.ad; }); %>
+        <% for (const d of denetmenler) { %>
         <div class="denetmen-satir">
-            <span class="ds-ad">👤 <strong><%= a.ad %></strong>
-                <% if (a.sifreli) { %><span class="durum-badge onay">şifre tanımlı</span>
-                <% } else { %><span class="durum-badge bekle">şifre yok</span><% } %>
-            </span>
-            <form method="post" action="/yonetici/denetmen/ekle" class="denetmen-form" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-                <input type="hidden" name="ad" value="<%= a.ad %>">
-                <input type="text" name="sifre" placeholder="<%= a.sifreli ? 'Yeni şifre' : 'Şifre belirle' %>" minlength="6" required>
-                <button type="submit" class="btn-mini edit"><%= a.sifreli ? 'Şifre Değiştir' : 'Şifre Belirle' %></button>
+            <span class="ds-ad">👤 <strong><%= d.ad %></strong>
+                <% if (d.lider) { %><span class="durum-badge onay">bölüm lideri</span><% } %></span>
+            <form method="post" action="/yonetici/denetmen/sifre" class="denetmen-form" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                <input type="hidden" name="id" value="<%= d.id %>">
+                <input type="text" name="sifre" placeholder="Yeni şifre" minlength="6" required>
+                <button type="submit" class="btn-mini edit">Şifre Değiştir</button>
             </form>
-            <% if (kayit) { %>
             <form method="post" action="/yonetici/denetmen/sil" style="display:inline"
-                  onsubmit="return confirm('“<%= a.ad %>” giriş şifresi kaldırılsın mı?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-                <input type="hidden" name="id" value="<%= kayit.id %>">
-                <button type="submit" class="btn-mini del">Şifreyi Kaldır</button>
+                  onsubmit="return confirm('Bu denetmen hesabı silinsin mi?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                <input type="hidden" name="id" value="<%= d.id %>">
+                <button type="submit" class="btn-mini del">Hesabı Sil</button>
             </form>
-            <% } %>
         </div>
         <% } %>
     </div>
     <% } else { %>
-    <p class="bos-not">Henüz bölüm sorumlusu (ekip lideri) tanımlı değil — 5S &gt; Bölümler'den ekleyin.</p>
+    <p class="bos-not">Henüz denetmen hesabı yok.</p>
     <% } %>
-</div>
 
+    <% if (lider_adaylari.length) { %>
+    <h3 class="alt-baslik">Hesabı olmayan bölüm liderleri</h3>
+    <div class="denetmen-liste">
+        <% for (const ad of lider_adaylari) { %>
+        <div class="denetmen-satir">
+            <span class="ds-ad">👤 <strong><%= ad %></strong> <span class="durum-badge bekle">şifre yok</span></span>
+            <form method="post" action="/yonetici/denetmen/ekle" class="denetmen-form" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                <input type="hidden" name="ad" value="<%= ad %>">
+                <input type="text" name="sifre" placeholder="Şifre belirle" minlength="6" required>
+                <button type="submit" class="btn-mini edit">Hesap Aç</button>
+            </form>
+        </div>
+        <% } %>
+    </div>
+    <% } %>
+
+    <h3 class="alt-baslik">Yeni denetmen</h3>
+    <form method="post" action="/yonetici/denetmen/ekle" class="satir-form" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+        <input type="text" name="ad" placeholder="Ad" required>
+        <input type="text" name="soyad" placeholder="Soyad" required>
+        <input type="text" name="sifre" placeholder="Şifre (en az 6)" minlength="6" required>
+        <button type="submit" class="btn primary">+ Denetmen Ekle</button>
+    </form>
+</div>
+<% } %>
+
+<% if (yetki('bes_plan')) { %>
 <!-- Misafir denetmenler -->
 <h2 class="bolum-baslik" id="misafirler">🎫 Misafir Denetmenler</h2>
 <div class="form-card">
     <p class="subtitle" style="margin-bottom:14px">Misafir denetmenler giriş yapmaz; denetim planında her bölüme
-        <strong>misafir denetmen</strong> olarak elle atanır ve denetim formunda adı görünür.</p>
+        <strong>misafir denetmen</strong> olarak atanır ve denetim formunda adı görünür.</p>
     <form method="post" action="/yonetici/misafir/ekle" class="satir-form" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-        <input type="text" name="ad" placeholder="Misafir denetmen (Ad Soyad)" required>
+        <input type="text" name="ad" placeholder="Ad" required>
+        <input type="text" name="soyad" placeholder="Soyad" required>
         <button type="submit" class="btn primary">+ Misafir Ekle</button>
     </form>
     <% if (misafirler.length) { %>
@@ -122,7 +88,7 @@
         <div class="denetmen-satir">
             <span class="ds-ad">🎫 <strong><%= m.ad %></strong></span>
             <form method="post" action="/yonetici/misafir/sil" style="display:inline"
-                  onsubmit="return confirm('“<%= m.ad %>” misafir denetmen silinsin mi?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                  onsubmit="return confirm('Bu misafir denetmen silinsin mi?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="id" value="<%= m.id %>">
                 <button type="submit" class="btn-mini del">Sil</button>
             </form>
@@ -136,42 +102,55 @@
 <% } %>
 
 <% if (super_admin) { %>
-<!-- Yöneticiler (yalnızca ana yönetici) -->
+<% function yetkiKutulari(secili, tam) { %>
+    <label class="chk tam-chk" title="Ana yönetici ile aynı yetkiler (yönetici ekleme dahil). Hesap silinebilir.">
+        <input type="checkbox" name="yetkiler" value="tam" class="tam-kutu" <%= tam ? 'checked' : '' %>>
+        <span>⭐ <strong>Tam yetki</strong> (ana yönetici kadar)</span>
+    </label>
+    <% for (const g of yetki_gruplari) { %>
+    <div class="yetki-grup">
+        <span class="yetki-grup-ad"><%= g.grup %></span>
+        <div class="yetki-kutulari">
+            <% for (const t of g.yetkiler) { %>
+            <label class="chk" title="<%= t.aciklama %>">
+                <input type="checkbox" name="yetkiler" value="<%= t.k %>" class="alan-kutu"
+                    <%= (!tam && (secili || []).includes(t.k)) ? 'checked' : '' %> <%= tam ? 'disabled' : '' %>>
+                <span><%= t.ad %><small><%= t.aciklama %></small></span>
+            </label>
+            <% } %>
+        </div>
+    </div>
+    <% } %>
+<% } %>
+<!-- Yöneticiler -->
 <h2 class="bolum-baslik" id="yoneticiler">👤 Yöneticiler</h2>
 <div class="form-card">
-    <p class="subtitle" style="margin-bottom:14px">Ana yönetici (siz) her zaman tam yetkilidir. Buradan
-        <strong>ek yönetici</strong> ekleyip her birine ad, şifre ve <strong>yetki alanlarını</strong> siz
-        belirlersiniz. Her şifre farklı olmalıdır; yönetici şifresiyle giriş yapar, sistem onu tanır.</p>
+    <p class="subtitle" style="margin-bottom:14px"><strong>Ana yönetici</strong> sabittir ve her zaman tam yetkilidir.
+        Buradan <strong>ek yönetici</strong> ekleyip yetki alanlarını tek tek seçersiniz; <strong>⭐ Tam yetki</strong>
+        verilen yönetici ana yönetici kadar yetkilidir (yönetici ekleyebilir) ama silinebilir. Her şifre farklı olmalıdır.</p>
 
-    <!-- Mevcut ek yöneticiler -->
     <% if (yoneticiler.length) { %>
     <div class="denetmen-liste" style="margin-bottom:18px">
         <% for (const y of yoneticiler) { %>
-        <form method="post" action="/yonetici/yonetici/guncelle" class="yonetici-satir" autocomplete="off">
+        <form method="post" action="/yonetici/yonetici/guncelle" class="yonetici-satir yetki-form" autocomplete="off">
             <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <input type="hidden" name="id" value="<%= y.id %>">
             <div class="yonetici-ust">
-                <span class="ds-ad">👤 <strong><%= y.ad %></strong></span>
+                <span class="ds-ad">👤 <strong><%= y.ad %></strong><% if (y.ben) { %> <small>(siz)</small><% } %>
+                    <% if (y.tam) { %><span class="durum-badge onay">⭐ tam yetki</span><% } %></span>
                 <div class="yonetici-islem">
                     <input type="password" name="sifre" placeholder="Yeni şifre (boş=değişmez)" minlength="6"
                            class="yonetici-sifre" autocomplete="new-password">
                     <button type="submit" class="btn-mini edit">Kaydet</button>
                 </div>
             </div>
-            <div class="yetki-kutulari">
-                <% for (const t of yetki_tanimlari) { %>
-                <label class="chk" title="<%= t.aciklama %>">
-                    <input type="checkbox" name="yetkiler" value="<%= t.k %>"
-                        <%= (y.yetkiler || []).includes(t.k) ? 'checked' : '' %>>
-                    <span><%= t.ad %></span>
-                </label>
-                <% } %>
-            </div>
+            <% yetkiKutulari(y.yetkiler, y.tam) %>
             <div class="yonetici-alt">
                 <span class="bos-not">Oluşturma: <%= y.olusturma %></span>
-                <button type="submit" formaction="/yonetici/yonetici/sil" class="btn-mini del"
-                        formnovalidate
-                        onclick="return confirm('“<%= y.ad %>” yöneticisi silinsin mi?');">Sil</button>
+                <% if (!y.ben) { %>
+                <button type="submit" formaction="/yonetici/yonetici/sil" class="btn-mini del" formnovalidate
+                        onclick="return confirm('Bu yönetici silinsin mi?');">Sil</button>
+                <% } %>
             </div>
         </form>
         <% } %>
@@ -180,54 +159,43 @@
     <p class="bos-not" style="margin-bottom:18px">Henüz ek yönetici yok.</p>
     <% } %>
 
-    <!-- Yeni ek yönetici -->
-    <form method="post" action="/yonetici/yonetici/ekle" class="yeni-yonetici" autocomplete="off">
+    <form method="post" action="/yonetici/yonetici/ekle" class="yeni-yonetici yetki-form" autocomplete="off">
         <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
         <div class="row">
-            <div class="field">
-                <label>Ad Soyad</label>
-                <input type="text" name="ad" placeholder="Örn. Mehmet Yönetici" required>
-            </div>
+            <div class="field"><label>Ad</label><input type="text" name="ad" required></div>
+            <div class="field"><label>Soyad</label><input type="text" name="soyad"></div>
             <div class="field">
                 <label>Şifre <small>(en az 6 karakter)</small></label>
                 <input type="password" name="sifre" minlength="6" required autocomplete="new-password">
             </div>
         </div>
         <label class="file-label">Yetki alanları</label>
-        <div class="yetki-kutulari">
-            <% for (const t of yetki_tanimlari) { %>
-            <label class="chk" title="<%= t.aciklama %>">
-                <input type="checkbox" name="yetkiler" value="<%= t.k %>">
-                <span><%= t.ad %></span>
-            </label>
-            <% } %>
-        </div>
+        <% yetkiKutulari([], false) %>
         <div class="form-actions">
             <button type="submit" class="btn primary">+ Yönetici Ekle</button>
         </div>
     </form>
 </div>
+<script>
+// "Tam yetki" seçilince ayrı alan kutuları devre dışı (tam yetki hepsini kapsar)
+document.querySelectorAll('.yetki-form').forEach(function (f) {
+    var tam = f.querySelector('.tam-kutu');
+    if (!tam) return;
+    function guncelle() { f.querySelectorAll('.alan-kutu').forEach(function (k) { k.disabled = tam.checked; }); }
+    tam.addEventListener('change', guncelle);
+});
+</script>
+<% } %>
 
-<!-- Şifre değiştir (ana yönetici) -->
+<% if (ana_yonetici) { %>
 <h2 class="bolum-baslik">🔑 Şifre Değiştir <small class="bos-not">(ana yönetici)</small></h2>
 <form class="form-card sifre-form" method="post" action="/yonetici/sifre" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
     <div class="row">
-        <div class="field">
-            <label>Mevcut Şifre</label>
-            <input type="password" name="eski" required>
-        </div>
-        <div class="field">
-            <label>Yeni Şifre</label>
-            <input type="password" name="yeni" required>
-        </div>
-        <div class="field">
-            <label>Yeni Şifre (Tekrar)</label>
-            <input type="password" name="yeni2" required>
-        </div>
+        <div class="field"><label>Mevcut Şifre</label><input type="password" name="eski" required></div>
+        <div class="field"><label>Yeni Şifre</label><input type="password" name="yeni" required></div>
+        <div class="field"><label>Yeni Şifre (Tekrar)</label><input type="password" name="yeni2" required></div>
     </div>
-    <div class="form-actions">
-        <button type="submit" class="btn primary">Şifreyi Güncelle</button>
-    </div>
+    <div class="form-actions"><button type="submit" class="btn primary">Şifreyi Güncelle</button></div>
 </form>
 <% } %>
 <%- include('partials/footer') %>

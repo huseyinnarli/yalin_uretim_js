@@ -3,6 +3,8 @@ const crypto = require("crypto");
 const multer = require("multer");
 const S = require("./sabitler");
 const C = require("./cekirdek");
+const I = require("./isim");
+const Y = require("./yetkiler");
 
 // Async rota sarıcı: reddedilen promise'i Express hata zincirine iletir
 // (Express 4 async hataları kendiliğinden yakalamaz).
@@ -10,19 +12,9 @@ function sar(fn) {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }
 
-// --- Yetki alanları: ek yöneticilere ayrı ayrı verilebilen yetkiler ---
-// Ana yönetici (config şifresiyle giren) her zaman tüm yetkilere sahiptir.
-const YETKILER = [
-  { k: "degerlendirme", ad: "Değerlendirme & Puanlama",
-    aciklama: "Öneri/kaizen onay · red · revize ve ★ puanlama" },
-  { k: "bes_s", ad: "5S Yönetimi",
-    aciklama: "Bölüm/plan oluşturma, denetmen-misafir yönetimi, ödülleri işleme, denetim silme, 5S raporları" },
-  { k: "odul", ad: "Ödül Verme",
-    aciklama: "Puan listesinden ödül verme, kişi gizleme, ödül kaydı silme, puan raporları" },
-  { k: "kayit", ad: "Kayıt Düzenle-Sil & Raporlar",
-    aciklama: "Öneri/kaizen düzenleme-silme ve Excel indirme" },
-];
-const TUM_YETKILER = YETKILER.map((y) => y.k);
+// Yetki alanları src/yetkiler.js'te tanımlıdır (ayrıntılı alanlar + "tam" yetki).
+const YETKILER = Y.YETKILER;
+const TUM_YETKILER = Y.TUM_YETKILER;
 
 // --- Flash (oturumda taşınır, bir kez gösterilir) ---
 // Yan etki: yönetici/denetmen bağlamındaki BAŞARILI işlemler işlem günlüğüne yazılır
@@ -71,41 +63,66 @@ function alan(req, ad) {
   return String((req.body || {})[ad] || "").trim().slice(0, S.ALAN_MAX);
 }
 
+// Ad + soyad ayrı kutulardan okunur ve düzeltilir ("aLi" "yılmaz" -> "Ali Yılmaz").
+// Eski tek kutulu form (adAlani dolu, soyad alanı hiç gönderilmemiş) da kabul edilir.
+// Dönüş: { tam, ad, soyad, eksik } — eksik: ayrı kutularda ad veya soyaddan biri boş.
+function adSoyadOku(req, adAlani, soyadAlani) {
+  const b = req.body || {};
+  if (!(soyadAlani in b)) {
+    const tam = I.adDuzelt(alan(req, adAlani));
+    return { tam, ad: tam, soyad: "", eksik: !tam };
+  }
+  const ad = I.adDuzelt(alan(req, adAlani));
+  const soyad = I.adDuzelt(alan(req, soyadAlani));
+  return { tam: I.adSoyad(ad, soyad), ad, soyad, eksik: !ad || !soyad };
+}
+
+// Formdaki bir kişi: "<onek>_ad" + "<onek>_soyad" ayrı kutuları; yoksa eski tek "<onek>" kutusu
+function kisiOku(req, onek) {
+  const b = req.body || {};
+  if ((onek + "_ad") in b) return adSoyadOku(req, onek + "_ad", onek + "_soyad");
+  return adSoyadOku(req, onek, "\u0000yok");
+}
+
+// Site içi dönüş adresi: yalnızca "/" ile başlayan ve "//" ile başlamayan yollar
+// (javascript:, başka site vb. reddedilir). Geçersizse varsayılan döner.
+function guvenliYol(hedef, varsayilan = "/") {
+  const h = String(hedef || "");
+  return (h.startsWith("/") && !h.startsWith("//") && !h.includes("\\")) ? h : varsayilan;
+}
+
 // --- Ortak locals + flash tüketimi + CSRF üretimi + yetki hesaplama ---
 const ortakLocals = sar(async (req, res, next) => {
   if (!req.session.csrf) req.session.csrf = crypto.randomBytes(16).toString("hex");
   const d = await C.aktifDenetmen(req.session);
 
-  // Yetki durumu: ana yönetici (super) tüm yetkilere sahiptir; ek yönetici kendi
-  // yetki listesine. Yetkiler her istekte veritabanından TAZE okunur → silme/güncelleme
-  // anında etkilidir. Silinmiş ek yönetici hesabı aktifYonetici içinde düşürülür.
-  let superAdmin = false;
-  let yetkiler = [];
-  let yoneticiAdi = null;
-  if (req.session.admin) {
-    if (req.session.super) {
-      superAdmin = true;
-      yetkiler = TUM_YETKILER;
-    } else {
-      const y = await C.aktifYonetici(req.session);
-      if (y) { yetkiler = y.yetkiler || []; yoneticiAdi = y.ad; }
-    }
-  }
-  req.superAdmin = superAdmin;
-  req.yetkiler = yetkiler;
+  // Yetki durumu: ana yönetici ve "tam" yetkili ek yönetici tüm yetkilere sahiptir; ek yönetici
+  // kendi listesine. Yetkiler her istekte veritabanından TAZE okunur → değişiklik anında etkilidir.
+  const y = await C.oturumYetkileri(req.session);
+  req.yetkiBilgi = y;
+  req.superAdmin = y.tam;          // tam yetki (ana yönetici veya tam yetkili ek yönetici)
+  req.anaYonetici = y.ana;         // yalnızca ana yönetici
+  req.yetkiler = y.yetkiler;
+  req.denetmen = d;
+  req.girisli = y.yonetici || Boolean(d);
 
   res.locals.session = req.session;
-  res.locals.admin = Boolean(req.session.admin);
-  res.locals.super_admin = superAdmin;
-  res.locals.yetkiler = yetkiler;
-  res.locals.yetki = (alan) => superAdmin || yetkiler.includes(alan);
-  res.locals.yonetici_adi = yoneticiAdi;
+  res.locals.admin = y.yonetici;
+  res.locals.super_admin = y.tam;
+  res.locals.ana_yonetici = y.ana;
+  res.locals.yetkiler = y.yetkiler;
+  res.locals.yetki = (alan) => y.yetkiler.includes(alan);
+  res.locals.yonetici_adi = y.yonetici && !y.ana ? y.ad : null;
+  res.locals.denetmen = d;
   res.locals.denetmen_adi = d ? d.ad : null;
+  res.locals.girisli = req.girisli;
+  res.locals.gorev_sayisi = d ? await C.gorevSayisi(d.id) : 0;
   res.locals.csrf_token = req.session.csrf;
   res.locals.marka_adi = S.MARKA_ADI;
   res.locals.marka_logo = C.logoBul();
   res.locals.trdate = C.trdate;
   res.locals.puanfmt = C.puanfmt;
+  res.locals.adBol = I.adBol;
   res.locals.mesajlar = req.session.flash || [];
   delete req.session.flash;
   next();
@@ -125,6 +142,7 @@ const DOSYA_YOLLARI = [
   /^\/kaizen\/yeni$/,
   /^\/kaizen\/duzenle$/,
   /^\/5s\/bolum\/[^/]+\/denetim$/,
+  /^\/5s\/denetim\/[^/]+\/revize$/,
   /^\/5s\/aksiyon\/[^/]+\/kapat$/,
 ];
 
@@ -187,32 +205,43 @@ function _yetkisiz(req, res) {
 
 // Herhangi bir yönetici (ana veya ek) — panele genel erişim için
 function adminRequired(req, res, next) {
-  if (!req.session.admin) return _giriseYonlendir(req, res);
+  if (!req.yetkiBilgi || !req.yetkiBilgi.yonetici) return _giriseYonlendir(req, res);
   next();
 }
-// Yalnızca ana yönetici (ek yönetici yönetimi, ana şifre değişimi)
-function superRequired(req, res, next) {
-  if (!req.session.admin) return _giriseYonlendir(req, res);
+// Girişli herkes (yönetici veya denetmen) — öneri/kaizen listesi, panel, arşiv
+function girisRequired(req, res, next) {
+  if (!req.girisli) return _giriseYonlendir(req, res);
+  next();
+}
+// Tam yetki: ana yönetici veya "tam" yetkili ek yönetici (ek yönetici yönetimi, işlem günlüğü)
+function tamYetkiRequired(req, res, next) {
+  if (!req.yetkiBilgi || !req.yetkiBilgi.yonetici) return _giriseYonlendir(req, res);
   if (!req.superAdmin) return _yetkisiz(req, res);
   next();
 }
-// Belirli bir yetki alanı gerektirir (ana yönetici her zaman geçer)
+// Yalnızca ana yönetici (ana yönetici şifresinin değişimi)
+function anaYoneticiRequired(req, res, next) {
+  if (!req.yetkiBilgi || !req.yetkiBilgi.yonetici) return _giriseYonlendir(req, res);
+  if (!req.anaYonetici) return _yetkisiz(req, res);
+  next();
+}
+// Belirli bir yetki alanı gerektirir (tam yetki her zaman geçer)
 function yetkiGerek(alan) {
   return (req, res, next) => {
-    if (!req.session.admin) return _giriseYonlendir(req, res);
-    if (req.superAdmin || (req.yetkiler || []).includes(alan)) return next();
+    if (!req.yetkiBilgi || !req.yetkiBilgi.yonetici) return _giriseYonlendir(req, res);
+    if ((req.yetkiler || []).includes(alan)) return next();
     return _yetkisiz(req, res);
   };
 }
-// Denetim yapma: 5S yetkili yönetici VEYA girişli denetmen
-const denetciRequired = sar(async (req, res, next) => {
-  if (req.superAdmin || (req.yetkiler || []).includes("bes_s")) return next();
-  if (await C.aktifDenetmen(req.session)) return next();
+// Denetim yapma: "denetim yapma" yetkili yönetici VEYA girişli denetmen
+function denetciRequired(req, res, next) {
+  if ((req.yetkiler || []).includes("bes_denetim")) return next();
+  if (req.denetmen) return next();
   return _giriseYonlendir(req, res);
-});
+}
 
 module.exports = {
-  sar, flash, hizLimitAsildi, alan, ortakLocals, csrfDogrula, dosyaYukleyici,
-  guvenlikBasliklari, adminRequired, superRequired, yetkiGerek, denetciRequired,
-  YETKILER, TUM_YETKILER,
+  sar, flash, hizLimitAsildi, alan, adSoyadOku, kisiOku, guvenliYol, ortakLocals, csrfDogrula, dosyaYukleyici,
+  guvenlikBasliklari, adminRequired, girisRequired, tamYetkiRequired, anaYoneticiRequired,
+  yetkiGerek, denetciRequired, YETKILER, TUM_YETKILER,
 };

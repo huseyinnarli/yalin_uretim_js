@@ -10,17 +10,25 @@
         <span class="hub-go">Sıralamaya git →</span>
     </a>
 
-    <a class="hub-box" href="/liste">
+    <div class="hub-box">
         <div class="hub-box-icon">💡🔧</div>
         <h2>Öneri &amp; Kaizen</h2>
-        <p>Öneri ve kaizen kayıtları — listele, ekle, değerlendir.</p>
-        <span class="hub-go">Listeye git →</span>
-    </a>
+        <p>Önerinizi veya yaptığınız kaizeni formla iletin.</p>
+        <div class="hub-linkler">
+            <a class="btn primary" href="/oneri/yeni">+ Öneri Yaz</a>
+            <a class="btn primary" href="/kaizen/yeni">+ Kaizen Yaz</a>
+        </div>
+        <% if (girisli) { %>
+        <a class="hub-go" href="/liste">Listeye git →</a>
+        <% } else { %>
+        <span class="hub-not">Kayıtları görmek için <a href="/yonetici/giris?next=%2Fliste">giriş yapın</a>.</span>
+        <% } %>
+    </div>
 
     <a class="hub-box" href="/5s">
         <div class="hub-box-icon">🧹</div>
         <h2>5S</h2>
-        <p>Bölüm 5S denetimleri ve bölümler arası sıralama.</p>
+        <p>Bölüm 5S denetim sonuçları, sıralama ve aksiyonlar.</p>
         <span class="hub-go">Bölümlere git →</span>
     </a>
 </div>

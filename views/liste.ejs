@@ -1,16 +1,14 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">
-        📋 Öneri &amp; Kaizen Listesi<% if (admin) { %> <span class="yonetim-etiket">yönetim modu</span><% } %>
-    </h1>
+    <h1 class="page-title">📋 Öneri &amp; Kaizen Listesi</h1>
     <div class="list-actions">
         <a class="btn primary" href="/oneri/yeni">+ Öneri</a>
         <a class="btn primary" href="/kaizen/yeni">+ Kaizen</a>
+        <a class="btn ghost" href="/arsiv">🗂 Reddedilen &amp; Silinen</a>
         <% if (yetki('kayit')) { %>
         <a class="btn ghost" href="/oneri/excel">⬇ Öneri Excel</a>
         <a class="btn ghost" href="/kaizen/excel">⬇ Kaizen Excel</a>
-        <a class="btn ghost" href="/silinenler">🗑 Silinenler</a>
         <% } %>
     </div>
 </div>
@@ -25,6 +23,15 @@
         </select>
     </div>
     <div class="filter-group">
+        <label>Durum</label>
+        <select name="durum" onchange="this.form.submit()">
+            <option value="" <%= !durum ? 'selected' : '' %>>Tümü</option>
+            <option value="bekle" <%= durum=='bekle' ? 'selected' : '' %>>Değerlendiriliyor</option>
+            <option value="revize" <%= durum=='revize' ? 'selected' : '' %>>Düzeltme İsteniyor</option>
+            <option value="onay" <%= durum=='onay' ? 'selected' : '' %>>Onaylandı</option>
+        </select>
+    </div>
+    <div class="filter-group">
         <label>Dönem</label>
         <select name="ay" onchange="this.form.submit()">
             <option value="">Tüm Tarihler</option>
@@ -35,15 +42,18 @@
     </div>
     <div class="filter-group grow">
         <label>Ara</label>
-        <input type="text" name="q" value="<%= q %>" placeholder="No, konu veya kişi...">
+        <input type="text" name="q" value="<%= q %>" placeholder="No, form no, konu veya kişi...">
     </div>
     <button type="submit" class="btn primary">Filtrele</button>
     <a class="btn ghost" href="/liste">Temizle</a>
 </form>
 
-<p class="result-info"><%= kayitlar.length %> kayıt gösteriliyor (toplam <%= toplam %>).</p>
+<p class="result-info">
+    <% if (sf.toplam) { %><%= sf.bas %>–<%= sf.son %> arası gösteriliyor · filtreye uyan <%= sf.toplam %> kayıt<% } else { %>Filtreye uyan kayıt yok<% } %>
+    (reddedilenler hariç toplam <%= toplam %>).
+</p>
 
-<% const islemVar = yetki('degerlendirme') || yetki('kayit'); %>
+<% const islemVar = yetki('degerlendir') || yetki('puanla') || yetki('kayit'); %>
 <% if (kayitlar.length) { %>
 <div class="table-wrap">
 <table class="data-table">
@@ -55,7 +65,8 @@
         </tr>
     </thead>
     <tbody>
-        <% for (const r of kayitlar) { const du = r.durum || 'Değerlendiriliyor'; %>
+        <% for (const r of kayitlar) { const du = r.durum || 'Değerlendiriliyor';
+           const detayUrl = '/detay?tip=' + r.tip + '&no=' + encodeURIComponent(r.no) + '&geri=' + encodeURIComponent(tam_yol); %>
         <tr>
             <td data-label="Tür">
                 <% if (r.tip == 'kaizen') { %><span class="tip-badge kaizen">KAIZEN</span>
@@ -64,54 +75,39 @@
             <td class="mono nowrap" data-label="No"><%= r.no %><% if (r.form_no) { %><br><small class="form-no">Form: <%= r.form_no %></small><% } %></td>
             <td class="nowrap" data-label="Tarih"><%= trdate(r.sort_date) %></td>
             <td data-label="Konu">
-                <a class="title-link" href="/detay?tip=<%= r.tip %>&no=<%= encodeURIComponent(r.no) %>&geri=<%= encodeURIComponent(tam_yol) %>">
-                    <%= r.baslik || '(başlıksız)' %>
-                </a>
+                <a class="title-link" href="<%= detayUrl %>"><%= r.baslik || '(başlıksız)' %></a>
+                <% if (r.tip == 'oneri' && r.kaizen_no) { %><br><small class="bos-not">🔧 Kaizene dönüştü: <%= r.kaizen_no %></small>
+                <% } else if (r.tip == 'oneri' && r.gorev_atanan_ad) { %><br><small class="bos-not">📌 Görev: <%= r.gorev_atanan_ad %></small><% } %>
             </td>
             <td data-label="Kişi"><%= r.kisi %></td>
             <td class="nowrap" data-label="Durum">
                 <% if (du == 'Onaylandı') { %><span class="durum-badge onay"><%= du %></span>
-                <% } else if (du == 'Reddedildi') { %><span class="durum-badge red"><%= du %></span>
                 <% } else if (du == 'Düzeltme İsteniyor') { %><span class="durum-badge revize"><%= du %></span>
+                    <% if (r.revize_atanan_ad) { %><br><small class="bos-not">✏ <%= r.revize_atanan_ad %></small><% } %>
                 <% } else { %><span class="durum-badge bekle"><%= du %></span><% } %>
             </td>
             <td class="nowrap puan-cell" data-label="Puan"><%= (r.puan === null || r.puan === '' || r.puan === undefined) ? '—' : r.puan %></td>
             <% if (islemVar) { %>
             <td class="nowrap islem-hucre" data-label="İşlem">
-                <% if (yetki('degerlendirme')) { %>
-                <% if (du != 'Onaylandı') { %>
+                <% if (yetki('degerlendir') && du != 'Onaylandı') { %>
                 <form method="post" action="/durum" style="display:inline"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                     <input type="hidden" name="tip" value="<%= r.tip %>">
                     <input type="hidden" name="no" value="<%= r.no %>">
                     <input type="hidden" name="durum" value="Onaylandı">
+                    <input type="hidden" name="don" value="<%= tam_yol %>">
                     <button type="submit" class="btn-mini onay" title="Onayla">✓ Onay</button>
                 </form>
+                <a class="btn-mini revize" href="<%= detayUrl %>#degerlendir" title="Red veya düzeltme isteme (gerekçe gerekir)">Red / Revize…</a>
                 <% } %>
-                <% if (du != 'Reddedildi' && du != 'Onaylandı') { %>
-                <form method="post" action="/durum" style="display:inline"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-                    <input type="hidden" name="tip" value="<%= r.tip %>">
-                    <input type="hidden" name="no" value="<%= r.no %>">
-                    <input type="hidden" name="durum" value="Reddedildi">
-                    <button type="submit" class="btn-mini reddet" title="Reddet">Red</button>
-                </form>
-                <% } %>
-                <% if (du != 'Düzeltme İsteniyor' && du != 'Onaylandı') { %>
-                <form method="post" action="/durum" style="display:inline"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-                    <input type="hidden" name="tip" value="<%= r.tip %>">
-                    <input type="hidden" name="no" value="<%= r.no %>">
-                    <input type="hidden" name="durum" value="Düzeltme İsteniyor">
-                    <button type="submit" class="btn-mini revize" title="Düzeltme iste">Revize</button>
-                </form>
-                <% } %>
-                <% if (du == 'Onaylandı') { %>
-                <a class="btn-mini eval" href="/degerlendir/puan?tip=<%= r.tip %>&no=<%= encodeURIComponent(r.no) %>">★ Puanla</a>
-                <% } %>
+                <% if (yetki('puanla') && du == 'Onaylandı') { %>
+                <a class="btn-mini eval" href="/degerlendir/puan?tip=<%= r.tip %>&no=<%= encodeURIComponent(r.no) %>&geri=<%= encodeURIComponent(tam_yol) %>">★ Puanla</a>
                 <% } %>
                 <% if (yetki('kayit')) { %>
                 <form method="post" action="/sil" style="display:inline"
-                      onsubmit="return confirm('“<%= r.no %>” kaydı silinsin mi? Bu işlem geri alınamaz.');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                      onsubmit="return confirm('Bu kayıt silinsin mi? (Reddedilen &amp; Silinen arşivinden geri yüklenebilir)');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                     <input type="hidden" name="tip" value="<%= r.tip %>">
                     <input type="hidden" name="no" value="<%= r.no %>">
+                    <input type="hidden" name="don" value="<%= tam_yol %>">
                     <button type="submit" class="btn-mini del">Sil</button>
                 </form>
                 <% } %>
@@ -122,6 +118,18 @@
     </tbody>
 </table>
 </div>
+
+<% if (sf.sayfaSayisi > 1) { %>
+<nav class="sayfalama" aria-label="Sayfalar">
+    <% if (sf.sayfa > 1) { %><a class="btn-mini" href="<%= sayfaUrl(sf.sayfa - 1) %>">‹ Önceki</a><% } %>
+    <% for (let n = 1; n <= sf.sayfaSayisi; n++) {
+         if (n === 1 || n === sf.sayfaSayisi || Math.abs(n - sf.sayfa) <= 2) { %>
+        <% if (n === sf.sayfa) { %><span class="btn-mini aktif"><%= n %></span>
+        <% } else { %><a class="btn-mini" href="<%= sayfaUrl(n) %>"><%= n %></a><% } %>
+    <% } else if (Math.abs(n - sf.sayfa) === 3) { %><span class="sayfa-bosluk">…</span><% } } %>
+    <% if (sf.sayfa < sf.sayfaSayisi) { %><a class="btn-mini" href="<%= sayfaUrl(sf.sayfa + 1) %>">Sonraki ›</a><% } %>
+</nav>
+<% } %>
 <% } else { %>
 <div class="empty">Filtreye uyan kayıt yok.</div>
 <% } %>

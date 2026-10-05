@@ -6,8 +6,12 @@ const P = require("../puanlama");
 const C = require("../cekirdek");
 const X = require("../excel");
 const { calistir, tek, transaction, js } = require("../db");
+const I = require("../isim");
+const Y = require("../yetkiler");
 const W = require("../web");
-const { sar, flash, adminRequired, superRequired, yetkiGerek, alan, YETKILER, TUM_YETKILER } = W;
+const {
+  sar, flash, adminRequired, tamYetkiRequired, anaYoneticiRequired, yetkiGerek, alan, adSoyadOku, guvenliYol,
+} = W;
 const { xlsxGonder } = require("./genel");
 
 // Kaba kuvvet koruması: IP başına 10 dakikada en fazla 8 başarısız deneme
@@ -20,11 +24,14 @@ function girisKilitli(ip) {
   return denemeler.length >= _GIRIS_LIMIT;
 }
 
-// Checkbox'lardan gelen yetki listesini okur (yalnızca tanımlı yetkiler)
+// Checkbox'lardan gelen yetki listesi (tam seçildiyse yalnızca ["tam"])
 function yetkileriOku(req) {
-  let v = (req.body || {}).yetkiler || [];
-  if (!Array.isArray(v)) v = [v];
-  return TUM_YETKILER.filter((k) => v.includes(k));
+  return Y.yetkiFormdan((req.body || {}).yetkiler);
+}
+
+// İşlemi yapan yöneticinin adı (atama kayıtlarında "kim istedi" bilgisi)
+function yapanAd(req) {
+  return req.anaYonetici ? "Ana Yönetici" : ((req.yetkiBilgi && req.yetkiBilgi.ad) || "Yönetici");
 }
 
 // Oturumu tamamen temizler (rol geçişlerinde eski roldan iz kalmasın)
@@ -95,27 +102,27 @@ module.exports = function register(app) {
     res.redirect("/");
   });
 
+  // Yönetim sayfası: hesaplar (denetmen, misafir, ek yönetici) + ana şifre — yetkiye göre bölümler
   app.get("/yonetici", adminRequired, sar(async (req, res) => {
-    const [trendBasliklar, trendSatirlar] = await C.besSTrendTablo();
     const denetmenler = await C.loadDenetmenler();
-    const sifreli = new Set(denetmenler.map((d) => d.ad));
-    const adaylar = (await C.denetmenAdaylari()).map((ad) => ({ ad, sifreli: sifreli.has(ad) }));
+    const adaylar = (await C.denetmenAdaylari())
+      .filter((ad) => !denetmenler.some((d) => I.isimEsit(d.ad, ad)));
+    const liderler = await C.denetmenAdaylari();
     res.render("dashboard", {
-      title: "Yönetici Paneli",
-      ist: await C.dashboardIstatistik(),
-      trend_basliklar: trendBasliklar, trend_satirlar: trendSatirlar,
-      denetmen_adaylar: adaylar,
-      denetmenler,
+      title: "Yönetim",
+      denetmenler: denetmenler.map((d) => ({ ...d, lider: liderler.some((ad) => I.isimEsit(ad, d.ad)) })),
+      lider_adaylari: adaylar,
       misafirler: await C.loadMisafirler(),
-      // Ek yönetici yönetimi yalnızca ana yöneticide gösterilir
-      yoneticiler: req.superAdmin ? await C.loadYoneticiler() : [],
-      yetki_tanimlari: YETKILER,
+      yoneticiler: req.superAdmin
+        ? (await C.loadYoneticiler()).map((y) => ({ ...y, ...Y.yetkiGenislet(y.yetkiler), ben: y.id === req.session.yonetici_id }))
+        : [],
+      yetki_gruplari: Y.YETKI_GRUPLARI,
     });
   }));
 
-  // ----- Ek yönetici yönetimi (yalnızca ana yönetici) -----
-  app.post("/yonetici/yonetici/ekle", superRequired, sar(async (req, res) => {
-    const ad = alan(req, "ad");
+  // ----- Ek yönetici yönetimi (ana yönetici + tam yetkili ek yönetici) -----
+  app.post("/yonetici/yonetici/ekle", tamYetkiRequired, sar(async (req, res) => {
+    const ad = adSoyadOku(req, "ad", "soyad").tam;
     const sifre = String(req.body.sifre || "").trim();
     const yetkiler = yetkileriOku(req);
     if (!ad) {
@@ -137,12 +144,12 @@ module.exports = function register(app) {
     }
     await calistir("INSERT INTO yoneticiler(id, ad, sifre, yetkiler, olusturma) VALUES(?,?,?,?,?)",
       [C.uid(), ad, C.hashPassword(sifre), js(yetkiler), S.zamanTr()]);
-    flash(req, "success", `${ad} yöneticisi eklendi.`);
+    flash(req, "success", `${ad} yöneticisi eklendi` + (yetkiler.includes(Y.TAM) ? " (tam yetki)." : "."));
     res.redirect("/yonetici#yoneticiler");
   }));
 
   // Yetkileri (ve isteğe bağlı şifreyi) günceller
-  app.post("/yonetici/yonetici/guncelle", superRequired, sar(async (req, res) => {
+  app.post("/yonetici/yonetici/guncelle", tamYetkiRequired, sar(async (req, res) => {
     const id = req.body.id || "";
     const y = await C.yoneticiById(id);
     if (!y) {
@@ -174,29 +181,38 @@ module.exports = function register(app) {
     res.redirect("/yonetici#yoneticiler");
   }));
 
-  app.post("/yonetici/yonetici/sil", superRequired, sar(async (req, res) => {
-    const r = await calistir("DELETE FROM yoneticiler WHERE id = ?", [req.body.id || ""]);
+  // Ek yönetici silinebilir (ana yönetici sabittir; kimse kendi hesabını silemez)
+  app.post("/yonetici/yonetici/sil", tamYetkiRequired, sar(async (req, res) => {
+    const id = req.body.id || "";
+    if (id && id === req.session.yonetici_id) {
+      flash(req, "error", "Kendi hesabınızı silemezsiniz.");
+      return res.redirect("/yonetici#yoneticiler");
+    }
+    const r = await calistir("DELETE FROM yoneticiler WHERE id = ?", [id]);
     if (r.affectedRows) flash(req, "success", "Yönetici silindi.");
     res.redirect("/yonetici#yoneticiler");
   }));
 
-  // ----- İşlem günlüğü (yalnızca ana yönetici) -----
-  app.get("/yonetici/gunluk", superRequired, sar(async (req, res) => {
+  // ----- İşlem günlüğü (tam yetki) -----
+  app.get("/yonetici/gunluk", tamYetkiRequired, sar(async (req, res) => {
     res.render("gunluk", { title: "İşlem Günlüğü", kayitlar: await C.loadGunluk(500) });
   }));
 
-  app.post("/yonetici/gunluk/temizle", superRequired, sar(async (req, res) => {
+  app.post("/yonetici/gunluk/temizle", tamYetkiRequired, sar(async (req, res) => {
     await C.gunlukTemizle();
     flash(req, "success", "İşlem günlüğü temizlendi.");
     res.redirect("/yonetici/gunluk");
   }));
 
-  // ----- Denetmen / misafir yönetimi (5S yetkisi) -----
-  app.post("/yonetici/denetmen/ekle", yetkiGerek("bes_s"), sar(async (req, res) => {
-    const ad = alan(req, "ad");
+  // ----- Denetmen hesapları ('kullanici' yetkisi) -----
+  // Denetmen = giriş yapabilen saha hesabı: kendisine planlanan 5S denetimini yapar, bölüm
+  // lideriyse aksiyon kapatır, öneri/kaizenleri görüntüler, kendisine atanan düzeltme ve
+  // görevleri yapar. Bölüm lideri olması gerekmez. Aynı isimde hesap varsa şifresi güncellenir.
+  app.post("/yonetici/denetmen/ekle", yetkiGerek("kullanici"), sar(async (req, res) => {
+    const ad = adSoyadOku(req, "ad", "soyad");
     const sifre = String(req.body.sifre || "").trim();
-    if (!(await C.denetmenAdaylari()).includes(ad)) {
-      flash(req, "error", "Denetmenler yalnızca bölüm sorumluları arasından belirlenir.");
+    if (ad.eksik) {
+      flash(req, "error", "Denetmenin adını ve soyadını yazın.");
       return res.redirect("/yonetici#denetmenler");
     }
     if (sifre.length < 6) {
@@ -204,55 +220,73 @@ module.exports = function register(app) {
       return res.redirect("/yonetici#denetmenler");
     }
     // Şifre kimliği belirlediği için benzersiz olmalı; bu denetmenin mevcut kaydı hariç
-    const kayit = (await C.loadDenetmenler()).find((d) => d.ad === ad);
+    const kayit = (await C.loadDenetmenler()).find((d) => I.isimEsit(d.ad, ad.tam));
     const mevcutSahip = await C.denetmenBySifre(sifre);
-    const yoneticiSahip = await C.yoneticiBySifre(sifre);
-    if ((await C.adminSifreDogru(sifre)) || yoneticiSahip
-        || (mevcutSahip && mevcutSahip.ad !== ad)) {
+    if ((await C.adminSifreDogru(sifre)) || (await C.yoneticiBySifre(sifre))
+        || (mevcutSahip && (!kayit || mevcutSahip.id !== kayit.id))) {
       flash(req, "error", "Bu şifre kullanımda — her hesabın şifresi farklı olmalı.");
       return res.redirect("/yonetici#denetmenler");
     }
     if (kayit) {
       await calistir("UPDATE denetmenler SET sifre = ? WHERE id = ?", [C.hashPassword(sifre), kayit.id]);
-      flash(req, "success", `${ad} şifresi güncellendi.`);
+      flash(req, "success", `${kayit.ad} şifresi güncellendi.`);
     } else {
       await calistir("INSERT INTO denetmenler(id, ad, sifre, olusturma) VALUES(?,?,?,?)",
-        [C.uid(), ad, C.hashPassword(sifre), S.zamanTr()]);
-      flash(req, "success", `${ad} için giriş şifresi belirlendi.`);
+        [C.uid(), ad.tam, C.hashPassword(sifre), S.zamanTr()]);
+      flash(req, "success", `${ad.tam} denetmen olarak eklendi.`);
     }
     res.redirect("/yonetici#denetmenler");
   }));
 
-  app.post("/yonetici/denetmen/sil", yetkiGerek("bes_s"), sar(async (req, res) => {
-    const r = await calistir("DELETE FROM denetmenler WHERE id = ?", [req.body.id || ""]);
-    if (r.affectedRows) flash(req, "success", "Denetmen silindi.");
+  app.post("/yonetici/denetmen/sifre", yetkiGerek("kullanici"), sar(async (req, res) => {
+    const d = await C.denetmenById(req.body.id || "");
+    const sifre = String(req.body.sifre || "").trim();
+    if (!d) { flash(req, "error", "Denetmen bulunamadı."); return res.redirect("/yonetici#denetmenler"); }
+    if (sifre.length < 6) {
+      flash(req, "error", "Denetmen şifresi en az 6 karakter olmalı.");
+      return res.redirect("/yonetici#denetmenler");
+    }
+    const sahip = await C.denetmenBySifre(sifre);
+    if ((await C.adminSifreDogru(sifre)) || (await C.yoneticiBySifre(sifre)) || (sahip && sahip.id !== d.id)) {
+      flash(req, "error", "Bu şifre kullanımda — her hesabın şifresi farklı olmalı.");
+      return res.redirect("/yonetici#denetmenler");
+    }
+    await calistir("UPDATE denetmenler SET sifre = ? WHERE id = ?", [C.hashPassword(sifre), d.id]);
+    flash(req, "success", `${d.ad} şifresi güncellendi.`);
     res.redirect("/yonetici#denetmenler");
   }));
 
-  app.post("/yonetici/misafir/ekle", yetkiGerek("bes_s"), sar(async (req, res) => {
-    const ad = alan(req, "ad");
-    if (!ad) {
-      flash(req, "error", "Misafir denetmen adı gerekli.");
+  app.post("/yonetici/denetmen/sil", yetkiGerek("kullanici"), sar(async (req, res) => {
+    const r = await calistir("DELETE FROM denetmenler WHERE id = ?", [req.body.id || ""]);
+    if (r.affectedRows) flash(req, "success", "Denetmen hesabı silindi.");
+    res.redirect("/yonetici#denetmenler");
+  }));
+
+  // ----- Misafir denetmenler (5S plan yetkisi; giriş yapmazlar) -----
+  app.post("/yonetici/misafir/ekle", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    const ad = adSoyadOku(req, "ad", "soyad");
+    if (ad.eksik) {
+      flash(req, "error", "Misafir denetmenin adını ve soyadını yazın.");
       return res.redirect("/yonetici#misafirler");
     }
-    if ((await C.loadMisafirler()).some((m) => m.ad === ad)) {
+    if ((await C.loadMisafirler()).some((m) => I.isimEsit(m.ad, ad.tam))) {
       flash(req, "error", "Bu isimde misafir denetmen zaten var.");
       return res.redirect("/yonetici#misafirler");
     }
     await calistir("INSERT INTO misafirler(id, ad, olusturma) VALUES(?,?,?)",
-      [C.uid(), ad, S.zamanTr()]);
-    flash(req, "success", `Misafir denetmen eklendi: ${ad}`);
+      [C.uid(), ad.tam, S.zamanTr()]);
+    flash(req, "success", `Misafir denetmen eklendi: ${ad.tam}`);
     res.redirect("/yonetici#misafirler");
   }));
 
-  app.post("/yonetici/misafir/sil", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.post("/yonetici/misafir/sil", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const r = await calistir("DELETE FROM misafirler WHERE id = ?", [req.body.id || ""]);
     if (r.affectedRows) flash(req, "success", "Misafir denetmen silindi.");
     res.redirect("/yonetici#misafirler");
   }));
 
   // Ana yönetici şifresini değiştir (yalnızca ana yönetici)
-  app.post("/yonetici/sifre", superRequired, sar(async (req, res) => {
+  app.post("/yonetici/sifre", anaYoneticiRequired, sar(async (req, res) => {
     const eski = req.body.eski || "";
     const yeni = String(req.body.yeni || "").trim();
     const yeni2 = String(req.body.yeni2 || "").trim();
@@ -267,93 +301,147 @@ module.exports = function register(app) {
     res.redirect("/yonetici");
   }));
 
-  app.get("/yonetici/5s-trend/excel", yetkiGerek("bes_s"), sar(async (req, res) => {
+  app.get("/yonetici/5s-trend/excel", yetkiGerek("bes_odul"), sar(async (req, res) => {
     const buf = await X.generateTrendExcel();
     if (!buf) {
       flash(req, "error", "İndirilecek trend verisi yok.");
-      return res.redirect("/yonetici");
+      return res.redirect("/panel");
     }
     xlsxGonder(res, buf, "5S_Trend.xlsx");
   }));
 
-  // Öneri/kaizen sil — kayıt "Silinenler" arşivine taşınır (geri yüklenebilir).
-  // Kaizen görselleri diskte KORUNUR (arşivden geri yükleme/görüntüleme için);
-  // kalıcı silmede (silinenler/sil) temizlenir.
+  // Öneri/kaizen sil — kayıt "Reddedilen & Silinen" arşivine taşınır (geri yüklenebilir).
+  // Kaizen görselleri diskte KORUNUR; kalıcı silmede (silinenler/sil) temizlenir.
   app.post("/sil", yetkiGerek("kayit"), sar(async (req, res) => {
-    const tip = req.body.tip || "";
+    const tip = req.body.tip === "oneri" ? "oneri" : "kaizen";
     const tablo = tip === "oneri" ? "oneriler" : "kaizenler";
     const no = req.body.no || "";
     const ham = await tek(`SELECT * FROM ${tablo} WHERE \`no\` = ?`, [no]);
     if (!ham) return res.status(404).send("Kayıt bulunamadı.");
-    const kim = req.session.super ? "Ana Yönetici" : (req.session.yonetici_ad || "Yönetici");
     await transaction(async (conn) => {
       await calistir(
         "INSERT INTO silinen_kayitlar(tip, `no`, veri, silen, silme_zamani) VALUES(?,?,?,?,?)",
-        [tip, no, JSON.stringify(ham), kim, S.zamanTr()], conn);
+        [tip, no, JSON.stringify(ham), yapanAd(req), S.zamanTr()], conn);
       await calistir(`DELETE FROM ${tablo} WHERE \`no\` = ?`, [no], conn);
     });
-    flash(req, "success", `Kayıt silindi: ${no} (Silinenler'e taşındı)`);
-    res.redirect("/liste");
+    flash(req, "success", `Kayıt silindi: ${no} (Reddedilen & Silinen arşivine taşındı)`);
+    res.redirect(guvenliYol(req.body.don, "/liste"));
   }));
 
-  // Hızlı onay / red / düzeltme isteme
-  app.post("/durum", yetkiGerek("degerlendirme"), sar(async (req, res) => {
-    const tip = req.body.tip || "";
+  // Durum değişikliği: onay / gerekçeli red / denetmene atanan düzeltme / değerlendirmeye geri alma.
+  // Red için gerekçe; düzeltme için denetmen + açıklama zorunludur.
+  app.post("/durum", yetkiGerek("degerlendir"), sar(async (req, res) => {
+    const tip = req.body.tip === "kaizen" ? "kaizen" : "oneri";
     const no = req.body.no || "";
     const durum = req.body.durum || "";
+    const detayUrl = "/detay?tip=" + tip + "&no=" + encodeURIComponent(no);
+    const don = guvenliYol(req.body.don, detayUrl);
     if (!S.DURUMLAR.includes(durum)) return res.status(400).send("Geçersiz durum.");
     const mevcut = await C.getRecord(tip, no);
     if (!mevcut) return res.status(404).send("Kayıt bulunamadı.");
-    // Onaylanmış kayıt tekrar reddedilemez
-    if (mevcut.durum === "Onaylandı" && durum === "Reddedildi") {
-      flash(req, "error", `${no} onaylanmış; reddedilemez.`);
-      return res.redirect("/liste");
+    const hata = (m) => { flash(req, "error", m); return res.redirect(don); };
+    // Onaylanmış kayıt reddedilemez / düzeltmeye gönderilemez
+    if (mevcut.durum === "Onaylandı" && durum !== "Onaylandı") {
+      return hata(`${no} onaylanmış; reddedilemez veya düzeltmeye gönderilemez.`);
     }
-    // İlk onayda form numarası atanır (bir daha değişmez)
     const alanlar = { durum };
-    if (durum === "Onaylandı" && !mevcut.form_no) {
-      alanlar.form_no = await C.nextFormNo();
+    let ek = "";
+    if (durum === "Reddedildi") {
+      const neden = alan(req, "red_nedeni");
+      if (!neden) return hata("Reddetmek için red nedenini yazın.");
+      alanlar.red_nedeni = neden;
+    } else if (durum === "Düzeltme İsteniyor") {
+      const d = await C.denetmenById(req.body.revize_denetmen || "");
+      const notu = alan(req, "revize_notu");
+      if (!d) return hata("Düzeltme isterken düzeltmeyi yapacak denetmeni seçin.");
+      if (!notu) return hata("Düzeltme isterken neyin düzeltileceğini yazın.");
+      Object.assign(alanlar, {
+        revize_notu: notu, revize_atanan_id: d.id, revize_atanan_ad: d.ad,
+        revize_isteyen: yapanAd(req), revize_zamani: S.zamanTr(), revize_tamamlandi: null,
+      });
+      ek = ` · düzeltme ${d.ad} kişisine atandı`;
+    } else if (durum === "Onaylandı") {
+      // İlk onayda form numarası atanır (bir daha değişmez)
+      if (!mevcut.form_no) alanlar.form_no = await C.nextFormNo();
+      if (alanlar.form_no) ek = ` · Form No: ${alanlar.form_no}`;
+      // Öneride isteğe bağlı: onayla birlikte uygulama görevi ata
+      if (tip === "oneri" && req.body.gorev_denetmen) {
+        const g = await C.denetmenById(req.body.gorev_denetmen);
+        if (g) {
+          Object.assign(alanlar, {
+            gorev_atanan_id: g.id, gorev_atanan_ad: g.ad, gorev_termin: alan(req, "gorev_termin"),
+            gorev_notu: alan(req, "gorev_notu"), gorev_atayan: yapanAd(req), gorev_zamani: S.zamanTr(),
+          });
+          ek += ` · görev ${g.ad} kişisine atandı`;
+        }
+      }
     }
     await C.updateRecord(tip, no, alanlar);
-    flash(req, "success",
-      `${no} → ${durum}` + (alanlar.form_no ? ` · Form No: ${alanlar.form_no}` : ""));
-    res.redirect("/liste");
+    flash(req, "success", `${no} → ${durum}${ek}`);
+    res.redirect(don);
   }));
 
-  // Puanlama sayfası + kaydet
-  app.get("/degerlendir/puan", yetkiGerek("degerlendirme"), sar(async (req, res) => {
-    const tip = req.query.tip || "";
+  // Onaylanan öneriye uygulama/kaizene dönüştürme görevi ata, değiştir veya kaldır
+  app.post("/gorev", yetkiGerek("degerlendir"), sar(async (req, res) => {
+    const no = req.body.no || "";
+    const detayUrl = "/detay?tip=oneri&no=" + encodeURIComponent(no);
+    const don = guvenliYol(req.body.don, detayUrl);
+    const oneri = await C.getRecord("oneri", no);
+    if (!oneri) return res.status(404).send("Kayıt bulunamadı.");
+    if (oneri.durum !== "Onaylandı" || oneri.kaizen_no) {
+      flash(req, "error", "Görev yalnızca onaylanmış ve henüz kaizene dönüştürülmemiş öneriye atanabilir.");
+      return res.redirect(don);
+    }
+    if (req.body.kaldir) {
+      await C.updateRecord("oneri", no, { gorev_atanan_id: null, gorev_atanan_ad: null,
+        gorev_termin: null, gorev_notu: null, gorev_atayan: null, gorev_zamani: null });
+      flash(req, "success", `${no} görev ataması kaldırıldı.`);
+      return res.redirect(don);
+    }
+    const g = await C.denetmenById(req.body.gorev_denetmen || "");
+    if (!g) { flash(req, "error", "Görevi yapacak denetmeni seçin."); return res.redirect(don); }
+    await C.updateRecord("oneri", no, {
+      gorev_atanan_id: g.id, gorev_atanan_ad: g.ad, gorev_termin: alan(req, "gorev_termin"),
+      gorev_notu: alan(req, "gorev_notu"), gorev_atayan: yapanAd(req), gorev_zamani: S.zamanTr(),
+    });
+    flash(req, "success", `${no} uygulama ve kaizene dönüştürme görevi ${g.ad} kişisine atandı.`);
+    res.redirect(don);
+  }));
+
+  // Puanlama sayfası + kaydet (kaydedince kaydın detayına döner; "Listeye Dön" kaldığın sayfaya)
+  app.get("/degerlendir/puan", yetkiGerek("puanla"), sar(async (req, res) => {
+    const tip = req.query.tip === "kaizen" ? "kaizen" : "oneri";
     const no = req.query.no || "";
     const rec = await C.getRecord(tip, no);
     if (!rec) return res.status(404).send("Kayıt bulunamadı.");
+    const geri = guvenliYol(req.query.geri, "/liste");
+    const detayUrl = "/detay?tip=" + tip + "&no=" + encodeURIComponent(no) + "&geri=" + encodeURIComponent(geri);
     if ((rec.durum || S.VARSAYILAN_DURUM) !== "Onaylandı") {
       flash(req, "error", "Puanlamadan önce kaydı onaylayın.");
-      return res.redirect("/liste");
+      return res.redirect(detayUrl);
     }
     res.render("degerlendir_puan", {
-      title: `Puanla · ${rec.no}`, r: rec, tip,
+      title: `Puanla · ${rec.no}`, r: rec, tip, geri, detay_url: detayUrl,
       puan_temel: P.PUAN_TEMEL, puan_etki: P.PUAN_ETKI, puan_maliyet: P.PUAN_MALIYET,
       puan_yaygin: P.PUAN_YAYGIN, puan_efor: P.PUAN_EFOR, puan_max: P.PUAN_MAX,
       mevcut: rec.puanlama || {},
     });
   }));
 
-  app.post("/degerlendir/puan", yetkiGerek("degerlendirme"), sar(async (req, res) => {
-    const tip = req.query.tip || req.body.tip || "";
+  app.post("/degerlendir/puan", yetkiGerek("puanla"), sar(async (req, res) => {
+    const tip = (req.query.tip || req.body.tip) === "kaizen" ? "kaizen" : "oneri";
     const no = req.query.no || req.body.no || "";
+    const geri = guvenliYol(req.body.geri || req.query.geri, "/liste");
+    const detayUrl = "/detay?tip=" + tip + "&no=" + encodeURIComponent(no) + "&geri=" + encodeURIComponent(geri);
     const rec = await C.getRecord(tip, no);
     if (!rec) return res.status(404).send("Kayıt bulunamadı.");
     if ((rec.durum || S.VARSAYILAN_DURUM) !== "Onaylandı") {
       flash(req, "error", "Puanlamadan önce kaydı onaylayın.");
-      return res.redirect("/liste");
+      return res.redirect(detayUrl);
     }
     const { puanlama, toplam } = P.hesaplaPuanlama(req.body);
-    let durum = req.body.durum || rec.durum || S.VARSAYILAN_DURUM;
-    if (!S.DURUMLAR.includes(durum)) durum = rec.durum || S.VARSAYILAN_DURUM;
-    const alanlar = { puanlama, puan: toplam, durum, degerlendirme_notu: alan(req, "degerlendirme_notu") };
-    if (durum === "Onaylandı" && !rec.form_no) alanlar.form_no = await C.nextFormNo();
-    await C.updateRecord(tip, no, alanlar);
-    flash(req, "success", `${no} puanlandı (Toplam: ${toplam}/100, Durum: ${durum})`);
-    res.redirect("/liste");
+    await C.updateRecord(tip, no, { puanlama, puan: toplam, degerlendirme_notu: alan(req, "degerlendirme_notu") });
+    flash(req, "success", `${no} puanlandı (Toplam: ${toplam}/100)`);
+    res.redirect(detayUrl);
   }));
 };

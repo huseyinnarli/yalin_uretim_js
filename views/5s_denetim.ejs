@@ -1,21 +1,27 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">📋 5S Denetim — <%= b.ad %></h1>
+<% const rv = (typeof revize !== 'undefined' && revize) ? revize : null; %>
+    <h1 class="page-title"><%= rv ? '✏ Denetim Revize' : '📋 5S Denetim' %> — <%= b.ad %></h1>
     <div class="list-actions">
-        <a class="btn ghost" href="/5s#plan">← Geri</a>
+        <a class="btn ghost" href="<%= rv ? '/5s/denetim/' + rv.d.id : '/5s#plan' %>">← Geri</a>
         <a class="btn ghost" href="/5s/bolum/<%= b.id %>">🏭 Bölüm</a>
     </div>
 </div>
 
+<% if (rv) { %>
+<div class="gorev-kutu"><strong>✏ Revize modu.</strong> Bu denetim <strong><%= rv.d.denetmen || '—' %></strong> tarafından
+    <strong><%= trdate(rv.d.denetim_tarihi || rv.d.tarih) %></strong> tarihinde yapıldı (skor <%= rv.d.puan %>/100).
+    Kaydettiğinizde puan yeniden hesaplanır; denetmen ve tarih değişmez, revize eden olarak adınız kaydedilir.</div>
+<% } %>
 <p class="subtitle">
-    <% if (bekleyen) { %>Denetleme tarihi: <strong><%= trdate(bekleyen.tarih) %></strong>.<% } %>
+    <% if (bekleyen && !rv) { %>Denetleme tarihi: <strong><%= trdate(bekleyen.tarih) %></strong>.<% } %>
     Her soruda <strong>bulgu sayısını</strong> (veya Evet/Hayır) seçin — puan, form kuralına göre
     <strong>otomatik hesaplanır</strong>. Bulguları madde madde açıklama kutusuna yazın.
     Denetim, alanın takım lideriyle birlikte yapılmalıdır.
 </p>
 
-<form method="post" action="/5s/bolum/<%= b.id %>/denetim" enctype="multipart/form-data" id="denetimForm"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+<form method="post" action="<%= rv ? '/5s/denetim/' + rv.d.id + '/revize' : '/5s/bolum/' + b.id + '/denetim' %>" enctype="multipart/form-data" id="denetimForm"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
     <div class="row">
         <div class="field small" style="max-width:240px">
             <label>Ekip Lideri</label>
@@ -27,7 +33,7 @@
             <input type="text" value="🎫 <%= bekleyen.misafir_denetmen %>" readonly tabindex="-1" class="otomatik-ad">
         </div>
         <% } %>
-        <% if (!bekleyen) { %>
+        <% if (!bekleyen && !rv) { %>
         <div class="field small" style="max-width:200px">
             <label>Denetim Tarihi</label>
             <input type="date" name="tarih" value="<%= bugun %>">
@@ -35,7 +41,9 @@
         <% } %>
         <div class="field" style="max-width:280px">
             <label>Denetmen <% if (bekleyen && bekleyen.planlanan_denetmen) { %><small>(planlanan: <%= bekleyen.planlanan_denetmen %>)</small><% } %></label>
-            <% if (denetmen_adi) { %>
+            <% if (rv) { %>
+            <input type="text" value="<%= rv.d.denetmen || '—' %>" readonly tabindex="-1" class="otomatik-ad">
+            <% } else if (denetmen_adi) { %>
             <input type="text" value="<%= denetmen_adi %>" readonly tabindex="-1" class="otomatik-ad"
                    title="Denetmen adı oturumunuzdan otomatik alınır">
             <% } else { %>
@@ -56,16 +64,18 @@
         <div class="bess-kriter">
             <div class="kriter-satir">
                 <% if (ku.tip === 'evet_hayir') { %>
+                <% const secB = rv ? (rv.bulgular[kr.k] || 0) : 0; %>
                 <select class="bess-puan bess-bulgu" name="bulgu_<%= kr.k %>" title="Evet / Hayır"
                         data-tip="e" data-max="<%= kr.puan %>">
-                    <option value="0" selected>Evet</option>
-                    <option value="1">Hayır</option>
+                    <option value="0" <%= secB > 0 ? '' : 'selected' %>>Evet</option>
+                    <option value="1" <%= secB > 0 ? 'selected' : '' %>>Hayır</option>
                 </select>
                 <% } else { %>
                 <select class="bess-puan bess-bulgu" name="bulgu_<%= kr.k %>" title="Bulgu sayısı"
                         data-tip="b" data-max="<%= kr.puan %>" data-dusus="<%= ku.dusus %>" data-sifir="<%= ku.sifir %>">
-                    <% for (let v = 0; v <= ku.sifir; v++) { %>
-                    <option value="<%= v %>"><%= v === ku.sifir ? v + '+' : v %> bulgu</option>
+                    <% const secB = rv ? Math.min(rv.bulgular[kr.k] || 0, ku.sifir) : 0;
+                       for (let v = 0; v <= ku.sifir; v++) { %>
+                    <option value="<%= v %>" <%= v === secB ? 'selected' : '' %>><%= v === ku.sifir ? v + '+' : v %> bulgu</option>
                     <% } %>
                 </select>
                 <% } %>
@@ -77,6 +87,9 @@
                           placeholder="Açıklama / bulgu..."><%= aciklamalar[kr.k] || '' %></textarea>
                 <button type="button" class="btn-mini aksiyon-ata-btn" data-k="<%= kr.k %>">⚑ Aksiyon Ata</button>
             </div>
+            <% if (rv && rv.acik_aksiyon[kr.k]) { %>
+            <p class="bos-not">⚑ Bu soruda <%= rv.acik_aksiyon[kr.k] %> açık aksiyon var (kriter başına en fazla 2 açık aksiyon).</p>
+            <% } %>
             <% for (const slot of [1, 2]) { %>
             <div class="aksiyon-alan" id="aksiyon-<%= kr.k %>-<%= slot %>" hidden>
                 <span class="aksiyon-slot-no"><%= slot %>.</span>
@@ -95,7 +108,14 @@
                 <span class="foto-label">📷 Fotoğraf (en fazla 3)</span>
                 <div class="foto-butonlar">
                     <% for (const fn of varolan) { %>
+                    <% if (rv) { %>
+                    <label class="foto-sil" title="İşaretlerseniz kayıtta silinir">
+                        <img loading="lazy" class="foto-mini" src="/5s/gorsel/<%= encodeURIComponent(fn) %>" alt="foto">
+                        <span><input type="checkbox" name="foto_sil" value="<%= fn %>"> sil</span>
+                    </label>
+                    <% } else { %>
                     <img loading="lazy" class="foto-mini" src="/5s/gorsel/<%= encodeURIComponent(fn) %>" alt="foto">
+                    <% } %>
                     <% } %>
                     <% for (let i = 0; i < 3 - varolan.length; i++) { %>
                     <input type="file" name="foto_<%= kr.k %>" accept="image/*" class="foto-input">
@@ -110,7 +130,7 @@
     <fieldset class="puan-blok sonuc-blok">
         <div class="field">
             <label>Denetim Notu / Bulgular</label>
-            <textarea name="not" rows="3" placeholder="Tespitler, açılması gereken aksiyonlar..."></textarea>
+            <textarea name="not" rows="3" placeholder="Tespitler, açılması gereken aksiyonlar..."><%= rv ? (rv.d.not || '') : '' %></textarea>
         </div>
     </fieldset>
 
@@ -120,8 +140,8 @@
     </div>
 
     <div class="form-actions">
-        <button type="submit" class="btn primary">Denetimi Kaydet</button>
-        <a class="btn ghost" href="/5s/bolum/<%= b.id %>">İptal</a>
+        <button type="submit" class="btn primary"><%= rv ? 'Revizeyi Kaydet' : 'Denetimi Kaydet' %></button>
+        <a class="btn ghost" href="<%= rv ? '/5s/denetim/' + rv.d.id : '/5s/bolum/' + b.id %>">İptal</a>
     </div>
 </form>
 

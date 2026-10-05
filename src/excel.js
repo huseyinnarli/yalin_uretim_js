@@ -43,16 +43,19 @@ async function generateOneriExcel() {
   const headers = ["Öneri No", "Form No", "Tarih", "Öneri Sahibi", "Görevi", "Konu (Kısa)",
     "Detay Açıklama", "Çözüm Önerisi", "Kaliteye Katkısı", "Verimliliğe Katkısı",
     "İSG'ye Katkısı", "Maliyete Katkısı", "Ek Açıklama", "Durum", "Puan",
-    "Puan Detayı", "Kayıt Zamanı"];
+    "Puan Detayı", "Kayıt Zamanı", "Red Nedeni", "Düzeltme Talebi", "Görev Atanan",
+    "Görev Termini", "Dönüştürülen Kaizen"];
   ws.addRow(headers);
   styleHeader(ws, headers.length);
-  [16, 14, 12, 22, 18, 30, 40, 40, 28, 28, 28, 28, 30, 16, 8, 50, 18]
+  [16, 14, 12, 22, 18, 30, 40, 40, 28, 28, 28, 28, 30, 16, 8, 50, 18, 30, 30, 20, 12, 16]
     .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   for (const r of (await sorgu("SELECT * FROM oneriler")).map(oneriRow)) {
     ws.addRow([r.no, r.form_no || "", r.tarih, r.sahibi, r.gorevi, r.konu, r.detay, r.cozum,
       r.kalite, r.verimlilik, r.isg, r.maliyet, r.ek,
       r.durum || S.VARSAYILAN_DURUM, r.puan ?? "",
-      P.puanlamaOzet(r.puanlama), r.kayit_zamani]);
+      P.puanlamaOzet(r.puanlama), r.kayit_zamani, r.red_nedeni || "",
+      r.revize_notu ? `${r.revize_notu} (${r.revize_atanan_ad || ""})` : "",
+      r.gorev_atanan_ad || "", r.gorev_termin || "", r.kaizen_no || ""]);
   }
   govdeStil(ws, headers.length);
   return wb.xlsx.writeBuffer();
@@ -64,17 +67,19 @@ async function generateKaizenExcel() {
   // Not: görsel sütunları J(10)/K(11) sabit — Form No sütunu bu yüzden EN SONA eklenir.
   const headers = ["Kaizen No", "Başlangıç", "Bitiş", "Kaizen Konusu", "Bölüm",
     "Sorumlular", "Kazançlar", "Önceki Durum", "Sonraki Durum",
-    "Önceki Görsel", "Sonraki Görsel", "Durum", "Puan", "Puan Detayı", "Kayıt Zamanı", "Form No"];
+    "Önceki Görsel", "Sonraki Görsel", "Durum", "Puan", "Puan Detayı", "Kayıt Zamanı", "Form No",
+    "Red Nedeni", "Düzeltme Talebi", "Kaynak Öneri"];
   ws.addRow(headers);
   styleHeader(ws, headers.length);
-  [18, 12, 12, 28, 20, 22, 30, 38, 38, 22, 22, 16, 8, 50, 18, 14]
+  [18, 12, 12, 28, 20, 22, 30, 38, 38, 22, 22, 16, 8, 50, 18, 14, 30, 30, 16]
     .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   for (const r of (await sorgu("SELECT * FROM kaizenler")).map(kaizenRow)) {
     ws.addRow([r.no, r.baslangic, r.bitis, r.konu, r.bolum, r.sorumlular,
       (r.kazanclar || []).join(", "), r.onceki, r.sonraki,
       r.onceki_gorsel || "", r.sonraki_gorsel || "",
       r.durum || S.VARSAYILAN_DURUM, r.puan ?? "",
-      P.puanlamaOzet(r.puanlama), r.kayit_zamani, r.form_no || ""]);
+      P.puanlamaOzet(r.puanlama), r.kayit_zamani, r.form_no || "", r.red_nedeni || "",
+      r.revize_notu ? `${r.revize_notu} (${r.revize_atanan_ad || ""})` : "", r.kaynak_oneri_no || ""]);
     const rowIdx = ws.rowCount;
     let hasImg = false;
     for (const [fname, col] of [[r.onceki_gorsel, 10], [r.sonraki_gorsel, 11]]) {

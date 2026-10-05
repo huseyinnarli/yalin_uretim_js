@@ -7,6 +7,7 @@
         <a class="btn ghost" href="/5s">🧹 5S</a>
         <a class="btn ghost" href="/odul-alanlar">🎁 Ödül Alanlar</a>
         <% if (yetki('odul')) { %>
+        <a class="btn ghost" href="/isimler">🔗 İsim Birleştirme</a>
         <a class="btn ghost" href="/puan-durumu/excel">⬇ Liste Excel</a>
         <% } %>
     </div>
@@ -70,6 +71,9 @@
             <td colspan="<%= sutun %>">
                 <div class="puan-detay">
                     <strong class="puan-detay-baslik"><%= k.ad %> — puan kaynakları</strong>
+                    <% if (k.yazimlar && k.yazimlar.length > 1) { %>
+                    <p class="bos-not">Kayıtlarda şu yazılışlarla geçiyor (tek kişi sayıldı): <%= k.yazimlar.join(' · ') %></p>
+                    <% } %>
                     <% if (k.detay.length) { %>
                     <ul class="puan-detay-liste">
                         <% for (const d of k.detay) { %>
