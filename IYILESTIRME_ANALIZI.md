@@ -8,6 +8,10 @@ Tarih: 2026-07-10 · Kapsam: tüm kaynak kod (3.228 satır JS + 22 EJS şablonu)
 
 ---
 
+> **Ekim 2026 notu:** Bu rapor 10 Temmuz 2026 tarihlidir; satır sayıları ve test sayısı (bugün 122) eskidir.
+> O tarihten beri yapılanlar: işlem günlüğü (Ö3-b), öneri/kaizen listesi sayfalaması (Ö2'nin bir kısmı),
+> rol/yetki modelinin ayrıntılandırılması — bkz. [DEGISIKLIKLER.md](DEGISIKLIKLER.md).
+
 ## 1. Yönetici Özeti
 
 Uygulama; Öneri, Kaizen ve 5S denetim süreçlerini tek yerde yöneten, puanları personel ödül

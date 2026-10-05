@@ -20,55 +20,71 @@
 
     <h2 class="bolum-baslik">🔐 Giriş ve Roller</h2>
     <ul>
-        <li><strong>Genel kullanıcı</strong> (giriş gerekmez): öneri/kaizen ekleyebilir, tüm listeleri ve puan durumunu
-            görüntüleyebilir, aksiyon kapatabilir.</li>
-        <li><strong>Giriş</strong> tek ekrandan yapılır ve tek şifre alanı vardır: girdiğiniz şifre yöneticininkiyse
-            <strong>yönetici</strong>, bir denetmeninkiyse o <strong>denetmen</strong> olarak açılırsınız — sistem sizi
-            şifreden tanır (ayrı kullanıcı adı yoktur).</li>
-        <li><strong>Denetmen:</strong> yalnızca <em>kendisine planlanan</em> bölümün 5S denetimini yapabilir; denetim
-            formuna adı otomatik yazılır. Denetmenler bölüm ekip liderleri arasından belirlenir.</li>
-        <li><strong>Ana yönetici:</strong> tüm yetkilere sahiptir — onay/red/puanlama, düzenleme/silme,
-            5S bölüm-plan-ödül yönetimi, Excel/ZIP indirme, panel ve ek yönetici yönetimi.</li>
-        <li><strong>Ek yönetici:</strong> ana yöneticinin belirlediği yetki alanlarıyla sınırlıdır
-            (Değerlendirme &amp; Puanlama / 5S Yönetimi / Ödül Verme / Kayıt Düzenle-Sil &amp; Raporlar).
-            Yalnızca yetkili olduğu bölümleri ve butonları görür.</li>
+        <li><strong>Herkes</strong> (giriş gerekmez): öneri/kaizen formu doldurur; puan listesini, 5S sonuçlarını,
+            aksiyonları ve kontrol formlarını görüntüler. Öneri/kaizen <em>listesi ve detayları</em> girişe kapalıdır.</li>
+        <li><strong>Giriş</strong> tek ekrandan, tek şifre alanıyla yapılır — sistem sizi şifreden tanır.</li>
+        <li><strong>Denetmen:</strong> kendisine planlanan 5S denetimini yapar; ekip lideri olduğu bölümün aksiyonlarını
+            kapatır ve <strong>periyodik kontrol formunu</strong> doldurur; öneri/kaizenleri <em>görüntüler</em>; kendisine
+            atanan <strong>düzeltmeleri</strong> ve <strong>kaizene dönüştürme görevlerini</strong> yapar
+            (📋 Görevlerim). Bölüm lideri olması gerekmez.</li>
+        <li><strong>Ana yönetici:</strong> sabittir, tüm yetkilere sahiptir.</li>
+        <li><strong>Ek yönetici:</strong> verilen yetki alanlarıyla sınırlıdır — Değerlendirme · Puanlama · Kayıt
+            düzenle-sil · Bölüm &amp; plan · Denetim yapma · Denetim revize · Aksiyon yönetimi · 5S ödül &amp; raporlar ·
+            Ödül &amp; isim birleştirme · Denetmen hesapları. <strong>⭐ Tam yetki</strong> verilen ek yönetici ana yönetici
+            kadar yetkilidir (yönetici ekleyebilir) ama silinebilir.</li>
     </ul>
 
     <h2 class="bolum-baslik">💡 Öneri Ekleme</h2>
     <ul>
         <li>Listede <strong>+ Öneri</strong> ile açılır; numara kayıtta otomatik atanır (örn.
             <span class="mono">ÖNFR2607-01</span>) ve her ay <span class="mono">01</span>'den başlar.</li>
-        <li>Zorunlu alanlar: <strong>öneri sahibi</strong>, <strong>konu</strong> ve <strong>detay açıklama</strong>.
+        <li>Zorunlu alanlar: <strong>öneri sahibinin adı ve soyadı</strong> (ayrı kutulara), <strong>konu</strong> ve
+            <strong>detay açıklama</strong>. İsimler otomatik düzeltilir ("aHMET" → "Ahmet").
             Ayrıca görev, tarih, çözüm önerisi ve 4 katkı sorusu (Kalite / Verimlilik / İSG / Maliyet) doldurulabilir.</li>
     </ul>
 
     <h2 class="bolum-baslik">🔧 Kaizen Ekleme</h2>
     <ul>
         <li>Listede <strong>+ Kaizen</strong> ile açılır; numara otomatik (örn. <span class="mono">ÖSKFR2607-01</span>).</li>
-        <li><strong>Ekip en fazla 3 kişidir:</strong> 1 lider + en fazla 2 üye. Başlangıç–bitiş tarihi, kazanç başlıkları
+        <li><strong>Ekip en fazla 3 kişidir:</strong> 1 lider + en fazla 2 üye; her kişinin adı ve soyadı ayrı yazılır. Başlangıç–bitiş tarihi, kazanç başlıkları
             (Makine, İşçilik, Kalite, İSG… çoklu seçim) ve <strong>önce/sonra</strong> açıklaması girilir; her biri için
             birer fotoğraf eklenebilir.</li>
     </ul>
 
-    <h2 class="bolum-baslik">📋 Liste ve Değerlendirme (Yönetici)</h2>
+    <h2 class="bolum-baslik">📋 Liste ve Değerlendirme</h2>
     <ul>
-        <li>Öneri ve kaizen tek listede tarihe göre sıralanır; <strong>tür / dönem (ay) / arama</strong> filtreleri vardır.
-            Satıra tıklayınca detay açılır.</li>
-        <li>Yönetici girişliyken her satırda işlem butonları çıkar: <strong>✓ Onay · Red · Revize</strong>.
-            <em>Bir kez onaylanan kayıt artık reddedilemez.</em></li>
-        <li>Onaylanan kayıtta <strong>★ Puanla</strong> butonu çıkar → 100 üzerinden rubrik puanlama:
-            <strong>Temel 10 · Etki 40 · Maliyet 20 · Yaygınlaştırma 15 · Efor 15</strong>. Her maddeye 0–maksimum arası
-            puan verilir, toplam canlı hesaplanır.</li>
-        <li>Bir kayıt <strong>ilk onaylandığında otomatik form numarası</strong> alır (örn. <span class="mono">FR-2026-0001</span>);
-            öneri ve kaizen ortak, yıllık sıralı. Numara listede, detayda ve Excel'de görünür.</li>
-        <li>Silinen öneri/kaizenler <strong>🗑 Silinenler</strong> sayfasında saklanır; oradan geri yükleyebilir
-            veya kalıcı silebilirsiniz.</li>
+        <li>Liste <strong>20'şerli sayfalanır</strong>; tür / durum / dönem / arama filtreleri vardır. Reddedilenler listede görünmez.</li>
+        <li>Değerlendirme <strong>kaydın detay sayfasında</strong> yapılır (listede hızlı <strong>✓ Onay</strong> da vardır):
+            <ul>
+                <li><strong>✓ Onayla</strong> — ilk onayda form numarası (<span class="mono">FR-2026-0001</span>) atanır.
+                    Öneride isteğe bağlı olarak uygulayıp kaizene dönüştürecek <strong>denetmen</strong> (termin + not) atanır.</li>
+                <li><strong>✕ Reddet</strong> — <strong>red nedeni zorunlu</strong>. Onaylanmış kayıt reddedilemez.</li>
+                <li><strong>✏ Düzeltme İste</strong> — düzeltmeyi yapacak <strong>denetmen seçilir</strong> ve ne düzeltileceği
+                    yazılır. Yalnızca o denetmen düzenleyebilir; kaydedince kayıt yeniden "Değerlendiriliyor" olur.</li>
+            </ul></li>
+        <li><strong>★ Puanla</strong> (onaylı kayıtta): Temel 10 · Etki 40 · Maliyet 20 · Yaygınlaştırma 15 · Efor 15.
+            Kaydedince kayda dönülür; "← Listeye Dön" kaldığınız sayfaya götürür.</li>
+        <li><strong>🔧 Kaizene Dönüştür:</strong> görev atanan denetmen öneriden doldurulmuş kaizen formunu açar; kaydedince
+            öneri ve kaizen birbirine bağlanır.</li>
+        <li><strong>🗂 Reddedilen &amp; Silinen:</strong> reddedilenler (gerekçesiyle) ve silinenler burada toplanır. Denetmenler
+            görüntüler; kayıt yetkisi olan geri yükler veya kalıcı siler.</li>
     </ul>
 
     <h2 class="bolum-baslik">🧹 5S — Bölümler</h2>
     <ul>
-        <li><strong>Bölümler</strong> sekmesinden bölüm eklenir; her bölüme <strong>ekip lideri</strong> (1 veya 2 kişi)
-            ve üye listesi tanımlanır. Bölüm kartında son denetim skoru görünür.</li>
+        <li><strong>Bölümler</strong> sekmesi tablo hâlindedir: ekip lideri, personel sayısı, son skor, açık aksiyon ve
+            bu ayki kontrol formu doluluğu. Her bölüme <strong>ekip lideri</strong> (1 veya 2 kişi) ve üye listesi tanımlanır.</li>
+        <li><strong>Bölüm sayfası:</strong> skor trend grafiği ve her denetimin <strong>S1–S5 kırılımı</strong>.</li>
+    </ul>
+
+    <h2 class="bolum-baslik">✅ 5S — Periyodik Kontrol Formu (T-FR016)</h2>
+    <ul>
+        <li>Bölüm sayfasındaki <strong>✅ Periyodik Kontrol Formu</strong> ile açılır: 10 günlük, 3 haftalık, 2 aylık madde.</li>
+        <li>Formu <strong>bölümün ekip lideri</strong> (denetmen girişiyle) doldurur: günü seçer, maddeleri
+            <strong>Uygun / Uygun Değil</strong> işaretler. Uygun değilde açıklama zorunludur; <strong>⚑ Aksiyon aç</strong>
+            seçilirse uygunsuzluk 5S aksiyonu olarak açılır.</li>
+        <li>Haftalık <strong>grup lideri</strong> ve aylık <strong>bölüm sorumlusu</strong> kontrolü "Kontrol Ettim" ile imzalanır
+            (bölümün lideri dışındaki denetmen veya yetkili yönetici). Aylık tablo herkese açıktır; Excel çıktısı alınabilir.</li>
     </ul>
 
     <h2 class="bolum-baslik">🗓️ 5S — Denetim Planı</h2>
@@ -111,8 +127,10 @@
             1./2./3. bölümün <strong>tüm ekibine 100 / 75 / 50 puan</strong> kalıcı eklenir.</li>
         <li>Son turun sonuçları "Son Denetimler" sekmesinde, önceki turlar açılır listede ve
             <strong>Geçmiş Denetimler</strong> sayfasında görünür.</li>
-        <li>Geçmiş bir denetim formu açıldığında yönetici tüm fotoğrafları <strong>ZIP</strong>, formu
+        <li>Geçmiş bir denetim formu açıldığında yetkili yönetici tüm fotoğrafları <strong>ZIP</strong>, formu
             <strong>Excel</strong> olarak indirebilir.</li>
+        <li><strong>✏ Revize Et:</strong> yetkili yönetici yapılmış denetimi düzeltebilir (skor yeniden hesaplanır, fotoğraf
+            eklenip silinebilir). Ödülleri işlenmiş turdaki denetim revize edilemez.</li>
     </ul>
 
     <h2 class="bolum-baslik">⚑ 5S — Aksiyonlar</h2>
@@ -130,24 +148,24 @@
             <strong>Kaizen</strong> → lider <strong>%50</strong>, her üye <strong>%25</strong> ·
             <strong>5S</strong> → turda ilk 3 bölümün ekibine <strong>100/75/50</strong>.</li>
         <li>Kişi satırına tıklayınca puanının hangi kayıtlardan geldiği açılır.</li>
+        <li>Aynı kişinin farklı yazılışları (ALİ YILMAZ / ali yilmaz) otomatik <strong>tek kişi</strong> sayılır. Yazım
+            hataları <strong>🔗 İsim Birleştirme</strong> sayfasından elle birleştirilir (kayıtlar değişmez, geri ayrılabilir).</li>
         <li>Net puanı <strong><%= esik %></strong>'e ulaşan kişiye yönetici <strong>🎁 Ödül Ver</strong> der;
             <%= esik %> puan düşülür ve kişi <strong>Ödül Alanlar</strong> listesine geçer. Ödül kaydı silinirse düşülen
             puan geri döner.</li>
     </ul>
 
-    <h2 class="bolum-baslik">🛠️ Yönetici Paneli</h2>
+    <h2 class="bolum-baslik">📊 Panel · 🛠 Yönetim · 📋 Görevlerim</h2>
     <ul>
-        <li><strong>📊 İstatistikler:</strong> öneri/kaizen sayıları ve durum dağılımı (bu ay, son 6 ay, bu yıl, tüm zamanlar).</li>
-        <li><strong>🧹 5S Trendi:</strong> bölümlerin tur tur skor tablosu (düşüş kırmızı ▼, artış yeşil ▲; Excel'e aktarılır).</li>
-        <li><strong>👥 Denetmenler:</strong> bölüm ekip liderleri otomatik listelenir; siz yalnızca giriş şifresi
-            belirlersiniz (her şifre farklı olmalıdır). <strong>🎫 Misafir denetmenler</strong> plan dağıtımında kullanılır.</li>
-        <li><strong>👤 Yöneticiler:</strong> yalnızca ana yönetici görür. Ek yönetici eklerken ad, şifre ve
-            <strong>yetki alanlarını</strong> kutucuklarla seçersiniz; sonradan değiştirebilir veya silebilirsiniz.
-            Ek yönetici kendi şifresiyle giriş yapar ve yalnızca verdiğiniz yetkileri kullanır.</li>
-        <li><strong>📜 İşlem Günlüğü:</strong> yalnızca ana yönetici görür. Yöneticilerin ve denetmenlerin yaptığı
-            değerlendirme ve yetki gerektiren tüm işlemler (kim, ne zaman, ne yaptı) burada listelenir.</li>
-        <li><strong>🔑 Şifre Değiştir:</strong> ana yönetici şifresi buradan güncellenir. İlk kurulum şifresi
-            <span class="mono">admin123</span>'tür — <strong>ilk girişten sonra hemen değiştirin</strong>.</li>
+        <li><strong>📊 Panel</strong> (denetmen ve tüm yöneticiler): üstteki butonlarla Bu Ay / Son 6 Ay / Bu Yıl / Tüm
+            Zamanlar arasında geçilen tek tablo, en altta sabit tüm zamanlar toplamı, son 12 ayın gelen ve puan alan
+            öneri/kaizen grafiği, bölümlerin 5S trendi.</li>
+        <li><strong>🛠 Yönetim:</strong> denetmen hesapları, misafir denetmenler, ek yöneticiler (yetki kutucukları,
+            ⭐ tam yetki) ve ana yönetici şifresi — her bölüm yalnızca yetkisi olana görünür. İlk kurulum şifresi
+            <span class="mono">admin123</span>'tür; ilk girişten sonra hemen değiştirin.</li>
+        <li><strong>📋 Görevlerim:</strong> size atanan düzeltmeler, kaizene dönüştürme görevleri, planlanan denetimler,
+            kapatmanız gereken aksiyonlar ve bugünkü kontrol formu. Menüdeki sayı bekleyen işleri gösterir.</li>
+        <li><strong>📜 İşlem Günlüğü</strong> (tam yetki): yöneticilerin ve denetmenlerin işlemleri (kim, ne zaman, ne yaptı).</li>
     </ul>
 </div>
 <%- include('partials/footer') %>

@@ -21,12 +21,13 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 | [TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md) | Mimari, istek yaşam döngüsü, veri modeli, iş kuralları/algoritmalar |
 | [IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md) | Kod inceleme raporu: güvenlik durumu, açık öneriler (Ö1–Ö8) |
 | [DAGITIM.md](DAGITIM.md) | Sunucuda devreye alma: gereksinimler, Windows/Linux kurulum, HTTPS, yedek |
+| [DEGISIKLIKLER.md](DEGISIKLIKLER.md) | Sürüm notları: kullanıcıya görünen değişiklikler, DB migrasyonları, canlıya alma adımları |
 
 ## Komutlar
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 34 adımlı e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 122 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
 ```
@@ -49,7 +50,7 @@ içinde `yalin-uretim-js` yapılandırması var (`preview_start name=yalin-ureti
 
 ## Mimari (özet — ayrıntı TEKNIK_DOKUMAN.md)
 
-Katmanlar tek yönlü: `sabitler → puanlama → db → cekirdek → web → rotalar → server`.
+Katmanlar tek yönlü: `sabitler · isim · yetkiler · kontrol → puanlama → db → cekirdek → web → rotalar → server`.
 Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İş mantığı
 `src/cekirdek.js`'te ve Express'ten bağımsızdır (session'ı parametre alır).
 
@@ -77,11 +78,19 @@ Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İ�
    listesini buradan okur — form değişince test kendiliğinden uyar.
 8. **Kişi 5S puanlarının tek kaynağı `odul_kayitlari`** tablosudur; denetim silinince ödül
    kaydı da transaction içinde geri alınır (puan otomatik düşer). Bu kuralı bozma.
-8b. **Yetki sistemi:** roller = ana yönetici (`session.super`, tüm yetkiler), ek yönetici
-   (`session.yonetici_id`, `yoneticiler.yetkiler` JSON: `degerlendirme`/`bes_s`/`odul`/`kayit`),
-   denetmen. Rotayı `web.js:yetkiGerek(alan)` ile kapıla (ana-yönetici-özel için `superRequired`);
-   şablonda butonu `yetki('alan')` ile gizle. Yeni bir yönetici-eylemi eklerken HER İKİSİNİ de
-   yap — arayüzde gizlemek yetmez, sunucu da reddetmeli. Yetki alanları `web.js:YETKILER`de tanımlı.
+8b. **Yetki sistemi:** roller = ana yönetici (`session.super`, sabit, tüm yetkiler), ek yönetici
+   (`session.yonetici_id`, `yoneticiler.yetkiler` JSON — alanlar `src/yetkiler.js`: `degerlendir`, `puanla`,
+   `kayit`, `bes_plan`, `bes_denetim`, `bes_revize`, `bes_aksiyon`, `bes_odul`, `odul`, `kullanici`; ya da
+   `["tam"]` = ana yönetici kadar), denetmen (`session.denetmen_id`). Yetkiler her istekte
+   `cekirdek.js:oturumYetkileri` ile çözülür (`req.yetkiler`, `req.superAdmin`=tam, `req.anaYonetici`,
+   `req.denetmen`). Rotayı `yetkiGerek(alan)` / `girisRequired` / `tamYetkiRequired` / `anaYoneticiRequired` ile
+   kapıla; şablonda `yetki('alan')` ile gizle — HER İKİSİNİ de yap. Eski kayıtlı `degerlendirme`/`bes_s`
+   anahtarları okurken açılır (`ESKI_YETKILER`) — veritabanını elle güncellemeye gerek yok.
+8c. **İsimler:** kişi girişleri ad + soyad ayrı kutulardır (`web.js:kisiOku`). Kişi karşılaştırmalarında
+   ASLA `===` kullanma — `isim.js:isimEsit/isimIcerir` (anahtarla) kullan. Puan listesi `isimCozucu` +
+   `isim_eslestirme` ile gruplar; kayıtlardaki isimler değiştirilmez.
+8d. **Dosya yükleme sırası:** yetki/giriş middleware'i `...dosyaYukleyici(N)`'den ÖNCE gelir (girişsiz istek
+   belleğe dosya alamasın). Dönüş adresleri (`geri`, `don`) daima `web.js:guvenliYol` ile doğrulanır.
 9. Numara üretimi (`ÖNFR2607-01`) `sayaclar` tablosunda **atomik sayaçtır** — elle SELECT
    MAX + INSERT yazma.
 10. Kullanıcı git commit'lerine **Co-Authored-By eklenmesini istemiyor**.
@@ -113,9 +122,20 @@ Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İ�
     `oneriler/kaizenler.form_no` kolonu (init migrasyonu). Excel'de: öneri 2. sütun, kaizen SON
     sütun (görsel J/K sütunları kaymasın diye).
 
+16. **Ekim 2026 sürümü** (ayrıntı: DEGISIKLIKLER.md): öneri/kaizen liste+detay girişe kapalı (formlar açık),
+    20'li sayfalama; detayda onay / gerekçeli red / denetmene düzeltme ataması; onaylanan öneriye görev +
+    kaizene dönüştürme (`kaizen_no` ↔ `kaynak_oneri_no`); Reddedilen & Silinen arşivi (`/arsiv`); Görevlerim;
+    ad/soyad ayrı + otomatik/elle isim birleştirme (`/isimler`); 10 ayrıntılı yetki + tam yetki;
+    Panel (`/panel`, girişli herkes) ve Yönetim (`/yonetici`) ayrımı; 5S bölümler tablosu, bölüm trendi + S1–S5;
+    denetim revize (ödül işlenmiş turda kapalı); **T-FR016 periyodik kontrol formu** (`kontrol_kayitlari`,
+    `kontrol_onaylari`). Tüm şema değişiklikleri `init()` içinde yalnız ekleme (`kolonEkle`). e2e 122/122.
+
 ## Açık konular
 
-- IYILESTIRME_ANALIZI.md §5: Ö1 CSP inline JS, Ö2 sayfalama/Excel worker, Ö3 loglama +
-  `/saglik`, Ö4 FK migrasyonu, Ö5 GitHub Actions CI, Ö7 cekirdek bölünmesi.
+- IYILESTIRME_ANALIZI.md §5: Ö1 CSP inline JS, Ö2 Excel worker (liste sayfalaması yapıldı), Ö3 yapılandırılmış
+  loglama + `/saglik` (işlem günlüğü yapıldı), Ö4 FK migrasyonu, Ö5 GitHub Actions CI, Ö7 cekirdek bölünmesi
+  (cekirdek ~1.200 satır — bölünmesi artık önerilir).
+- Giriş "şifre = kimlik": her başarısız giriş tüm hesap hash'lerini `pbkdf2Sync` ile tarar (hesap başına
+  ~0,3 sn, olay döngüsünü bloklar). Hesap sayısı arttıkça async pbkdf2 veya kullanıcı seçimli girişe geçilmeli.
 - Karar bekliyor: ZIP/Excel dosya adındaki tarih tur başlangıç tarihi (`d.tarih`) —
   gerçekleşme tarihine (`denetim_tarihi`) çevrilmesi önerildi, kullanıcı henüz onaylamadı.

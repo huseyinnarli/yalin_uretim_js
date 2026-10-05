@@ -3,12 +3,14 @@
 Üretim/fabrika ortamı için **Öneri**, **Kaizen** ve **5S denetim** süreçlerini tek yerde yöneten,
 bu süreçlerden doğan puanları **personel ödül sistemine** dönüştüren web uygulaması.
 
-Çalışanlar giriş yapmadan öneri ve kaizen girer; yöneticiler kayıtları onaylayıp 100 üzerinden
-puanlar; bölümler periyodik 5S denetimlerinden geçer; biriken puanlar personel sıralamasına ve
-ödüllere dönüşür. Tüm raporlar tek tıkla Excel olarak alınır.
+Çalışanlar giriş yapmadan öneri ve kaizen girer; yöneticiler kayıtları onaylar (ya da gerekçeyle reddeder,
+denetmene düzeltme atar), onaylanan öneriyi uygulayıp kaizene dönüştürecek kişiyi atar ve 100 üzerinden puanlar;
+bölümler periyodik 5S denetimlerinden ve T-FR016 günlük/haftalık/aylık kontrol formundan geçer; biriken puanlar
+personel sıralamasına ve ödüllere dönüşür. Tüm raporlar tek tıkla Excel olarak alınır.
+Sürüm değişiklikleri için: **[DEGISIKLIKLER.md](DEGISIKLIKLER.md)**.
 
-> **Giriş modeli:** Tek giriş ekranı vardır. Girilen şifre yöneticininkiyse **yönetici**, bir
-> denetmeninkiyse o **denetmen** olarak oturum açılır — sistem kişiyi şifreden tanır.
+> **Giriş modeli:** Tek giriş ekranı vardır. Girilen şifre ana yöneticinin veya bir ek yöneticininkiyse
+> **yönetici**, bir denetmeninkiyse o **denetmen** olarak oturum açılır — sistem kişiyi şifreden tanır.
 > İlk kurulum şifresi `admin123`'tür; ilk girişten sonra panelden hemen değiştirin
 > (varsayılan şifre kullanıldığında sistem uyarı gösterir).
 
@@ -17,69 +19,74 @@ puanlar; bölümler periyodik 5S denetimlerinden geçer; biriken puanlar persone
 ## Genel Akış
 
 ```
-Çalışan öneri/kaizen girer  ──►  Yönetici ONAYLAR  ──►  PUANLAR (0–100)
-                                                              │
-5S: bölümler denetlenir ──► ilk 3 bölüm ödül alır ───────────┤
-                                                              ▼
-                                              PUAN LİSTESİ (personel sıralaması)
-                                                              │
-                                          Net 300'e ulaşan ──►  ÖDÜL VERİLİR (arşive geçer)
+Çalışan öneri/kaizen girer ─► Yönetici ONAYLAR ─► PUANLAR (0–100)
+       (form herkese açık)     │   ├─ REDDEDER (gerekçe zorunlu) ─► Reddedilen & Silinen arşivi
+                               │   └─ DÜZELTME İSTER ─► seçilen denetmen düzeltir ─► yeniden değerlendirme
+                               └─ onaylanan öneriye GÖREV ─► denetmen uygular ─► KAİZENE DÖNÜŞTÜRÜR
+5S: denetim turu ─► bölümler denetlenir ─► ilk 3 bölüm ödül alır ──────────┐
+5S: T-FR016 günlük/haftalık/aylık kontrol ─► uygunsuzluk ─► aksiyon         │
+                                                                             ▼
+                                        PUAN LİSTESİ (aynı kişinin yazılışları birleşir)
+                                                                             │
+                                                  Net 300'e ulaşan ─►  ÖDÜL VERİLİR
 ```
 
-Anasayfada 3 kutu: **🏆 Puan Listesi · 💡🔧 Öneri & Kaizen · 🧹 5S**
+Anasayfada 3 kutu: **🏆 Puan Listesi · 💡🔧 Öneri & Kaizen · 🧹 5S**. Girişli kullanıcı üst menüde
+**📊 Panel · 💡🔧 Öneri & Kaizen · 📋 Görevlerim** görür; yöneticiler ayrıca **🛠 Yönetim**.
 
 ---
 
 ## 1) Öneri & Kaizen
 
-### Öneri Formu (No: `ÖNFR2607-01`)
+### Öneri Formu (No: `ÖNFR2607-01`) — herkese açık
 Numara otomatik atanır: `ÖNFR` + yıl + ay + o ayki sıra (her ay sıfırlanır).
-Alanlar: öneri sahibi, görevi, tarih, konu, detay açıklama, çözüm önerisi,
-4 katkı sorusu (Kalite / Verimlilik / İSG / Maliyet), ek açıklama.
+Alanlar: öneri sahibi (**ad** ve **soyad** ayrı kutularda), görevi, tarih, konu, detay açıklama, çözüm önerisi,
+4 katkı sorusu (Kalite / Verimlilik / İSG / Maliyet), ek açıklama. Eksik bilgide form girilenler korunarak tekrar gösterilir.
 
-### Kaizen Formu (No: `ÖSKFR2607-01`)
-Başlangıç–bitiş tarihi, kazanç başlıkları (Makine, İşçilik, Kalite, İSG, Ergonomi, Setup,
-Stok, 5S… çoklu seçim), konu, yapıldığı bölüm, **ekip** (1 lider + en fazla 2 üye),
-önceki/sonraki durum açıklaması **+ önce/sonra fotoğrafı**.
+### Kaizen Formu (No: `ÖSKFR2607-01`) — herkese açık
+Başlangıç–bitiş tarihi, kazanç başlıkları (çoklu seçim), konu, bölüm, **ekip** (1 lider + en fazla 2 üye; her biri
+ad/soyad ayrı), önceki/sonraki durum açıklaması **+ önce/sonra fotoğrafı**. Onaylanan öneriden dönüştürülürken
+form öneriden doldurulur ve kaizen öneriye bağlanır.
 
-### Birleşik Liste ve Değerlendirme
-- Öneri + kaizen tek listede tarihe göre sıralanır; **Tür / Dönem (ay) / arama** filtreleri.
-- Satıra tıklayınca detay sayfası (kaizen'de önce/sonra görseller, puan kırılımı).
-- **Yönetici akışı:** Onay / Red / Revize → onaylanan kayıtta **★ Puanla** →
-  100 üzerinden rubrik puanlama:
-  - Temel Şartlar (0–10) · Etki Odağı (0–40, 6 odaktan tek seviye) · Maliyet (0–20) ·
-    Yaygınlaştırma (0–15) · Efor (0–15)
-  - Her maddeye 0–maksimum arası serbest puan verilir; toplam canlı hesaplanır.
-  - Bir kez onaylanan kayıt artık reddedilemez.
-- **Form numarası:** bir kayıt **ilk onaylandığında** otomatik yıllık sıralı bir form numarası
-  alır (örn. `FR-2026-0001`, öneri ve kaizen ortak sayaç). Numara listede, detayda ve Excel'de görünür.
-- **Silinen kayıtlar:** silinen öneri/kaizen kalıcı kaybolmaz; **🗑 Silinenler** sayfasında
-  saklanır, oradan **geri yüklenebilir** veya kalıcı silinebilir (kayıt yetkisi).
+### Liste, Değerlendirme, Görev (giriş gerekir)
+- Öneri + kaizen tek listede tarihe göre; **20'şerli sayfa**; **Tür / Durum / Dönem / arama** filtreleri.
+  Reddedilenler listede yer almaz.
+- **Detay sayfasında değerlendirme kartları** (Değerlendirme yetkisi):
+  - **✓ Onayla** — ilk onayda yıllık form no (`FR-2026-0001`); öneride isteğe bağlı **uygulama görevi** ataması.
+  - **✕ Reddet** — red nedeni zorunlu. Onaylanmış kayıt reddedilemez.
+  - **✏ Düzeltme İste** — düzeltmeyi yapacak **denetmen** + açıklama zorunlu. Yalnızca o denetmen düzenler;
+    kaydedince kayıt "Değerlendiriliyor"a döner.
+- **📌 Görev:** onaylanan öneri bir denetmene atanır (termin + not). Atanan kişi **🔧 Kaizene Dönüştür** ile
+  kaizeni açar; öneri ↔ kaizen bağlantısı detaylarda görünür.
+- **★ Puanla** (Puanlama yetkisi) — 100 üzerinden rubrik: Temel 10 · Etki 40 · Maliyet 20 · Yaygınlaştırma 15 ·
+  Efor 15. Kaydedince kaydın detayına dönülür; "← Listeye Dön" kaldığın sayfaya/filtreye götürür.
+- **🗂 Reddedilen & Silinen:** reddedilenler (gerekçesiyle) ve silinenler burada; denetmenler yalnızca görüntüler,
+  kayıt yetkisi olan geri yükler veya kalıcı siler.
 
 ---
 
 ## 2) 5S Denetim
 
-`/5s` sayfası — sekmeler: **Son Denetimler · Bölümler · Denetim Planı** + Geçmiş Denetimler ve Aksiyonlar sayfaları.
+`/5s` — sekmeler: **Son Denetimler · Bölümler · Denetim Planı** + Geçmiş Denetimler ve Aksiyonlar.
+5S sonuçları, aksiyonlar ve kontrol formları **herkese açıktır**.
 
-- **Bölümler:** bölüm ekle/sil; her bölüme 1 veya 2 **ekip lideri** + üye listesi.
-- **Denetim Planı:** tarih aralığı seçilince tüm bölümler için denetim açılır
-  (tur adı aydan otomatik: "Temmuz 2026 Denetimi"). Her bölüme gün + saat + denetmen atanır.
-  - **Toplu dağıtım:** *Herkes kendi bölümüne* ya da *Çapraz* — her bölüm başka bir bölümce
-    denetlenir, kimse kendi (veya ortak lider olduğu) bölümüne denk gelmez.
-    Misafir denetmenler dengeli rastgele dağıtılır.
-- **Denetim formu (şirket 5S Denetim Raporu şablonu):** 5 bölüm — S1 Ayıklama (25) ·
-  S2 Düzenleme (35) · S3 Temizlik (20) · S4 Standartlaştırma (4) · S5 Eğitim-Disiplin (16);
-  23 soru. Denetmen puan girmez — **bulgu sayısı** (veya Evet/Hayır) girer, puan form
-  kuralından otomatik hesaplanır (ör. "her bulgu −3 puan; 5+ bulguda tamamı gider")
-  ve canlı gösterilir. Soru başına 3 fotoğraf + açıklama + en fazla 2
-  **düzeltici aksiyon** (sorumlu + termin). Denetmen girişliyse adı oturumdan otomatik yazılır;
-  denetmen yalnızca **kendisine planlanan** bölümü denetleyebilir.
-- **Ödüllendirme:** tur tüm bölümlerde tamamlanınca yönetici **"Ödülleri İşle"** der →
-  1./2./3. bölümün **tüm ekibine 100 / 75 / 50 puan** kalıcı eklenir.
-- **Aksiyonlar:** açık/kapalı aksiyonlar tur → bölüm kırılımıyla listelenir. Aksiyonu yalnızca
-  açıldığı bölümün ekip lideri (denetmen girişli) veya yönetici kapatabilir;
-  **açıklama + en az 1 fotoğraf zorunlu**. Fotoğraflar ZIP, liste Excel olarak indirilebilir.
+- **Bölümler** (tablo): ekip lideri, personel sayısı, son skor ve tarih, açık aksiyon, bu ayki kontrol doluluğu.
+- **Bölüm sayfası:** özet kutuları, ekip (1–2 lider + üyeler, ad/soyad ayrı), denetim geçmişi,
+  **skor trend grafiği** ve her denetimin **S1–S5 kırılımı**.
+- **Denetim Planı:** tarih aralığı seçilince tüm bölümler için denetim açılır; gün/saat/denetmen atanır;
+  toplu dağıtım *Herkes kendi bölümüne* veya *Çapraz*; misafir denetmenler dengeli dağıtılır.
+- **Denetim formu (şirket 5S Denetim Raporu):** 5 bölüm / 23 soru / 100 puan — S1 Ayıklama 25 · S2 Düzenleme 35 ·
+  S3 Temizlik 20 · S4 Standartlaştırma 4 · S5 Eğitim-Disiplin 16. Denetmen **bulgu sayısı** (veya Evet/Hayır)
+  girer, puan kuraldan hesaplanır. Soru başına 3 fotoğraf + açıklama + en fazla 2 düzeltici aksiyon.
+- **Denetim revize:** yetkili yönetici yapılmış denetimi düzeltir (skor yeniden hesaplanır, fotoğraf ekle/sil,
+  yeni aksiyon). **Ödülleri işlenmiş turda revize kapalıdır.**
+- **Ödüllendirme:** tur tamamlanınca **"Ödülleri İşle"** → 1./2./3. bölüm ekibine **100 / 75 / 50 puan**.
+- **Aksiyonlar:** açık/kapalı, tur → bölüm kırılımı. Bölümün ekip lideri (denetmen girişli) veya aksiyon yetkili
+  yönetici kapatır; **açıklama + en az 1 fotoğraf zorunlu**.
+- **✅ T-FR016 Periyodik Kontrol Formu** (bölüm sayfasından): 10 günlük, 3 haftalık, 2 aylık madde. Bölümün ekip
+  lideri günü seçip *Uygun / Uygun Değil* işaretler; uygun değilde açıklama zorunlu, istenirse doğrudan
+  **5S aksiyonu** açılır. Aylık tablo kâğıt formdaki gibi gün gün görünür. Haftalık **grup lideri** ve aylık
+  **bölüm sorumlusu** kontrol imzası (bölümün lideri dışındaki denetmen veya yetkili yönetici). Excel çıktısı.
 
 ---
 
@@ -88,48 +95,57 @@ Stok, 5S… çoklu seçim), konu, yapıldığı bölüm, **ekip** (1 lider + en 
 | Kaynak | Dağıtım |
 |---|---|
 | **Öneri** | sahibine, önerinin puanının **%10**'u |
-| **Kaizen** | **lider %50**, her üye **%25** (en fazla 3 kişi) |
+| **Kaizen** | **lider %50**, her üye **%25** (ekip en fazla 3 kişi) |
 | **5S** | turda 1./2./3. bölümün **tüm ekibine 100 / 75 / 50** |
 
 - Sütunlar: Öneri · Kaizen · 5S · Kazanılan · **Net** (net = kazanılan − verilen ödüller).
-- Kişi satırına tıklayınca puanın hangi kayıtlardan geldiği açılır.
-- Net puanı **300**'e ulaşan kişiye yönetici **🎁 Ödül Ver** der → 300 düşülür, kişi
-  **Ödül Alanlar** listesine geçer. Ödül kaydı silinirse puan geri döner.
+- Aynı kişinin farklı yazılışları (**ALİ YILMAZ / ali yilmaz / Ali Yılmaz**) otomatik **tek kişi** sayılır;
+  yazım hataları **🔗 İsim Birleştirme** sayfasından elle birleştirilir. Kayıtlardaki isimler değişmez.
+- Net puanı **300**'e ulaşan kişiye **🎁 Ödül Ver** → 300 düşülür, **Ödül Alanlar** listesine geçer.
 
 ---
 
-## 4) Yönetici Paneli
+## 4) Panel ve Yönetim
 
-- **📊 İstatistikler:** Bu Ay / Son 6 Ay / Bu Yıl / Tüm Zamanlar — öneri-kaizen sayısı + durum dağılımı.
-- **🧹 5S Trendi:** bölüm × tur skor tablosu (düşüş kırmızı ▼, artış yeşil ▲; Excel'e aktarılır).
-- **👥 Denetmenler:** bölüm ekip liderleri otomatik listelenir; yönetici yalnızca şifre belirler.
-- **🎫 Misafir denetmenler:** plan dağıtımında kullanılan harici kişiler.
-- **👤 Yöneticiler:** ana yönetici, **ek yöneticiler** ekler ve her birine ad, şifre ve
-  **yetki alanlarını** kutucuklarla belirler (aşağıya bakın).
-- **🔑 Şifre değiştir** (ana yönetici).
+- **📊 Panel** (denetmen + tüm yöneticiler): dönem butonlu (Bu Ay / Son 6 Ay / Bu Yıl / Tüm Zamanlar) tek tablo —
+  öneri/kaizen × gelen / değerlendiriliyor / düzeltme / onaylandı / puan alan / reddedildi; altta sabit tüm
+  zamanlar toplamı; **son 12 ay gelen vs. puan alan** grafiği; bölümlerin 5S trendi (Excel'e aktarılır).
+- **🛠 Yönetim:** denetmen hesapları, misafir denetmenler, ek yöneticiler (yetki kutucukları + ⭐ tam yetki),
+  ana yönetici şifresi — her bölüm yalnızca yetkisi olana görünür.
+- **📋 Görevlerim:** atanan düzeltmeler, kaizene dönüştürme görevleri, planlanan 5S denetimleri, kapatılacak
+  aksiyonlar, bugünkü kontrol formu. Değerlendirme yetkili yönetici tüm açık atamaları izler.
+- **📜 İşlem Günlüğü** (tam yetki): yönetici/denetmen işlemleri — kim, ne zaman, ne yaptı.
 
 ---
 
 ## Roller ve Erişim
 
-**Ana yönetici** her zaman tam yetkilidir. **Ek yöneticiler**, ana yöneticinin kutucuklarla
-seçtiği yetki alanlarıyla sınırlıdır:
+**Ana yönetici** sabittir, her zaman tam yetkilidir. **Ek yöneticiler** ana yöneticinin (veya tam yetkili ek
+yöneticinin) seçtiği alanlarla sınırlıdır:
 
-| Yetki alanı | Kapsam |
-|---|---|
-| **Değerlendirme & Puanlama** | Öneri/kaizen onay · red · revize ve puanlama |
-| **5S Yönetimi** | Bölüm/plan oluşturma, denetmen-misafir yönetimi, ödülleri işleme, denetim silme, 5S raporları |
-| **Ödül Verme** | Puan listesinden ödül verme, kişi gizleme, ödül kaydı silme, puan raporları |
-| **Kayıt Düzenle-Sil & Raporlar** | Öneri/kaizen düzenleme-silme, Excel indirme |
+| Grup | Yetki alanı | Kapsam |
+|---|---|---|
+| Öneri & Kaizen | **Değerlendirme** | Onay, gerekçeli red, düzeltme isteyip denetmene atama, görev atama |
+| | **Puanlama** | Onaylanan kayıtlara ★ puan |
+| | **Kayıt düzenle-sil & raporlar** | Düzenleme, silme, silinenleri geri yükleme, Excel |
+| 5S | **Bölüm & denetim planı** | Bölüm/ekip, denetim tarihi planlama, denetmen/misafir dağıtımı |
+| | **Denetim yapma** | Her bölümün denetimini yapabilir, kontrol formunu doldurabilir |
+| | **Denetim revize & silme** | Yapılmış denetimi düzeltme (ödülü işlenmemiş turda), silme |
+| | **Aksiyon yönetimi** | Her aksiyonu kapatma/silme, aksiyon Excel/ZIP |
+| | **5S ödül & raporlar** | Tur ödüllerini işleme, denetim Excel/ZIP, trend Excel |
+| Puan & Ödül | **Ödül verme & isim birleştirme** | Ödül ver/sil, kişi gizleme, isim birleştirme, puan raporları |
+| Hesaplar | **Denetmen hesapları** | Denetmen ekleme, şifre, silme |
+| — | **⭐ Tam yetki** | Hepsi + ek yönetici yönetimi + işlem günlüğü (hesap silinebilir) |
 
-Yalnızca ana yönetici: ek yönetici ekleme/silme ve ana şifre değişimi.
-
-| | Genel kullanıcı | Denetmen | Ek yönetici | Ana yönetici |
+| | Herkes (girişsiz) | Denetmen | Ek yönetici | Ana yönetici |
 |---|---|---|---|---|
-| Öneri/kaizen ekleme, tüm listeleri görüntüleme | ✅ | ✅ | ✅ | ✅ |
-| Kendisine planlanan bölümün 5S denetimi | ❌ | ✅ | 5S yetkisiyle | ✅ |
-| Onay/red/puanlama, düzenle/sil, 5S, ödül | ❌ | ❌ | verilen yetkiyle | ✅ |
-| Ek yönetici yönetimi | ❌ | ❌ | ❌ | ✅ |
+| Öneri/kaizen formu, puan listesi, 5S sonuçları, aksiyonlar, kontrol formları | ✅ | ✅ | ✅ | ✅ |
+| Öneri/kaizen listesi ve detayları, Panel, Reddedilen & Silinen | ❌ | ✅ (görüntüleme) | ✅ | ✅ |
+| Kendisine planlanan 5S denetimi, lideri olduğu bölümün aksiyonu ve kontrol formu | ❌ | ✅ | yetkiyle | ✅ |
+| Kendisine atanan düzeltme ve kaizene dönüştürme görevi | ❌ | ✅ | — | — |
+| Onay/red/düzeltme, puanlama, düzenle/sil, 5S yönetimi, ödül | ❌ | ❌ | verilen yetkiyle | ✅ |
+| Ek yönetici yönetimi, işlem günlüğü | ❌ | ❌ | ⭐ tam yetkiyle | ✅ |
+| Ana yönetici şifresi | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
@@ -252,6 +268,7 @@ Eski hash'li şifreler (pbkdf2/scrypt) aynen tanınır — yönetici ve denetmen
 - Güvenlik başlıkları (CSP, nosniff, X-Frame-Options DENY); oturum çerezi
   HttpOnly + SameSite=Lax, imza anahtarı veritabanında tutulur (koda gömülü değildir).
 
-Ayrıntılar için: **[TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md)** (mimari ve iç işleyiş) ·
+Ayrıntılar için: **[DEGISIKLIKLER.md](DEGISIKLIKLER.md)** (sürüm notları ve canlıya alma) ·
+**[TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md)** (mimari ve iç işleyiş) ·
 **[IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md)** (mimari/kod inceleme raporu ve iyileştirme önerileri) ·
 **[DAGITIM.md](DAGITIM.md)** (sunucuda devreye alma: sunucu özellikleri, kurulum, HTTPS, yedekleme).

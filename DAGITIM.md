@@ -26,7 +26,7 @@ arşivi (disk) ve nadiren Excel üretimidir (CPU, kısa süreli).
 |---|---|---|
 | CPU | 2 çekirdek | 4 çekirdek (Excel üretimi + MySQL rahat eder) |
 | RAM | 2 GB | 4–8 GB (MySQL InnoDB buffer + Node ~200 MB) |
-| Disk | 20 GB SSD | 60+ GB SSD — büyüme kalemi fotoğraflardır (~150-400 KB/foto işlenmiş; denetim başına ≤60 foto) |
+| Disk | 20 GB SSD | 60+ GB SSD — büyüme kalemi fotoğraflardır (~150-400 KB/foto işlenmiş; denetim başına ≤69 foto) |
 | İşletim sistemi | Windows 10/11, Windows Server 2019+, Ubuntu 22.04/24.04 LTS | Ubuntu 24.04 LTS |
 | Yazılım | Node.js 20+ (24 LTS önerilir), MySQL 8.x | Aynı makinede MySQL yeterli |
 | Ağ | 100 Mbps LAN | Sabit IP veya DNS kaydı (ör. `yalin.sirket.local`) |
@@ -202,6 +202,8 @@ uygulamayı `YALIN_DB_DATABASE=yalin_test` ile açıp veriyi görün. Yedek, ger
 kanıtlanınca yedektir.
 
 ## 8. Güncelleme Prosedürü
+
+> Sürüme özel notlar (eklenen kolonlar/tablolar, canlıya alma sonrası yapılacaklar): **[DEGISIKLIKLER.md](DEGISIKLIKLER.md)**.
 
 ```bash
 cd /home/yalinapp/app
