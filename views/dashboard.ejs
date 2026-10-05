@@ -5,11 +5,11 @@
     <div class="list-actions">
         <a class="btn ghost" href="/panel">📊 Panel</a>
         <% if (yetki('odul')) { %><a class="btn ghost" href="/isimler">🔗 İsim Birleştirme</a><% } %>
-        <% if (super_admin) { %><a class="btn ghost" href="/yonetici/gunluk">📜 İşlem Günlüğü</a><% } %>
+        <% if (ana_yonetici) { %><a class="btn ghost" href="/yonetici/gunluk">📜 İşlem Günlüğü</a><% } %>
     </div>
 </div>
 
-<% if (!yetki('kullanici') && !yetki('bes_plan') && !super_admin) { %>
+<% if (!yetki('kullanici') && !yetki('bes_plan') && !ana_yonetici) { %>
 <div class="empty">Bu sayfada yönetebileceğiniz bir alan yok. İstatistikler için <a href="/panel">Panel</a>'e gidin.</div>
 <% } %>
 
@@ -101,12 +101,8 @@
 </div>
 <% } %>
 
-<% if (super_admin) { %>
-<% function yetkiKutulari(secili, tam) { %>
-    <label class="chk tam-chk" title="Ana yönetici ile aynı yetkiler (yönetici ekleme dahil). Hesap silinebilir.">
-        <input type="checkbox" name="yetkiler" value="tam" class="tam-kutu" <%= tam ? 'checked' : '' %>>
-        <span>⭐ <strong>Tam yetki</strong> (ana yönetici kadar)</span>
-    </label>
+<% if (ana_yonetici) { %>
+<% function yetkiKutulari(secili) { %>
     <% for (const g of yetki_gruplari) { %>
     <div class="yetki-grup">
         <span class="yetki-grup-ad"><%= g.grup %></span>
@@ -114,7 +110,7 @@
             <% for (const t of g.yetkiler) { %>
             <label class="chk" title="<%= t.aciklama %>">
                 <input type="checkbox" name="yetkiler" value="<%= t.k %>" class="alan-kutu"
-                    <%= (!tam && (secili || []).includes(t.k)) ? 'checked' : '' %> <%= tam ? 'disabled' : '' %>>
+                    <%= (secili || []).includes(t.k) ? 'checked' : '' %>>
                 <span><%= t.ad %><small><%= t.aciklama %></small></span>
             </label>
             <% } %>
@@ -125,9 +121,9 @@
 <!-- Yöneticiler -->
 <h2 class="bolum-baslik" id="yoneticiler">👤 Yöneticiler</h2>
 <div class="form-card">
-    <p class="subtitle" style="margin-bottom:14px"><strong>Ana yönetici</strong> sabittir ve her zaman tam yetkilidir.
-        Buradan <strong>ek yönetici</strong> ekleyip yetki alanlarını tek tek seçersiniz; <strong>⭐ Tam yetki</strong>
-        verilen yönetici ana yönetici kadar yetkilidir (yönetici ekleyebilir) ama silinebilir. Her şifre farklı olmalıdır.</p>
+    <p class="subtitle" style="margin-bottom:14px"><strong>Ana yönetici</strong> sabittir ve tek tam yetkili hesaptır:
+        ek yönetici ekleme/silme ve işlem günlüğü yalnızca ondadır. Buradan <strong>ek yönetici</strong> ekleyip yetki
+        alanlarını tek tek seçersiniz; ek yönetici yalnızca işaretlenen alanlarda işlem yapar. Her şifre farklı olmalıdır.</p>
 
     <% if (yoneticiler.length) { %>
     <div class="denetmen-liste" style="margin-bottom:18px">
@@ -136,21 +132,18 @@
             <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <input type="hidden" name="id" value="<%= y.id %>">
             <div class="yonetici-ust">
-                <span class="ds-ad">👤 <strong><%= y.ad %></strong><% if (y.ben) { %> <small>(siz)</small><% } %>
-                    <% if (y.tam) { %><span class="durum-badge onay">⭐ tam yetki</span><% } %></span>
+                <span class="ds-ad">👤 <strong><%= y.ad %></strong></span>
                 <div class="yonetici-islem">
                     <input type="password" name="sifre" placeholder="Yeni şifre (boş=değişmez)" minlength="6"
                            class="yonetici-sifre" autocomplete="new-password">
                     <button type="submit" class="btn-mini edit">Kaydet</button>
                 </div>
             </div>
-            <% yetkiKutulari(y.yetkiler, y.tam) %>
+            <% yetkiKutulari(y.yetkiler) %>
             <div class="yonetici-alt">
                 <span class="bos-not">Oluşturma: <%= y.olusturma %></span>
-                <% if (!y.ben) { %>
                 <button type="submit" formaction="/yonetici/yonetici/sil" class="btn-mini del" formnovalidate
                         onclick="return confirm('Bu yönetici silinsin mi?');">Sil</button>
-                <% } %>
             </div>
         </form>
         <% } %>
@@ -170,21 +163,12 @@
             </div>
         </div>
         <label class="file-label">Yetki alanları</label>
-        <% yetkiKutulari([], false) %>
+        <% yetkiKutulari([]) %>
         <div class="form-actions">
             <button type="submit" class="btn primary">+ Yönetici Ekle</button>
         </div>
     </form>
 </div>
-<script>
-// "Tam yetki" seçilince ayrı alan kutuları devre dışı (tam yetki hepsini kapsar)
-document.querySelectorAll('.yetki-form').forEach(function (f) {
-    var tam = f.querySelector('.tam-kutu');
-    if (!tam) return;
-    function guncelle() { f.querySelectorAll('.alan-kutu').forEach(function (k) { k.disabled = tam.checked; }); }
-    tam.addEventListener('change', guncelle);
-});
-</script>
 <% } %>
 
 <% if (ana_yonetici) { %>

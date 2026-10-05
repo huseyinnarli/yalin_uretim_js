@@ -10,7 +10,7 @@ const I = require("../isim");
 const Y = require("../yetkiler");
 const W = require("../web");
 const {
-  sar, flash, adminRequired, tamYetkiRequired, anaYoneticiRequired, yetkiGerek, alan, adSoyadOku, guvenliYol,
+  sar, flash, adminRequired, anaYoneticiRequired, yetkiGerek, alan, adSoyadOku, guvenliYol,
 } = W;
 const { xlsxGonder } = require("./genel");
 
@@ -24,7 +24,7 @@ function girisKilitli(ip) {
   return denemeler.length >= _GIRIS_LIMIT;
 }
 
-// Checkbox'lardan gelen yetki listesi (tam seçildiyse yalnızca ["tam"])
+// Checkbox'lardan gelen yetki listesi (yalnızca tanımlı alanlar)
 function yetkileriOku(req) {
   return Y.yetkiFormdan((req.body || {}).yetkiler);
 }
@@ -113,15 +113,15 @@ module.exports = function register(app) {
       denetmenler: denetmenler.map((d) => ({ ...d, lider: liderler.some((ad) => I.isimEsit(ad, d.ad)) })),
       lider_adaylari: adaylar,
       misafirler: await C.loadMisafirler(),
-      yoneticiler: req.superAdmin
-        ? (await C.loadYoneticiler()).map((y) => ({ ...y, ...Y.yetkiGenislet(y.yetkiler), ben: y.id === req.session.yonetici_id }))
+      yoneticiler: req.anaYonetici
+        ? (await C.loadYoneticiler()).map((y) => ({ ...y, ...Y.yetkiGenislet(y.yetkiler) }))
         : [],
       yetki_gruplari: Y.YETKI_GRUPLARI,
     });
   }));
 
-  // ----- Ek yönetici yönetimi (ana yönetici + tam yetkili ek yönetici) -----
-  app.post("/yonetici/yonetici/ekle", tamYetkiRequired, sar(async (req, res) => {
+  // ----- Ek yönetici yönetimi (yalnız ana yönetici) -----
+  app.post("/yonetici/yonetici/ekle", anaYoneticiRequired, sar(async (req, res) => {
     const ad = adSoyadOku(req, "ad", "soyad").tam;
     const sifre = String(req.body.sifre || "").trim();
     const yetkiler = yetkileriOku(req);
@@ -144,12 +144,12 @@ module.exports = function register(app) {
     }
     await calistir("INSERT INTO yoneticiler(id, ad, sifre, yetkiler, olusturma) VALUES(?,?,?,?,?)",
       [C.uid(), ad, C.hashPassword(sifre), js(yetkiler), S.zamanTr()]);
-    flash(req, "success", `${ad} yöneticisi eklendi` + (yetkiler.includes(Y.TAM) ? " (tam yetki)." : "."));
+    flash(req, "success", `${ad} yöneticisi eklendi.`);
     res.redirect("/yonetici#yoneticiler");
   }));
 
   // Yetkileri (ve isteğe bağlı şifreyi) günceller
-  app.post("/yonetici/yonetici/guncelle", tamYetkiRequired, sar(async (req, res) => {
+  app.post("/yonetici/yonetici/guncelle", anaYoneticiRequired, sar(async (req, res) => {
     const id = req.body.id || "";
     const y = await C.yoneticiById(id);
     if (!y) {
@@ -181,8 +181,8 @@ module.exports = function register(app) {
     res.redirect("/yonetici#yoneticiler");
   }));
 
-  // Ek yönetici silinebilir (ana yönetici sabittir; kimse kendi hesabını silemez)
-  app.post("/yonetici/yonetici/sil", tamYetkiRequired, sar(async (req, res) => {
+  // Ek yönetici silinebilir (ana yönetici sabittir ve silinemez)
+  app.post("/yonetici/yonetici/sil", anaYoneticiRequired, sar(async (req, res) => {
     const id = req.body.id || "";
     if (id && id === req.session.yonetici_id) {
       flash(req, "error", "Kendi hesabınızı silemezsiniz.");
@@ -193,12 +193,12 @@ module.exports = function register(app) {
     res.redirect("/yonetici#yoneticiler");
   }));
 
-  // ----- İşlem günlüğü (tam yetki) -----
-  app.get("/yonetici/gunluk", tamYetkiRequired, sar(async (req, res) => {
+  // ----- İşlem günlüğü (yalnız ana yönetici) -----
+  app.get("/yonetici/gunluk", anaYoneticiRequired, sar(async (req, res) => {
     res.render("gunluk", { title: "İşlem Günlüğü", kayitlar: await C.loadGunluk(500) });
   }));
 
-  app.post("/yonetici/gunluk/temizle", tamYetkiRequired, sar(async (req, res) => {
+  app.post("/yonetici/gunluk/temizle", anaYoneticiRequired, sar(async (req, res) => {
     await C.gunlukTemizle();
     flash(req, "success", "İşlem günlüğü temizlendi.");
     res.redirect("/yonetici/gunluk");
@@ -361,9 +361,6 @@ module.exports = function register(app) {
       });
       ek = ` · düzeltme ${d.ad} kişisine atandı`;
     } else if (durum === "Onaylandı") {
-      // İlk onayda form numarası atanır (bir daha değişmez)
-      if (!mevcut.form_no) alanlar.form_no = await C.nextFormNo();
-      if (alanlar.form_no) ek = ` · Form No: ${alanlar.form_no}`;
       // Öneride isteğe bağlı: onayla birlikte uygulama görevi ata
       if (tip === "oneri" && req.body.gorev_denetmen) {
         const g = await C.denetmenById(req.body.gorev_denetmen);

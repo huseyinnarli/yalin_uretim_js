@@ -20,7 +20,17 @@
         <a class="btn ghost" href="/5s/bolum/<%= b.id %>">← Bölüm</a>
         <a class="btn ghost" href="/5s/bolum/<%= b.id %>/kontrol?ay=<%= onceki_ay %>">‹ Önceki Ay</a>
         <a class="btn ghost" href="/5s/bolum/<%= b.id %>/kontrol?ay=<%= sonraki_ay %>">Sonraki Ay ›</a>
-        <% if (girisli) { %><a class="btn ghost" href="/5s/bolum/<%= b.id %>/kontrol/excel?ay=<%= ay %>">⬇ Excel</a><% } %>
+        <% if (girisli) { %>
+        <form method="get" action="/5s/bolum/<%= b.id %>/kontrol/excel" class="excel-ay-form"
+              title="Seçilen aya kadar doldurulmuş tüm aylar indirilir (her ay ayrı sayfa + özet)">
+            <select name="ay" aria-label="Excel: hangi aya kadar">
+                <% for (const e of excel_aylari) { %>
+                <option value="<%= e.ay %>" <%= e.ay === excel_ay ? 'selected' : '' %>><%= e.etiket %></option>
+                <% } %>
+            </select>
+            <button type="submit" class="btn ghost">⬇ Excel (bu aya kadar)</button>
+        </form>
+        <% } %>
     </div>
 </div>
 <p class="subtitle"><strong><%= form.kod %></strong> REV<%= form.rev %> · Takım: <strong><%= b.ad %></strong> ·
@@ -29,14 +39,11 @@
 <% if (doldurabilir) { %>
 <!-- Günün kontrolü (takım lideri) -->
 <div class="form-card kontrol-doldur">
-    <form method="get" action="/5s/bolum/<%= b.id %>/kontrol" class="satir-form">
-        <input type="hidden" name="ay" value="<%= ay %>">
-        <label class="inline-label">Kontrol günü:</label>
-        <select name="gun" onchange="this.form.submit()">
-            <% for (let g = son_gun; g >= 1; g--) { %>
-            <option value="<%= g %>" <%= g === gun ? 'selected' : '' %>><%= g %> <%= ay_etiketi %><%= g === son_gun ? ' (son gün)' : '' %></option>
-            <% } %>
-        </select>
+    <form method="get" action="/5s/bolum/<%= b.id %>/kontrol" class="satir-form tarih-sec">
+        <label class="inline-label" for="kontrol-tarih">📅 Kontrol tarihi:</label>
+        <input type="date" id="kontrol-tarih" class="kontrol-tarih" name="tarih" value="<%= tarih %>" max="<%= bugun %>" min="2020-01-01" required>
+        <button type="submit" class="btn-mini edit">Aç</button>
+        <span class="bos-not"><%= ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'][haftaGunu(gun)] %><%= tarih === bugun ? ' · bugün' : '' %></span>
     </form>
 
     <form method="post" action="/5s/bolum/<%= b.id %>/kontrol" class="kontrol-form"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
@@ -56,10 +63,6 @@
             </div>
             <div class="km-detay">
                 <input type="text" name="aciklama_<%= m.k %>" value="<%= bugunku ? bugunku.aciklama : '' %>" placeholder="Tespit / açıklama (Uygun Değil ise zorunlu)">
-                <% if (!(bugunku && bugunku.aksiyon_id)) { %>
-                <label class="km-aksiyon"><input type="checkbox" name="aksiyon_<%= m.k %>" value="1"> ⚑ Aksiyon aç</label>
-                <span class="km-termin"><input type="date" name="termin_<%= m.k %>" title="Aksiyon termini (isteğe bağlı)" placeholder="Termin"></span>
-                <% } else { %><small class="bos-not">⚑ aksiyon açıldı</small><% } %>
             </div>
         </div>
         <% } } %>
@@ -143,11 +146,23 @@
     <div class="gorev-satir">
         <span class="gs-govde"><strong><%= u.g %> <%= ay_etiketi %></strong> · <span class="km-kod"><%= u.m.k.toUpperCase() %></span> <%= u.r.aciklama || '—' %>
             <small><%= u.m.m %> · <%= u.r.isaretleyen %></small></span>
-        <% if (u.r.aksiyon_id) { %><a class="btn-mini edit" href="/5s/aksiyonlar#a-<%= u.r.aksiyon_id %>">⚑ Aksiyon</a><% } %>
     </div>
     <% } %>
 </div>
 <% } else { %><p class="bos-not">Bu ay uygunsuzluk işaretlenmedi.</p><% } %>
 
 <p class="bos-not kontrol-not"><strong>Not:</strong> <%= form.not %></p>
+
+<script>
+// Kontrol tarihi: alan Türkçe takvimle açılır (static/takvim.js → flatpickr, bugünden ileri gün seçilemez).
+// Takvimden gün seçilince o günün formu kendiliğinden açılır.
+(function () {
+    var t = document.getElementById('kontrol-tarih');
+    if (!t) return;
+    var ilk = t.value;
+    t.addEventListener('change', function () {
+        if (t.value !== ilk && /^\d{4}-\d{2}-\d{2}$/.test(t.value) && t.value >= t.min && t.value <= t.max) t.form.submit();
+    });
+})();
+</script>
 <%- include('partials/footer') %>

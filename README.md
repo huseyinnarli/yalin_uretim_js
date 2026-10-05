@@ -52,7 +52,7 @@ form öneriden doldurulur ve kaizen öneriye bağlanır.
 - Öneri + kaizen tek listede tarihe göre; **20'şerli sayfa**; **Tür / Durum / Dönem / arama** filtreleri.
   Reddedilenler listede yer almaz.
 - **Detay sayfasında değerlendirme kartları** (Değerlendirme yetkisi):
-  - **✓ Onayla** — ilk onayda yıllık form no (`FR-2026-0001`); öneride isteğe bağlı **uygulama görevi** ataması.
+  - **✓ Onayla** — öneride isteğe bağlı **uygulama görevi** ataması.
   - **✕ Reddet** — red nedeni zorunlu. Onaylanmış kayıt reddedilemez.
   - **✏ Düzeltme İste** — düzeltmeyi yapacak **denetmen** + açıklama zorunlu. Yalnızca o denetmen düzenler;
     kaydedince kayıt "Değerlendiriliyor"a döner.
@@ -84,9 +84,11 @@ form öneriden doldurulur ve kaizen öneriye bağlanır.
 - **Aksiyonlar:** açık/kapalı, tur → bölüm kırılımı. Bölümün ekip lideri (denetmen girişli) veya aksiyon yetkili
   yönetici kapatır; **açıklama + en az 1 fotoğraf zorunlu**.
 - **✅ T-FR016 Periyodik Kontrol Formu** (bölüm sayfasından): 10 günlük, 3 haftalık, 2 aylık madde. Bölümün ekip
-  lideri günü seçip *Uygun / Uygun Değil* işaretler; uygun değilde açıklama zorunlu, istenirse doğrudan
-  **5S aksiyonu** açılır. Aylık tablo kâğıt formdaki gibi gün gün görünür. Haftalık **grup lideri** ve aylık
-  **bölüm sorumlusu** kontrol imzası (bölümün lideri dışındaki denetmen veya yetkili yönetici). Excel çıktısı.
+  lideri günü **Türkçe takvimden** seçip *Uygun / Uygun Değil* işaretler; uygun değilde açıklama zorunlu
+  (uygunsuzluklar formun altında ve Excel'de listelenir, formdan aksiyon açılmaz). Aylık tablo kâğıt formdaki gibi
+  gün gün görünür. Haftalık **grup lideri** ve aylık **bölüm sorumlusu** kontrol imzası (bölümün lideri dışındaki
+  denetmen veya yetkili yönetici). **Excel:** ay seçilir, o aya kadar doldurulmuş tüm aylar iner (her ay ayrı
+  sayfa + tüm ayların özeti ve uygunsuzluk listesi).
 
 ---
 
@@ -110,18 +112,18 @@ form öneriden doldurulur ve kaizen öneriye bağlanır.
 - **📊 Panel** (denetmen + tüm yöneticiler): dönem butonlu (Bu Ay / Son 6 Ay / Bu Yıl / Tüm Zamanlar) tek tablo —
   öneri/kaizen × gelen / değerlendiriliyor / düzeltme / onaylandı / puan alan / reddedildi; altta sabit tüm
   zamanlar toplamı; **son 12 ay gelen vs. puan alan** grafiği; bölümlerin 5S trendi (Excel'e aktarılır).
-- **🛠 Yönetim:** denetmen hesapları, misafir denetmenler, ek yöneticiler (yetki kutucukları + ⭐ tam yetki),
+- **🛠 Yönetim:** denetmen hesapları, misafir denetmenler, ek yöneticiler (yetki kutucukları; yalnız ana yönetici),
   ana yönetici şifresi — her bölüm yalnızca yetkisi olana görünür.
 - **📋 Görevlerim:** atanan düzeltmeler, kaizene dönüştürme görevleri, planlanan 5S denetimleri, kapatılacak
   aksiyonlar, bugünkü kontrol formu. Değerlendirme yetkili yönetici tüm açık atamaları izler.
-- **📜 İşlem Günlüğü** (tam yetki): yönetici/denetmen işlemleri — kim, ne zaman, ne yaptı.
+- **📜 İşlem Günlüğü** (ana yönetici): yönetici/denetmen işlemleri — kim, ne zaman, ne yaptı.
 
 ---
 
 ## Roller ve Erişim
 
-**Ana yönetici** sabittir, her zaman tam yetkilidir. **Ek yöneticiler** ana yöneticinin (veya tam yetkili ek
-yöneticinin) seçtiği alanlarla sınırlıdır:
+**Ana yönetici** sabittir ve tek tam yetkili hesaptır; ek yönetici eklemek/silmek ve işlem günlüğü yalnız ondadır.
+**Ek yöneticiler** ana yöneticinin seçtiği alanlarla sınırlıdır (ek yöneticiye tam yetki verilemez):
 
 | Grup | Yetki alanı | Kapsam |
 |---|---|---|
@@ -135,7 +137,6 @@ yöneticinin) seçtiği alanlarla sınırlıdır:
 | | **5S ödül & raporlar** | Tur ödüllerini işleme, denetim Excel/ZIP, trend Excel |
 | Puan & Ödül | **Ödül verme & isim birleştirme** | Ödül ver/sil, kişi gizleme, isim birleştirme, puan raporları |
 | Hesaplar | **Denetmen hesapları** | Denetmen ekleme, şifre, silme |
-| — | **⭐ Tam yetki** | Hepsi + ek yönetici yönetimi + işlem günlüğü (hesap silinebilir) |
 
 | | Herkes (girişsiz) | Denetmen | Ek yönetici | Ana yönetici |
 |---|---|---|---|---|
@@ -144,7 +145,7 @@ yöneticinin) seçtiği alanlarla sınırlıdır:
 | Kendisine planlanan 5S denetimi, lideri olduğu bölümün aksiyonu ve kontrol formu | ❌ | ✅ | yetkiyle | ✅ |
 | Kendisine atanan düzeltme ve kaizene dönüştürme görevi | ❌ | ✅ | — | — |
 | Onay/red/düzeltme, puanlama, düzenle/sil, 5S yönetimi, ödül | ❌ | ❌ | verilen yetkiyle | ✅ |
-| Ek yönetici yönetimi, işlem günlüğü | ❌ | ❌ | ⭐ tam yetkiyle | ✅ |
+| Ek yönetici yönetimi, işlem günlüğü | ❌ | ❌ | ❌ | ✅ |
 | Ana yönetici şifresi | ❌ | ❌ | ❌ | ✅ |
 
 ---

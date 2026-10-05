@@ -1,7 +1,6 @@
 // Yetki tanımları (saf): ek yöneticilere ayrı ayrı verilebilen yetki alanları.
-// Ana yönetici (config şifresiyle giren) her zaman tüm yetkilere sahiptir ve silinemez.
-// "tam" yetkisi verilen ek yönetici de ana yönetici kadar yetkilidir (yönetici ekleme dahil),
-// ancak silinebilir ve ana yönetici şifresini değiştiremez.
+// Ana yönetici (config şifresiyle giren) her zaman tüm yetkilere sahiptir ve silinemez; yönetici hesaplarını
+// yönetmek ve işlem günlüğü YALNIZCA ana yöneticidedir — ek yöneticiye "tam yetki" verilemez.
 
 const YETKI_GRUPLARI = [
   { grup: "Öneri & Kaizen", yetkiler: [
@@ -36,32 +35,30 @@ const YETKI_GRUPLARI = [
 
 const YETKILER = YETKI_GRUPLARI.flatMap((g) => g.yetkiler.map((y) => ({ ...y, grup: g.grup })));
 const TUM_YETKILER = YETKILER.map((y) => y.k);
-const TAM = "tam";
-
-// Önceki sürümde kaydedilmiş geniş yetkiler bugünkü ayrıntılı karşılıklarına açılır
+// Önceki sürümlerde kaydedilmiş yetkiler bugünkü ayrıntılı karşılıklarına açılır
 // (veritabanındaki kayıt değişmez; yönetici kaydedildiğinde yeni anahtarlarla yazılır).
+// "tam": kısa süre sunulan tam yetki seçeneği — artık yalnızca 10 alanın tamamı demektir;
+// yönetici hesapları ve işlem günlüğü vermez.
 const ESKI_YETKILER = {
   degerlendirme: ["degerlendir", "puanla"],
   bes_s: ["bes_plan", "bes_denetim", "bes_revize", "bes_aksiyon", "bes_odul", "kullanici"],
+  tam: TUM_YETKILER,
 };
 
-// Kayıtlı listeyi çözer -> { tam, yetkiler }
+// Kayıtlı listeyi çözer -> { yetkiler }
 function yetkiGenislet(liste) {
   const set = new Set();
-  let tam = false;
   for (const k of liste || []) {
-    if (k === TAM) tam = true;
-    else if (ESKI_YETKILER[k]) ESKI_YETKILER[k].forEach((x) => set.add(x));
+    if (ESKI_YETKILER[k]) ESKI_YETKILER[k].forEach((x) => set.add(x));
     else if (TUM_YETKILER.includes(k)) set.add(k);
   }
-  return { tam, yetkiler: tam ? [...TUM_YETKILER] : TUM_YETKILER.filter((k) => set.has(k)) };
+  return { yetkiler: TUM_YETKILER.filter((k) => set.has(k)) };
 }
 
-// Formdan gelen kutucuklar -> kaydedilecek liste (tam seçildiyse yalnızca ["tam"])
+// Formdan gelen kutucuklar -> kaydedilecek liste (yalnızca tanımlı alanlar)
 function yetkiFormdan(v) {
   if (!Array.isArray(v)) v = v ? [v] : [];
-  if (v.includes(TAM)) return [TAM];
   return TUM_YETKILER.filter((k) => v.includes(k));
 }
 
-module.exports = { YETKI_GRUPLARI, YETKILER, TUM_YETKILER, TAM, ESKI_YETKILER, yetkiGenislet, yetkiFormdan };
+module.exports = { YETKI_GRUPLARI, YETKILER, TUM_YETKILER, ESKI_YETKILER, yetkiGenislet, yetkiFormdan };

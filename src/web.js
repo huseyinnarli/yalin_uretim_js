@@ -12,7 +12,7 @@ function sar(fn) {
   return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 }
 
-// Yetki alanları src/yetkiler.js'te tanımlıdır (ayrıntılı alanlar + "tam" yetki).
+// Yetki alanları src/yetkiler.js'te tanımlıdır (ayrıntılı alanlar; tam yetki yalnız ana yönetici).
 const YETKILER = Y.YETKILER;
 const TUM_YETKILER = Y.TUM_YETKILER;
 
@@ -96,11 +96,10 @@ const ortakLocals = sar(async (req, res, next) => {
   if (!req.session.csrf) req.session.csrf = crypto.randomBytes(16).toString("hex");
   const d = await C.aktifDenetmen(req.session);
 
-  // Yetki durumu: ana yönetici ve "tam" yetkili ek yönetici tüm yetkilere sahiptir; ek yönetici
-  // kendi listesine. Yetkiler her istekte veritabanından TAZE okunur → değişiklik anında etkilidir.
+  // Yetki durumu: ana yönetici tüm yetkilere sahiptir (yönetici hesapları ve işlem günlüğü yalnız onda);
+  // ek yönetici kendi listesine. Yetkiler her istekte veritabanından TAZE okunur → değişiklik anında etkilidir.
   const y = await C.oturumYetkileri(req.session);
   req.yetkiBilgi = y;
-  req.superAdmin = y.tam;          // tam yetki (ana yönetici veya tam yetkili ek yönetici)
   req.anaYonetici = y.ana;         // yalnızca ana yönetici
   req.yetkiler = y.yetkiler;
   req.denetmen = d;
@@ -108,7 +107,6 @@ const ortakLocals = sar(async (req, res, next) => {
 
   res.locals.session = req.session;
   res.locals.admin = y.yonetici;
-  res.locals.super_admin = y.tam;
   res.locals.ana_yonetici = y.ana;
   res.locals.yetkiler = y.yetkiler;
   res.locals.yetki = (alan) => y.yetkiler.includes(alan);
@@ -214,19 +212,13 @@ function girisRequired(req, res, next) {
   if (!req.girisli) return _giriseYonlendir(req, res);
   next();
 }
-// Tam yetki: ana yönetici veya "tam" yetkili ek yönetici (ek yönetici yönetimi, işlem günlüğü)
-function tamYetkiRequired(req, res, next) {
-  if (!req.yetkiBilgi || !req.yetkiBilgi.yonetici) return _giriseYonlendir(req, res);
-  if (!req.superAdmin) return _yetkisiz(req, res);
-  next();
-}
-// Yalnızca ana yönetici (ana yönetici şifresinin değişimi)
+// Yalnızca ana yönetici: ek yönetici hesapları, işlem günlüğü, ana yönetici şifresi
 function anaYoneticiRequired(req, res, next) {
   if (!req.yetkiBilgi || !req.yetkiBilgi.yonetici) return _giriseYonlendir(req, res);
   if (!req.anaYonetici) return _yetkisiz(req, res);
   next();
 }
-// Belirli bir yetki alanı gerektirir (tam yetki her zaman geçer)
+// Belirli bir yetki alanı gerektirir (ana yönetici her zaman geçer)
 function yetkiGerek(alan) {
   return (req, res, next) => {
     if (!req.yetkiBilgi || !req.yetkiBilgi.yonetici) return _giriseYonlendir(req, res);
@@ -243,6 +235,6 @@ function denetciRequired(req, res, next) {
 
 module.exports = {
   sar, flash, hizLimitAsildi, alan, adSoyadOku, kisiOku, guvenliYol, ortakLocals, csrfDogrula, dosyaYukleyici,
-  guvenlikBasliklari, adminRequired, girisRequired, tamYetkiRequired, anaYoneticiRequired,
+  guvenlikBasliklari, adminRequired, girisRequired, anaYoneticiRequired,
   yetkiGerek, denetciRequired, YETKILER, TUM_YETKILER,
 };

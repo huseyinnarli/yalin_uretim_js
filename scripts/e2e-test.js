@@ -236,7 +236,9 @@ async function main() {
 
     await post("/durum", { csrf_token: csrf, tip: "oneri", no, durum: "Onaylandı" });
     html = await getText("/liste");
-    ok("onaylanınca form no atandı", /FR-\d{4}-\d{4}/.test(html));
+    const detayHtml = await getText(`/detay?tip=oneri&no=${encodeURIComponent(no)}`);
+    ok("onaylandı, form no gösterilmiyor", html.includes("Onaylandı") && !/FR-\d{4}-\d{4}/.test(html + detayHtml) &&
+      !detayHtml.includes("Form No"));
     await post(`/degerlendir/puan?tip=oneri&no=${encodeURIComponent(no)}`, {
       csrf_token: csrf, tip: "oneri", no,
       p_form: "5", p_komite: "5", p_etki_0_3: "40", p_maliyet_0: "20",
@@ -431,7 +433,7 @@ async function main() {
     await post("/durum", { csrf_token: csrf, tip: "oneri", no: gorNo, durum: "Onaylandı", gorev_denetmen: dz.id,
       gorev_termin: "2026-12-31", gorev_notu: "Hatta uygula" });
     [[rd]] = await db.query("SELECT durum, gorev_atanan_ad, form_no FROM oneriler WHERE `no` = ?", [gorNo]);
-    ok("onayla birlikte görev atandı", rd.durum === "Onaylandı" && rd.gorev_atanan_ad === "Deniz Denetmen" && /FR-/.test(rd.form_no));
+    ok("onayla birlikte görev atandı (form no atanmadı)", rd.durum === "Onaylandı" && rd.gorev_atanan_ad === "Deniz Denetmen" && !rd.form_no);
 
     // Denetmen olarak
     csrf = await girisYap("deniz123");
@@ -505,23 +507,32 @@ async function main() {
     html = await getText("/puan-durumu");
     ok("ayırma sonrası tekrar ayrı", satirSay(html, "Ali Tset") === 1);
 
-    // --- Yetkiler: tam yetkili ek yönetici, ayrıntılı yetki, eski yetki anahtarı ---
+    // --- Yetkiler: tam yetki yok (yönetici hesapları + günlük yalnız ana yönetici), ayrıntılı yetki, eski anahtarlar ---
     csrf = csrfFrom(await getText("/yonetici"));
     await post("/yonetici/yonetici/ekle", { csrf_token: csrf, ad: "Tam", soyad: "Yetkili", sifre: "tamyetki1", yetkiler: "tam" });
+    const [[tamSay]] = await db.query("SELECT COUNT(*) AS n FROM yoneticiler WHERE ad = 'Tam Yetkili'");
+    ok("formdan tam yetki verilemez", tamSay.n === 0);
     await post("/yonetici/yonetici/ekle", { csrf_token: csrf, ad: "Plan", soyad: "Sorumlu", sifre: "planci12", yetkiler: "bes_plan" });
+    const hp = require("../src/cekirdek").hashPassword;
     await db.query("INSERT INTO yoneticiler(id, ad, sifre, yetkiler, olusturma) VALUES('eskiyetk', 'Eski Yetki', ?, '[\"bes_s\"]', '')",
-      [require("../src/cekirdek").hashPassword("eskiyetki1")]);
-    csrf = await girisYap("tamyetki1");
+      [hp("eskiyetki1")]);
+    await db.query("INSERT INTO yoneticiler(id, ad, sifre, yetkiler, olusturma) VALUES('eskitam', 'Eski Tam', ?, '[\"tam\"]', '')",
+      [hp("tamyetki1")]);
+    csrf = await girisYap("tamyetki1"); // eski "tam" kaydı
     r = await post("/yonetici/yonetici/ekle", { csrf_token: csrf, ad: "Yeni", soyad: "Kişi", sifre: "yenikisi1", yetkiler: "odul" });
-    ok("tam yetkili ek yönetici yönetici ekleyebilir", konum(r) === "/yonetici#yoneticiler");
+    const [[yeniSay]] = await db.query("SELECT COUNT(*) AS n FROM yoneticiler WHERE ad = 'Yeni Kişi'");
+    ok("ek yönetici yönetici ekleyemez", konum(r) === "/" && yeniSay.n === 0);
     r = await post("/yonetici/sifre", { csrf_token: csrf, eski: "admin123", yeni: "x", yeni2: "x" });
-    ok("tam yetkili ek yönetici ana şifreyi değiştiremez", konum(r) === "/");
-    const [[tamY]] = await db.query("SELECT id FROM yoneticiler WHERE ad = 'Tam Yetkili'");
-    r = await post("/yonetici/yonetici/sil", { csrf_token: csrf, id: tamY.id });
-    const [[halaVar]] = await db.query("SELECT COUNT(*) AS n FROM yoneticiler WHERE id = ?", [tamY.id]);
-    ok("kendi hesabını silemez", halaVar.n === 1);
+    ok("ek yönetici ana şifreyi değiştiremez", konum(r) === "/");
+    r = await post("/yonetici/yonetici/sil", { csrf_token: csrf, id: "eskiyetk" });
+    const [[halaVar]] = await db.query("SELECT COUNT(*) AS n FROM yoneticiler WHERE id = 'eskiyetk'");
+    ok("ek yönetici yönetici silemez", halaVar.n === 1);
     r = await get("/yonetici/gunluk");
-    ok("tam yetkili işlem günlüğünü görür", r.status === 200);
+    ok("ek yönetici işlem günlüğünü göremez", konum(r) === "/");
+    r = await get("/5s/denetim-excel");
+    ok("eski 'tam' kaydı 10 yetki alanına açıldı", r.status === 200);
+    html = await getText("/yonetici");
+    ok("yöneticiler bölümü ek yöneticiye gizli", !html.includes('id="yoneticiler"') && html.includes('id="denetmenler"'));
     csrf = await girisYap("planci12");
     const [[birDenetim]] = await db.query("SELECT id FROM denetimler WHERE puan IS NOT NULL LIMIT 1");
     r = await get(`/5s/denetim/${birDenetim.id}/revize`);
@@ -557,6 +568,8 @@ async function main() {
     ok("bölüm sayfasında trend + S kırılımı", html.includes("5S Skor Trendi") && html.includes("S1 <small>") && html.includes("Personel"));
 
     // --- 5S Periyodik Kontrol Formu (T-FR016) ---
+    const K = require("../src/kontrol");
+    const C = require("../src/cekirdek");
     const trBugun = new Date().toLocaleString("sv-SE", { timeZone: "Europe/Istanbul" }).slice(0, 10);
     const kAy = trBugun.slice(0, 7), kGun = String(parseInt(trBugun.slice(8, 10), 10));
     const [[aliBolum]] = await db.query("SELECT id FROM bolumler WHERE sorumlu = 'Ali Test'");
@@ -577,20 +590,55 @@ async function main() {
     r = await post(kUrl, { csrf_token: csrf, ay: kAy, gun: kGun, durum_g1: "uygun", durum_g2: "uygunsuz" });
     [[kSay]] = await db.query("SELECT COUNT(*) AS n FROM kontrol_kayitlari");
     ok("uygun değil açıklamasız kaydedilmedi", kSay.n === 0);
+    const [[aksOnce]] = await db.query("SELECT COUNT(*) AS n FROM aksiyonlar");
     const kForm = { csrf_token: csrf, ay: kAy, gun: kGun, durum_g2: "uygunsuz",
       aciklama_g2: "Acil stop butonu çalışmıyor", aksiyon_g2: "1", termin_g2: "2099-01-01", durum_h1: "uygun" };
     for (const k of ["g1", "g3", "g4", "g5", "g6", "g7", "g8", "g9", "g10"]) kForm["durum_" + k] = "uygun";
     r = await post(kUrl, kForm);
+    ok("kayıttan sonra takvimli tarihe dönüldü", konum(r) === `${kUrl}?tarih=${trBugun}`, konum(r));
     [[kSay]] = await db.query("SELECT COUNT(*) AS n FROM kontrol_kayitlari WHERE ay = ?", [kAy]);
     ok("lider formu kaydetti (11 madde)", kSay.n === 11, "kayıt: " + kSay.n);
-    const [[kAks]] = await db.query("SELECT a.aksiyon, a.durum FROM kontrol_kayitlari k JOIN aksiyonlar a ON a.id = k.aksiyon_id WHERE k.madde = 'g2'");
-    ok("uygunsuzluktan aksiyon açıldı", kAks && kAks.durum === "acik" && kAks.aksiyon.includes("Acil stop"));
+    const [[aksSonra]] = await db.query("SELECT COUNT(*) AS n FROM aksiyonlar");
+    ok("kontrol formundan aksiyon açılmıyor", aksSonra.n === aksOnce.n);
     r = await post(kUrl, { csrf_token: csrf, ay: kAy, gun: "31", durum_g1: "uygun" });
-    ok("ileri tarih işaretlenemez (ayın 31'i bugün değilse)", kGun === "31" || konum(r).includes("gun=31"));
+    ok("ileri tarih işaretlenemez (ayın 31'i bugün değilse)", kGun === "31" || konum(r).includes("tarih=" + kAy + "-31"));
     html = await getText(kUrl);
     ok("aylık tabloda işaretler görünüyor", html.includes("kt-ok") && html.includes("kt-x") && html.includes("Acil stop"));
-    r = await get(kUrl + "/excel?ay=" + kAy);
-    ok("kontrol formu Excel", r.status === 200 && (r.headers.get("content-type") || "").includes("spreadsheet"));
+    ok("tarih takvimle seçiliyor, aksiyon kutusu yok", html.includes('type="date" id="kontrol-tarih"') &&
+      html.includes(`value="${trBugun}"`) && html.includes(`max="${trBugun}"`) && !html.includes("Aksiyon aç"));
+    // Takvimden geçmiş bir gün: önceki ayın 3'ü → o ayın formu, 3. gün seçili
+    const oncekiAy = K.ayKaydir(kAy, -1);
+    html = await getText(`${kUrl}?tarih=${oncekiAy}-03`);
+    ok("takvimden geçmiş gün açıldı", html.includes(`value="${oncekiAy}-03"`) && html.includes('name="gun" value="3"') &&
+      html.includes(`name="ay" value="${oncekiAy}"`));
+    html = await getText(`${kUrl}?tarih=2099-01-01`);
+    ok("ileri tarih bugüne çekildi", html.includes(`value="${trBugun}"`));
+    // Geçmiş aylara kayıt (Excel: seçilen aya kadar tüm aylar)
+    const ikiAyOnce = K.ayKaydir(kAy, -2);
+    await db.query(`INSERT INTO kontrol_kayitlari(bolum_id, ay, gun, madde, durum, aciklama, isaretleyen, zaman)
+      VALUES(?, ?, 5, 'g1', 'uygunsuz', 'Eski ay tespiti', 'Ali Test', ''), (?, ?, 7, 'g3', 'uygun', '', 'Ali Test', '')`,
+      [aliBolum.id, ikiAyOnce, aliBolum.id, oncekiAy]);
+    const ExcelJS = require("exceljs");
+    const excelOku = async (ay) => {
+      const rr = await get(`${kUrl}/excel?ay=${ay}`);
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(Buffer.from(await rr.arrayBuffer()));
+      return { rr, adlar: wb.worksheets.map((w) => w.name), wb };
+    };
+    const ayAd = (a) => C.ayEtiketi(a);
+    let ex = await excelOku(kAy);
+    ok("kontrol formu Excel", ex.rr.status === 200 && (ex.rr.headers.get("content-type") || "").includes("spreadsheet"));
+    ok("Excel: seçilen aya kadar her ay ayrı sayfa + özet",
+      ex.adlar.join("|") === ["ÖZET", ayAd(ikiAyOnce), ayAd(oncekiAy), ayAd(kAy)].join("|"), ex.adlar.join("|"));
+    const ozetMetin = [];
+    ex.wb.getWorksheet("ÖZET").eachRow((row) => ozetMetin.push(row.values.join(" ")));
+    ok("Excel özetinde tüm ayların uygunsuzlukları", ozetMetin.some((t) => t.includes("Eski ay tespiti")) &&
+      ozetMetin.some((t) => t.includes("Acil stop")));
+    ex = await excelOku(oncekiAy);
+    ok("Excel: önceki ay seçilince sonraki aylar inmiyor",
+      ex.adlar.join("|") === ["ÖZET", ayAd(ikiAyOnce), ayAd(oncekiAy)].join("|"), ex.adlar.join("|"));
+    html = await getText(kUrl);
+    ok("Excel ay seçiminde kayıtlı aylar", html.includes(`<option value="${ikiAyOnce}"`) && html.includes("bu aya kadar"));
     html = await getText("/5s");
     ok("bölümler listesinde bu ay kontrol sütunu", html.includes("Bu Ay Kontrol") && html.includes("1/" + kGun + " gün"));
 

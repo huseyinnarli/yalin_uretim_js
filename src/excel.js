@@ -41,17 +41,17 @@ function govdeStil(ws, ncol, hizala = WRAP) {
 async function generateOneriExcel() {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Öneriler");
-  const headers = ["Öneri No", "Form No", "Tarih", "Öneri Sahibi", "Görevi", "Konu (Kısa)",
+  const headers = ["Öneri No", "Tarih", "Öneri Sahibi", "Görevi", "Konu (Kısa)",
     "Detay Açıklama", "Çözüm Önerisi", "Kaliteye Katkısı", "Verimliliğe Katkısı",
     "İSG'ye Katkısı", "Maliyete Katkısı", "Ek Açıklama", "Durum", "Puan",
     "Puan Detayı", "Kayıt Zamanı", "Red Nedeni", "Düzeltme Talebi", "Görev Atanan",
     "Görev Termini", "Dönüştürülen Kaizen"];
   ws.addRow(headers);
   styleHeader(ws, headers.length);
-  [16, 14, 12, 22, 18, 30, 40, 40, 28, 28, 28, 28, 30, 16, 8, 50, 18, 30, 30, 20, 12, 16]
+  [16, 12, 22, 18, 30, 40, 40, 28, 28, 28, 28, 30, 16, 8, 50, 18, 30, 30, 20, 12, 16]
     .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   for (const r of (await sorgu("SELECT * FROM oneriler")).map(oneriRow)) {
-    ws.addRow([r.no, r.form_no || "", r.tarih, r.sahibi, r.gorevi, r.konu, r.detay, r.cozum,
+    ws.addRow([r.no, r.tarih, r.sahibi, r.gorevi, r.konu, r.detay, r.cozum,
       r.kalite, r.verimlilik, r.isg, r.maliyet, r.ek,
       r.durum || S.VARSAYILAN_DURUM, r.puan ?? "",
       P.puanlamaOzet(r.puanlama), r.kayit_zamani, r.red_nedeni || "",
@@ -65,21 +65,21 @@ async function generateOneriExcel() {
 async function generateKaizenExcel() {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Kaizenler");
-  // Not: görsel sütunları J(10)/K(11) sabit — Form No sütunu bu yüzden EN SONA eklenir.
+  // Not: görsel sütunları J(10)/K(11) sabit — yeni sütunlar EN SONA eklenir.
   const headers = ["Kaizen No", "Başlangıç", "Bitiş", "Kaizen Konusu", "Bölüm",
     "Sorumlular", "Kazançlar", "Önceki Durum", "Sonraki Durum",
-    "Önceki Görsel", "Sonraki Görsel", "Durum", "Puan", "Puan Detayı", "Kayıt Zamanı", "Form No",
+    "Önceki Görsel", "Sonraki Görsel", "Durum", "Puan", "Puan Detayı", "Kayıt Zamanı",
     "Red Nedeni", "Düzeltme Talebi", "Kaynak Öneri"];
   ws.addRow(headers);
   styleHeader(ws, headers.length);
-  [18, 12, 12, 28, 20, 22, 30, 38, 38, 22, 22, 16, 8, 50, 18, 14, 30, 30, 16]
+  [18, 12, 12, 28, 20, 22, 30, 38, 38, 22, 22, 16, 8, 50, 18, 30, 30, 16]
     .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   for (const r of (await sorgu("SELECT * FROM kaizenler")).map(kaizenRow)) {
     ws.addRow([r.no, r.baslangic, r.bitis, r.konu, r.bolum, r.sorumlular,
       (r.kazanclar || []).join(", "), r.onceki, r.sonraki,
       r.onceki_gorsel || "", r.sonraki_gorsel || "",
       r.durum || S.VARSAYILAN_DURUM, r.puan ?? "",
-      P.puanlamaOzet(r.puanlama), r.kayit_zamani, r.form_no || "", r.red_nedeni || "",
+      P.puanlamaOzet(r.puanlama), r.kayit_zamani, r.red_nedeni || "",
       r.revize_notu ? `${r.revize_notu} (${r.revize_atanan_ad || ""})` : "", r.kaynak_oneri_no || ""]);
     const rowIdx = ws.rowCount;
     let hasImg = false;
@@ -246,12 +246,94 @@ async function generateTrendExcel() {
   return wb.xlsx.writeBuffer();
 }
 
-// T-FR016 5S ve Güvenlik Kontrol Formu — kâğıt formun düzeninde aylık tablo
-async function generateKontrolExcel(b, ay, veri) {
+// Bir aylık kontrol formunun sayısal özeti (Excel özet sayfası için)
+function kontrolAyOzeti(ay, veri) {
+  const isaret = veri.isaret || {};
+  const gunler = new Set();
+  const gunlukSay = {};
+  let uygun = 0, uygunsuz = 0;
+  for (const m of K.KONTROL_FORMU.maddeler) {
+    for (const [g, r] of Object.entries(isaret[m.k] || {})) {
+      gunler.add(g);
+      if (r.durum === "uygun") uygun += 1; else if (r.durum === "uygunsuz") uygunsuz += 1;
+      if (m.p === "G") gunlukSay[g] = (gunlukSay[g] || 0) + 1;
+    }
+  }
+  const onaylar = veri.onaylar || {};
+  const ao = onaylar["ay-0"];
+  return {
+    gun: gunler.size,
+    tamGun: Object.values(gunlukSay).filter((n) => n === K.GUNLUK.length).length,
+    uygun, uygunsuz,
+    oran: uygun + uygunsuz ? Math.round((uygun / (uygun + uygunsuz)) * 100) : null,
+    hafta: `${Object.keys(onaylar).filter((k) => k.startsWith("hafta-")).length} / ${K.haftalar(ay).length}`,
+    aylik: ao ? `${ao.onaylayan} · ${ao.zaman}` : "—",
+  };
+}
+
+// T-FR016 5S ve Güvenlik Kontrol Formu — seçilen aya kadar her ay ayrı sayfa (kâğıt formun düzeninde),
+// başta tüm ayların özeti + uygunsuzluk listesi. sayfalar: [{ ay: "2026-09", veri: kontrolAy() }], eskiden yeniye.
+async function generateKontrolExcel(b, sayfalar) {
+  const wb = new ExcelJS.Workbook();
+  const ilk = sayfalar[0].ay, son = sayfalar[sayfalar.length - 1].ay;
+
+  const oz = wb.addWorksheet("ÖZET", { pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+  oz.mergeCells(1, 1, 1, 8);
+  oz.getCell(1, 1).value = `${K.KONTROL_FORMU.kod} 5S VE GÜVENLİK KONTROL FORMU — ÖZET`;
+  oz.getCell(1, 1).font = { bold: true, size: 13 };
+  oz.getRow(1).height = 24;
+  oz.mergeCells(2, 1, 2, 8);
+  oz.getCell(2, 1).value = `Takım: ${b.ad} · Takım lideri: ${b.sorumlu || "—"} · Dönem: ` +
+    (ilk === son ? C.ayEtiketi(son) : `${C.ayEtiketi(ilk)} – ${C.ayEtiketi(son)}`);
+  oz.getCell(2, 1).font = { bold: true };
+  oz.addRow([]);
+  const ozBas = oz.addRow(["Ay", "Kontrol yapılan gün", "Günlük maddeleri tam gün", "✓ Uygun", "✗ Uygun değil",
+    "Uygunluk %", "İmzalı hafta", "Aylık imza (bölüm sorumlusu)"]);
+  ozBas.eachCell((c) => { c.fill = HEADER_FILL; c.font = HEADER_FONT; c.alignment = CENTER; c.border = BORDER; });
+  ozBas.height = 30;
+  for (const s of sayfalar) {
+    const o = kontrolAyOzeti(s.ay, s.veri);
+    oz.addRow([C.ayEtiketi(s.ay), o.gun, o.tamGun, o.uygun, o.uygunsuz, o.oran === null ? "—" : o.oran, o.hafta, o.aylik])
+      .eachCell({ includeEmpty: true }, (c, col) => {
+        c.border = BORDER;
+        c.alignment = col === 8 ? WRAP : CENTER;
+        if (col === 5 && c.value > 0) c.font = { bold: true, color: { argb: "FFA4322A" } };
+      });
+  }
+  oz.addRow([]);
+  oz.addRow(["UYGUNSUZLUKLAR (tüm aylar — önlem planı)"]).getCell(1).font = { bold: true };
+  const uyBas = oz.addRow(["Tarih", "Madde", "Periyot", "Tespit / açıklama", "", "", "İşaretleyen", "Kontrol maddesi"]);
+  uyBas.eachCell((c) => { c.fill = HEADER_FILL; c.font = HEADER_FONT; c.alignment = CENTER; c.border = BORDER; });
+  oz.mergeCells(uyBas.number, 4, uyBas.number, 6);
+  let uySay = 0;
+  for (const s of sayfalar) {
+    const liste = [];
+    for (const m of K.KONTROL_FORMU.maddeler) {
+      for (const [g, r] of Object.entries((s.veri.isaret || {})[m.k] || {})) {
+        if (r.durum === "uygunsuz") liste.push({ g: Number(g), m, r });
+      }
+    }
+    liste.sort((a, b2) => a.g - b2.g);
+    for (const u of liste) {
+      const row = oz.addRow([`${String(u.g).padStart(2, "0")}.${s.ay.slice(5)}.${s.ay.slice(0, 4)}`, u.m.k.toUpperCase(),
+        K.PERIYOTLAR[u.m.p], u.r.aciklama || "", "", "", u.r.isaretleyen || "", u.m.m]);
+      oz.mergeCells(row.number, 4, row.number, 6);
+      row.eachCell({ includeEmpty: true }, (c, col) => { c.border = BORDER; c.alignment = col === 4 || col === 8 ? WRAP : CENTER; });
+      uySay += 1;
+    }
+  }
+  if (!uySay) oz.addRow(["Uygunsuzluk işaretlenmedi."]);
+  [14, 14, 14, 11, 11, 11, 22, 60].forEach((w, i) => { oz.getColumn(i + 1).width = w; });
+
+  for (const s of sayfalar) kontrolAySayfasi(wb, b, s.ay, s.veri);
+  return wb.xlsx.writeBuffer();
+}
+
+// Tek ayın kâğıt formu düzenindeki sayfası
+function kontrolAySayfasi(wb, b, ay, veri) {
   const F = K.KONTROL_FORMU;
   const gunSayisi = K.ayGunSayisi(ay);
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet("KONTROL FORMU", { pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1 } });
+  const ws = wb.addWorksheet(C.ayEtiketi(ay).slice(0, 31), { pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1 } });
   const sonSutun = 3 + gunSayisi;
   ws.mergeCells(1, 1, 1, sonSutun - 6);
   ws.getCell(1, 1).value = F.baslik.toLocaleUpperCase("tr");
@@ -320,7 +402,6 @@ async function generateKontrolExcel(b, ay, veri) {
   ws.getColumn(3).width = 4;
   for (let c = 4; c <= sonSutun; c++) ws.getColumn(c).width = 4;
   ws.views = [{ state: "frozen", xSplit: 3, ySplit: 3 }];
-  return wb.xlsx.writeBuffer();
 }
 
 module.exports = {

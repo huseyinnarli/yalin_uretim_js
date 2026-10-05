@@ -573,18 +573,37 @@ module.exports = function register(app) {
     if (req.denetmen) return req.denetmen.ad;
     return req.yetkiBilgi.ana ? "Ana Yönetici" : (req.yetkiBilgi.ad || "Yönetici");
   }
+  const ikiHane = (n) => String(n).padStart(2, "0");
+  // Takvimden seçilen ?tarih=YYYY-AA-GG → { ay, gun }; ileri tarih bugüne çekilir.
+  // Eski ?ay=&gun= bağlantıları da çalışır.
+  function kontrolTarihOku(req) {
+    const t = String(req.query.tarih || "");
+    const m = t.match(/^(\d{4}-\d{2})-(\d{2})$/);
+    if (m && K.ayCoz(m[1])) {
+      const bugun = S.bugunIso();
+      if (t > bugun) return { ay: bugun.slice(0, 7), gun: parseInt(bugun.slice(8, 10), 10) };
+      return { ay: m[1], gun: parseInt(m[2], 10) };
+    }
+    return { ay: kontrolAyiOku(req), gun: parseInt(req.query.gun, 10) };
+  }
 
   app.get("/5s/bolum/:bid/kontrol", sar(async (req, res) => {
     const b = await C.bolumById(req.params.bid);
     if (!b) return res.status(404).send("Bölüm bulunamadı.");
-    const ay = kontrolAyiOku(req);
+    const { ay, gun: istenen } = kontrolTarihOku(req);
     const sonGun = kontrolSonGun(ay);
-    let gun = parseInt(req.query.gun, 10);
-    if (!(gun >= 1 && gun <= sonGun)) gun = sonGun;
+    const gun = istenen >= 1 && istenen <= sonGun ? istenen : sonGun;
+    // Excel ay seçimi: kaydı olan aylar + bu ay (+ görüntülenen ay), yeniden eskiye; ileri ay yok
+    const buAy = S.bugunIso().slice(0, 7);
+    const excelAylari = [...new Set([...(await C.kontrolAylari(b.id)), buAy, ay])]
+      .filter((a) => a <= buAy).sort().reverse();
     res.render("5s_kontrol", {
       title: `Kontrol Formu · ${b.ad}`, b, ay, ay_etiketi: C.ayEtiketi(ay),
       onceki_ay: K.ayKaydir(ay, -1), sonraki_ay: K.ayKaydir(ay, 1),
       gun_sayisi: K.ayGunSayisi(ay), son_gun: sonGun, gun,
+      tarih: sonGun > 0 ? `${ay}-${ikiHane(gun)}` : "", bugun: S.bugunIso(),
+      excel_aylari: excelAylari.map((a) => ({ ay: a, etiket: C.ayEtiketi(a) })),
+      excel_ay: ay <= buAy ? ay : buAy,
       form: K.KONTROL_FORMU, periyotlar: K.PERIYOTLAR, haftalar: K.haftalar(ay),
       haftaNo: (g) => K.haftaNo(ay, g), haftaGunu: (g) => K.haftaGunu(ay, g),
       ...(await C.kontrolAy(b.id, ay)),
@@ -598,7 +617,7 @@ module.exports = function register(app) {
     if (!b) return res.status(404).send("Bölüm bulunamadı.");
     const ay = kontrolAyiOku(req);
     const gun = parseInt(req.body.gun, 10);
-    const geri = `/5s/bolum/${b.id}/kontrol?ay=${ay}&gun=${gun || ""}`;
+    const geri = `/5s/bolum/${b.id}/kontrol?` + (gun >= 1 && gun <= 31 ? `tarih=${ay}-${ikiHane(gun)}` : `ay=${ay}`);
     if (!C.kontrolDoldurabilir(b, req.yetkiler, req.denetmen)) {
       flash(req, "error", "Bu bölümün kontrol formunu yalnızca bölümün ekip lideri (denetmen girişiyle) doldurabilir.");
       return res.redirect(geri);
@@ -614,8 +633,6 @@ module.exports = function register(app) {
       isaretler.push({
         madde: m.k, durum,
         aciklama: String(req.body["aciklama_" + m.k] || "").trim().slice(0, S.ALAN_MAX),
-        aksiyon: Boolean(req.body["aksiyon_" + m.k]),
-        termin: String(req.body["termin_" + m.k] || "").trim().slice(0, 10),
       });
     }
     if (!isaretler.length) {
@@ -626,9 +643,8 @@ module.exports = function register(app) {
       flash(req, "error", "\"Uygun Değil\" işaretlenen her madde için açıklama (tespit) yazın.");
       return res.redirect(geri);
     }
-    const { kaydedilen, aksiyon } = await C.kontrolKaydet(b, ay, gun, isaretler, kontrolKim(req));
-    flash(req, "success", `${b.ad} — ${gun} ${C.ayEtiketi(ay)} kontrolü kaydedildi (${kaydedilen} madde` +
-      (aksiyon ? `, ${aksiyon} aksiyon açıldı)` : ")"));
+    const kaydedilen = await C.kontrolKaydet(b, ay, gun, isaretler, kontrolKim(req));
+    flash(req, "success", `${b.ad} — ${gun} ${C.ayEtiketi(ay)} kontrolü kaydedildi (${kaydedilen} madde).`);
     res.redirect(geri);
   }));
 
@@ -649,12 +665,18 @@ module.exports = function register(app) {
     res.redirect(geri);
   }));
 
+  // Excel: seçilen aya KADAR kaydı olan tüm aylar (her ay ayrı sayfa, kâğıt düzeninde) + özet sayfası.
+  // Seçilen ayın kendisi kayıt olmasa da eklenir (boş form yazdırılabilsin).
   app.get("/5s/bolum/:bid/kontrol/excel", girisRequired, sar(async (req, res) => {
     const b = await C.bolumById(req.params.bid);
     if (!b) return res.status(404).send("Bölüm bulunamadı.");
     const ay = kontrolAyiOku(req);
-    const buf = await X.generateKontrolExcel(b, ay, await C.kontrolAy(b.id, ay));
-    xlsxGonder(res, buf, `T-FR016_${b.ad}_${ay}.xlsx`.replace(/\s+/g, "_"));
+    const aylar = [...(await C.kontrolAylari(b.id)).filter((a) => a < ay), ay];
+    const sayfalar = [];
+    for (const a of aylar) sayfalar.push({ ay: a, veri: await C.kontrolAy(b.id, a) });
+    const buf = await X.generateKontrolExcel(b, sayfalar);
+    const donem = aylar.length > 1 ? `${aylar[0]}_${ay}` : ay;
+    xlsxGonder(res, buf, `T-FR016_${b.ad}_${donem}.xlsx`.replace(/\s+/g, "_"));
   }));
 
   // ----- Denetim revize: yapılmış denetimin düzeltilmesi ('bes_revize' yetkisi) -----

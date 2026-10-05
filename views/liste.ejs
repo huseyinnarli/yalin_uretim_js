@@ -72,7 +72,7 @@
                 <% if (r.tip == 'kaizen') { %><span class="tip-badge kaizen">KAIZEN</span>
                 <% } else { %><span class="tip-badge oneri">ÖNERİ</span><% } %>
             </td>
-            <td class="mono nowrap" data-label="No"><%= r.no %><% if (r.form_no) { %><br><small class="form-no">Form: <%= r.form_no %></small><% } %></td>
+            <td class="mono nowrap" data-label="No"><%= r.no %></td>
             <td class="nowrap" data-label="Tarih"><%= trdate(r.sort_date) %></td>
             <td data-label="Konu">
                 <a class="title-link" href="<%= detayUrl %>"><%= r.baslik || '(başlıksız)' %></a>

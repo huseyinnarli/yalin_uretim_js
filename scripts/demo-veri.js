@@ -181,7 +181,7 @@ async function main() {
       red_nedeni: durum === "Reddedildi" ? RED_NEDENLERI[i % 3] : null,
       revize_notu: null, revize_atanan_id: null, revize_atanan_ad: null, revize_isteyen: null, revize_zamani: null,
       gorev_atanan_id: null, gorev_atanan_ad: null, gorev_termin: null, gorev_notu: null, gorev_atayan: null, gorev_zamani: null,
-      form_no: durum === "Onaylandı" ? await C.nextFormNo() : null, puan: null, puanlama: null,
+      puan: null, puanlama: null,
     };
     if (durum === "Düzeltme İsteniyor") {
       Object.assign(alan, { revize_notu: "Maliyet ve kazanç hesabını ekleyin.", revize_atanan_id: denetmenId["Ali Yılmaz"],
@@ -198,12 +198,12 @@ async function main() {
         gorev_zamani: zaman(d) });
     }
     await calistir(
-      `INSERT INTO oneriler(\`no\`, form_no, tarih, sahibi, gorevi, konu, detay, cozum, kalite, verimlilik, isg, maliyet, ek,
+      `INSERT INTO oneriler(\`no\`, tarih, sahibi, gorevi, konu, detay, cozum, kalite, verimlilik, isg, maliyet, ek,
          durum, puan, puanlama, degerlendirme_notu, kayit_zamani, red_nedeni, revize_notu, revize_atanan_id,
          revize_atanan_ad, revize_isteyen, revize_zamani, gorev_atanan_id, gorev_atanan_ad, gorev_termin, gorev_notu,
          gorev_atayan, gorev_zamani)
-       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [no, alan.form_no, iso(d), sahibi, "Operatör", konu, detay, cozum, "Hata azalır", "Süre kısalır", "", "", "",
+       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [no, iso(d), sahibi, "Operatör", konu, detay, cozum, "Hata azalır", "Süre kısalır", "", "", "",
         durum, alan.puan, alan.puanlama, alan.puan ? "Komite değerlendirmesi" : "", zaman(d), alan.red_nedeni,
         alan.revize_notu, alan.revize_atanan_id, alan.revize_atanan_ad, alan.revize_isteyen, alan.revize_zamani,
         alan.gorev_atanan_id, alan.gorev_atanan_ad, alan.gorev_termin, alan.gorev_notu, alan.gorev_atayan, alan.gorev_zamani]);
@@ -223,35 +223,43 @@ async function main() {
     const puanli = i < 4;
     const { puanlama, toplam } = puanFormu();
     await calistir(
-      `INSERT INTO kaizenler(\`no\`, form_no, baslangic, bitis, konu, bolum, lider, uyeler, sorumlular, kazanclar,
+      `INSERT INTO kaizenler(\`no\`, baslangic, bitis, konu, bolum, lider, uyeler, sorumlular, kazanclar,
          onceki, sonraki, onceki_gorsel, sonraki_gorsel, durum, puan, puanlama, degerlendirme_notu, kayit_zamani, kaynak_oneri_no)
-       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,'','',?,?,?,?,?,?)`,
-      [no, puanli ? await C.nextFormNo() : null, iso(d), iso(new Date(d.getTime() + 10 * 864e5)), konu, bolum, lider,
+       VALUES(?,?,?,?,?,?,?,?,?,?,?,'','',?,?,?,?,?,?)`,
+      [no, iso(d), iso(new Date(d.getTime() + 10 * 864e5)), konu, bolum, lider,
         js(uyeler), [lider, ...uyeler].join(", "), js(["Setup", "Kalite", "5S"].slice(0, 1 + (i % 3))), onceki, sonraki,
         puanli ? "Onaylandı" : "Değerlendiriliyor", puanli ? toplam : null, puanli ? js(puanlama) : null,
         puanli ? "Komite değerlendirmesi" : "", zaman(d), i === 0 ? kaynak.no : null]);
     if (i === 0) await calistir("UPDATE oneriler SET kaizen_no = ? WHERE `no` = ?", [no, kaynak.no]);
   }
 
-  // --- T-FR016 kontrol formu: bu ay, iki bölüm ---
+  // --- T-FR016 kontrol formu: son iki ay (tam) + bu ay (bugüne kadar), iki bölüm ---
   const bugun = S.bugunIso();
-  const ay = bugun.slice(0, 7), sonGun = parseInt(bugun.slice(8, 10), 10);
-  for (const b of bolumler.slice(0, 2)) {
-    const lider = b.sorumlu.split(" / ")[0];
-    for (let g = 1; g <= sonGun; g++) {
-      if (K.haftaGunu(ay, g) === 0) continue; // pazar
-      for (const m of K.KONTROL_FORMU.maddeler) {
-        if (m.p === "H" && K.haftaGunu(ay, g) !== 5) continue; // haftalıklar cuma
-        if (m.p === "A" && g !== Math.min(sonGun, 1)) continue;
-        const uygunsuz = rnd() < 0.05;
-        await calistir(
-          `INSERT INTO kontrol_kayitlari(bolum_id, ay, gun, madde, durum, aciklama, isaretleyen, zaman)
-           VALUES(?,?,?,?,?,?,?,?)`,
-          [b.id, ay, g, m.k, uygunsuz ? "uygunsuz" : "uygun", uygunsuz ? "Tespit edildi, düzeltildi" : "", lider,
-            `${pad(g)}.${ay.slice(5)}.${ay.slice(0, 4)} 08:30`]);
+  const buAy = bugun.slice(0, 7);
+  for (const ay of [K.ayKaydir(buAy, -2), K.ayKaydir(buAy, -1), buAy]) {
+    const sonGun = ay === buAy ? parseInt(bugun.slice(8, 10), 10) : K.ayGunSayisi(ay);
+    for (const b of bolumler.slice(0, 2)) {
+      const lider = b.sorumlu.split(" / ")[0];
+      for (let g = 1; g <= sonGun; g++) {
+        if (K.haftaGunu(ay, g) === 0) continue; // pazar
+        if (rnd() < 0.08) continue; // arada doldurulmamış günler
+        for (const m of K.KONTROL_FORMU.maddeler) {
+          if (m.p === "H" && K.haftaGunu(ay, g) !== 5) continue; // haftalıklar cuma
+          if (m.p === "A" && g !== Math.min(sonGun, 2)) continue;
+          const uygunsuz = rnd() < 0.05;
+          await calistir(
+            `INSERT INTO kontrol_kayitlari(bolum_id, ay, gun, madde, durum, aciklama, isaretleyen, zaman)
+             VALUES(?,?,?,?,?,?,?,?)`,
+            [b.id, ay, g, m.k, uygunsuz ? "uygunsuz" : "uygun", uygunsuz ? "Tespit edildi, düzeltildi" : "", lider,
+              `${pad(g)}.${ay.slice(5)}.${ay.slice(0, 4)} 08:30`]);
+        }
       }
+      for (const h of K.haftalar(ay)) {
+        if (h.son > sonGun) break;
+        await C.kontrolImzala(b.id, ay, "hafta", h.no, "Ayşe Çelik", "");
+      }
+      if (ay !== buAy) await C.kontrolImzala(b.id, ay, "ay", 0, "Murat Şahin", "");
     }
-    await C.kontrolImzala(b.id, ay, "hafta", 1, "Zeynep Aydın", "");
   }
 
   console.log("Demo verisi yüklendi.");

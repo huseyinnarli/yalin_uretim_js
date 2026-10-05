@@ -30,8 +30,8 @@
         <li><strong>Ana yönetici:</strong> sabittir, tüm yetkilere sahiptir.</li>
         <li><strong>Ek yönetici:</strong> verilen yetki alanlarıyla sınırlıdır — Değerlendirme · Puanlama · Kayıt
             düzenle-sil · Bölüm &amp; plan · Denetim yapma · Denetim revize · Aksiyon yönetimi · 5S ödül &amp; raporlar ·
-            Ödül &amp; isim birleştirme · Denetmen hesapları. <strong>⭐ Tam yetki</strong> verilen ek yönetici ana yönetici
-            kadar yetkilidir (yönetici ekleyebilir) ama silinebilir.</li>
+            Ödül &amp; isim birleştirme · Denetmen hesapları. Yönetici ekleme/silme ve işlem günlüğü yalnızca
+            <strong>ana yöneticidedir</strong>; ek yöneticiye tam yetki verilemez.</li>
     </ul>
 
     <h2 class="bolum-baslik">💡 Öneri Ekleme</h2>
@@ -56,8 +56,7 @@
         <li>Liste <strong>20'şerli sayfalanır</strong>; tür / durum / dönem / arama filtreleri vardır. Reddedilenler listede görünmez.</li>
         <li>Değerlendirme <strong>kaydın detay sayfasında</strong> yapılır (listede hızlı <strong>✓ Onay</strong> da vardır):
             <ul>
-                <li><strong>✓ Onayla</strong> — ilk onayda form numarası (<span class="mono">FR-2026-0001</span>) atanır.
-                    Öneride isteğe bağlı olarak uygulayıp kaizene dönüştürecek <strong>denetmen</strong> (termin + not) atanır.</li>
+                <li><strong>✓ Onayla</strong> — öneride isteğe bağlı olarak uygulayıp kaizene dönüştürecek <strong>denetmen</strong> (termin + not) atanır.</li>
                 <li><strong>✕ Reddet</strong> — <strong>red nedeni zorunlu</strong>. Onaylanmış kayıt reddedilemez.</li>
                 <li><strong>✏ Düzeltme İste</strong> — düzeltmeyi yapacak <strong>denetmen seçilir</strong> ve ne düzeltileceği
                     yazılır. Yalnızca o denetmen düzenleyebilir; kaydedince kayıt yeniden "Değerlendiriliyor" olur.</li>
@@ -80,11 +79,14 @@
     <h2 class="bolum-baslik">✅ 5S — Periyodik Kontrol Formu (T-FR016)</h2>
     <ul>
         <li>Bölüm sayfasındaki <strong>✅ Periyodik Kontrol Formu</strong> ile açılır: 10 günlük, 3 haftalık, 2 aylık madde.</li>
-        <li>Formu <strong>bölümün ekip lideri</strong> (denetmen girişiyle) doldurur: günü seçer, maddeleri
-            <strong>Uygun / Uygun Değil</strong> işaretler. Uygun değilde açıklama zorunludur; <strong>⚑ Aksiyon aç</strong>
-            seçilirse uygunsuzluk 5S aksiyonu olarak açılır.</li>
+        <li>Formu <strong>bölümün ekip lideri</strong> (denetmen girişiyle) doldurur: <strong>📅 Kontrol tarihi</strong>
+            alanına tıklayınca takvim açılır, gün seçilince o günün formu gelir (ileri tarih seçilemez). Maddeler
+            <strong>Uygun / Uygun Değil</strong> işaretlenir; uygun değilde açıklama zorunludur. Uygunsuzluklar formun
+            altında ve Excel'de listelenir.</li>
         <li>Haftalık <strong>grup lideri</strong> ve aylık <strong>bölüm sorumlusu</strong> kontrolü "Kontrol Ettim" ile imzalanır
-            (bölümün lideri dışındaki denetmen veya yetkili yönetici). Aylık tablo herkese açıktır; Excel çıktısı alınabilir.</li>
+            (bölümün lideri dışındaki denetmen veya yetkili yönetici). Aylık tablo herkese açıktır.</li>
+        <li><strong>⬇ Excel (bu aya kadar):</strong> yanındaki listeden ay seçilir; o aya kadar doldurulmuş tüm aylar tek
+            dosyada iner — her ay kâğıt formdaki gibi ayrı sayfa, başta tüm ayların özeti ve uygunsuzluk listesi.</li>
     </ul>
 
     <h2 class="bolum-baslik">🗓️ 5S — Denetim Planı</h2>
@@ -160,12 +162,12 @@
         <li><strong>📊 Panel</strong> (denetmen ve tüm yöneticiler): üstteki butonlarla Bu Ay / Son 6 Ay / Bu Yıl / Tüm
             Zamanlar arasında geçilen tek tablo, en altta sabit tüm zamanlar toplamı, son 12 ayın gelen ve puan alan
             öneri/kaizen grafiği, bölümlerin 5S trendi.</li>
-        <li><strong>🛠 Yönetim:</strong> denetmen hesapları, misafir denetmenler, ek yöneticiler (yetki kutucukları,
-            ⭐ tam yetki) ve ana yönetici şifresi — her bölüm yalnızca yetkisi olana görünür. İlk kurulum şifresi
+        <li><strong>🛠 Yönetim:</strong> denetmen hesapları, misafir denetmenler, ek yöneticiler (yetki kutucukları;
+            yalnız ana yönetici görür) ve ana yönetici şifresi — her bölüm yalnızca yetkisi olana görünür. İlk kurulum şifresi
             <span class="mono">admin123</span>'tür; ilk girişten sonra hemen değiştirin.</li>
         <li><strong>📋 Görevlerim:</strong> size atanan düzeltmeler, kaizene dönüştürme görevleri, planlanan denetimler,
             kapatmanız gereken aksiyonlar ve bugünkü kontrol formu. Menüdeki sayı bekleyen işleri gösterir.</li>
-        <li><strong>📜 İşlem Günlüğü</strong> (tam yetki): yöneticilerin ve denetmenlerin işlemleri (kim, ne zaman, ne yaptı).</li>
+        <li><strong>📜 İşlem Günlüğü</strong> (ana yönetici): yöneticilerin ve denetmenlerin işlemleri (kim, ne zaman, ne yaptı).</li>
     </ul>
 </div>
 <%- include('partials/footer') %>

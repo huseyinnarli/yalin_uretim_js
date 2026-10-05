@@ -124,8 +124,6 @@ legend { font-weight: 700; padding: 0 8px; color: var(--primary); }
 .yeni-yonetici { border-top: 1px dashed var(--line); padding-top: 14px; }
 
 /* Form numarası */
-.form-no { color: var(--primary-d); font-weight: 600; }
-.form-no-badge { background: var(--primary-tint); color: var(--primary-d); }
 
 .form-actions { display: flex; gap: 10px; margin-top: 8px; }
 
@@ -817,7 +815,6 @@ div.hub-box { cursor: default; }
 .yetki-grup { margin: 8px 0; }
 .yetki-grup-ad { font-size: .78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 .yetki-kutulari .chk span small { display: block; font-weight: 400; color: var(--muted); font-size: .76rem; }
-.tam-chk { background: var(--primary-tint); margin: 8px 0 4px; }
 
 /* Panel: dönem butonları + istatistik tablosu */
 .donem-butonlar { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -875,9 +872,16 @@ div.hub-box { cursor: default; }
 .km-uygunsuz:has(input:checked) { background: #fcebea; border-color: #e08c84; color: #a4322a; }
 .km-detay { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .km-detay input[type=text] { flex: 1 1 260px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; }
-.km-detay input[type=date] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
-.km-aksiyon { font-size: .85rem; white-space: nowrap; }
-@media (max-width: 640px) { .kontrol-madde { grid-template-columns: 1fr; } }
+.tarih-sec { margin-bottom: 6px; }
+.satir-form.tarih-sec input.kontrol-tarih { flex: 0 0 170px; width: 170px; cursor: pointer; font-weight: 600; color: var(--primary); }
+.excel-ay-form { display: inline-flex; gap: 0; align-items: stretch; }
+.excel-ay-form select { padding: 0 8px; border: 1px solid var(--line); border-right: none; border-radius: 8px 0 0 8px; background: #fff; font: inherit; font-size: .9rem; color: var(--primary); }
+.excel-ay-form .btn { border-radius: 0 8px 8px 0; }
+@media (max-width: 640px) {
+    .kontrol-madde { grid-template-columns: 1fr; }
+    .excel-ay-form { flex: 1 1 100%; }
+    .excel-ay-form select { flex: 1 1 auto; }
+}
 .kontrol-tablo { min-width: 0; font-size: .8rem; }
 .kontrol-tablo th, .kontrol-tablo td { padding: 4px 3px; text-align: center; }
 .kontrol-tablo .kt-madde { text-align: left; min-width: 240px; max-width: 320px; white-space: normal; }
@@ -894,8 +898,6 @@ div.hub-box { cursor: default; }
 .imza-kutu.aylik { border-style: dashed; }
 .imza-kutu input[type=text] { width: 100%; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 4px; }
 .kontrol-not { margin-top: 20px; }
-.km-termin { flex: 0 0 150px; }
-.km-termin input { width: 150px !important; flex: none !important; }
 .degerlendir-kart input[type=text] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
 .demo-serit { background: #fff5e0; border-bottom: 1px solid #f0dca6; color: #6b4e00; padding: 8px 20px; font-size: .85rem; text-align: center; }
 .demo-serit code { background: #fff; border: 1px solid #f0dca6; border-radius: 4px; padding: 0 4px; }

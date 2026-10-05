@@ -60,18 +60,18 @@ test edilebilir.
 | `server.js` | Express app, middleware sırası, rota modüllerinin kaydı, 404/500 yakalayıcı, `listen` |
 | `src/sabitler.js` | `DATA_DIR` (env ile taşınabilir), tüm klasör yolları, `ODUL_ESIK=300`, `ODUL_MAP={100,75,50}`, `DURUMLAR`, `KAZANC_BASLIKLARI`, `TR_AYLAR`, `ALAN_MAX=5000`, `nowTr()/bugunIso()/zamanTr()` (Europe/Istanbul) |
 | `src/isim.js` | `adDuzelt` (Türkçe baş harf büyük), `adSoyad`, `adBol` (düzenleme formu için), `isimAnahtar` (büyük/küçük harf, boşluk, noktalama, Türkçe karakter farkını yok sayan karşılaştırma anahtarı), `isimIcerir` ("Ali / Veli" listesinde arama), `uzaklik` (Damerau-Levenshtein — yazım hatası önerileri) |
-| `src/yetkiler.js` | `YETKI_GRUPLARI` (10 ayrıntılı alan, 4 grup), `TAM` ("tam" yetki), `ESKI_YETKILER` (eski `degerlendirme`/`bes_s` → yeni alanlar), `yetkiGenislet(liste)` → `{tam, yetkiler}`, `yetkiFormdan(v)` |
-| `src/kontrol.js` | `KONTROL_FORMU` (T-FR016 REV00: 10 G + 3 H + 2 A madde, form notu), `ayGunSayisi`, `haftaNo`/`haftalar` (Pazartesi başlangıçlı ay haftaları), `ayKaydir` |
+| `src/yetkiler.js` | `YETKI_GRUPLARI` (10 ayrıntılı alan, 4 grup), `ESKI_YETKILER` (eski `degerlendirme`/`bes_s`/`tam` → yeni alanlar), `yetkiGenislet(liste)` → `{yetkiler}`, `yetkiFormdan(v)` |
+| `src/kontrol.js` | `KONTROL_FORMU` (T-FR016 REV00: 10 G + 3 H + 2 A madde, form notu), `ayGunSayisi`, `haftaNo`/`haftalar` (Pazartesi başlangıçlı ay haftaları), `ayKaydir`, `ayCoz` |
 | `src/puanlama.js` | `PUAN_TEMEL/ETKI/MALIYET/YAYGIN/EFOR` rubrik tanımları, `PUAN_MAX`, `BESS` (şirket 5S formu: 5 bölüm / 23 soru, soru başına maksimum + kesme kuralı), `BESS_KRITER_MAX`, `bessKriterPuanla(k, bulgu)` (kuraldan puan), `bessKuralMetni(kr)`, `bessBulguTahmin` (eski kayıtta puandan bulgu), `bessBolumToplamlari` (S1–S5 toplamları), `hesaplaPuanlama(form)`, `puanlamaOzet(p)` |
 | `src/db.js` | mysql2 bağlantı havuzu, `CREATE TABLE IF NOT EXISTS` şeması (`init()`), `sorgu/tek/calistir/transaction` yardımcıları, JSON kolon yardımcıları (`j`/`js`), satır dönüştürücüler (`oneriRow`, `denetimRow`…), `configGet/Set`, `yedekle()` (tüm tablolar + görseller → ZIP) + `baslatYedekleme()` |
 | `src/cekirdek.js` | Şifre (hash/doğrulama, werkzeug uyumlu), `nextNumber`, `guvenliYol`, `gorselKaydet` (magic bytes), öneri/kaizen CRUD yardımcıları, `combinedRecords/filtrele/mevcutAylar`, `puanDurumu`, `dashboardIstatistik`, tüm 5S fonksiyonları (`besSTur*`, `besSIsle`, `besSPlanSatirlari`, `besSTrendTablo`…), aksiyon mantığı (`aksiyonKapatabilir`, `syncDenetimAksiyonlari`), denetmen/misafir yardımcıları |
-| `src/web.js` | `flash` (+ işlem günlüğü), `hizLimitAsildi`, `alan` (kırp + 5000 sınır), `adSoyadOku`/`kisiOku` (ad + soyad kutuları, eski tek kutu da kabul), `guvenliYol` (site içi dönüş adresi), `ortakLocals` (yetki çözümü, `req.denetmen`, görev rozeti, şablon değişkenleri, flash, CSRF), `csrfDogrula`, `dosyaYukleyici`, `guvenlikBasliklari`, yetki middleware'leri: `girisRequired`, `adminRequired`, `yetkiGerek(alan)`, `tamYetkiRequired`, `anaYoneticiRequired`, `denetciRequired` |
+| `src/web.js` | `flash` (+ işlem günlüğü), `hizLimitAsildi`, `alan` (kırp + 5000 sınır), `adSoyadOku`/`kisiOku` (ad + soyad kutuları, eski tek kutu da kabul), `guvenliYol` (site içi dönüş adresi), `ortakLocals` (yetki çözümü, `req.denetmen`, görev rozeti, şablon değişkenleri, flash, CSRF), `csrfDogrula`, `dosyaYukleyici`, `guvenlikBasliklari`, yetki middleware'leri: `girisRequired`, `adminRequired`, `yetkiGerek(alan)`, `anaYoneticiRequired`, `denetciRequired` |
 | `src/excel.js` | 7 rapor üreticisi: öneri, kaizen (görsel gömülü), 5S toplu, 5S tek form, aksiyonlar, puan listesi, ödül alanlar, 5S trend (renkli fark) — hepsi buffer döner |
 | `src/rotalar/genel.js` | Anasayfa, kılavuz, **panel**, liste (giriş + sayfalama), detay, **arşiv** (reddedilen + silinen, silinen detayı), **görevlerim**, puan durumu, ödül ver/sil, kişi gizle, **isim birleştirme**, Excel'ler |
 | `src/rotalar/oneri.js` | Öneri yeni (herkese açık) / düzenle (kayıt yetkisi veya düzeltmesi atanan denetmen) / Excel |
 | `src/rotalar/kaizen.js` | Kaizen yeni / **öneriden dönüştür** / düzenle / Excel / görsel servisi (girişli) |
 | `src/rotalar/bes_s.js` | 5S: bölümler (liste + trend), plan, denetim (yap/göster/**revize**/sil/Excel/ZIP), aksiyonlar, ödül işleme, geçmiş, **T-FR016 kontrol formu** (görüntüle/doldur/imza/Excel), görsel servisleri |
-| `src/rotalar/admin.js` | Giriş/çıkış, **Yönetim** sayfası, ek yönetici (tam yetki dahil) ve denetmen/misafir yönetimi, şifre, durum değişikliği (onay / gerekçeli red / düzeltme ataması), **görev ataması**, puanlama, kayıt silme, trend Excel |
+| `src/rotalar/admin.js` | Giriş/çıkış, **Yönetim** sayfası, ek yönetici (yalnız ana yönetici) ve denetmen/misafir yönetimi, şifre, durum değişikliği (onay / gerekçeli red / düzeltme ataması), **görev ataması**, puanlama, kayıt silme, trend Excel |
 | `scripts/import-json.js` | Eski JSON tabanlı sürümden veri + görsel aktarımı (kaynağa salt-okunur, tek transaction, hata durumunda tam geri alma) |
 | `scripts/sqlite-to-mysql.js` | Önceki SQLite sürümünden (`data/yalin.db`) tüm tabloları MySQL'e taşır (`npm run migrate`) |
 | `scripts/e2e-test.js` | Uçtan uca test paketi — ayrı veritabanı (`yalin_e2e`) + geçici veri klasörü + ayrı port (`npm test`) |
@@ -120,9 +120,9 @@ JSON** olarak saklanır; okurken `db.js`'teki satır dönüştürücüler nesney
 | `silinen_kisiler` | `ad` | puan listesinden gizlenenler (puanlar silinmez) |
 | `denetmenler` | `id` | ad, `sifre` (hash), oluşturma |
 | `misafirler` | `id` | ad, oluşturma |
-| `yoneticiler` | `id` | ek yönetici: ad, `sifre` (hash), `yetkiler` (JSON — `src/yetkiler.js` alanları veya `["tam"]`; eski `degerlendirme`/`bes_s` okunurken açılır), oluşturma |
+| `yoneticiler` | `id` | ek yönetici: ad, `sifre` (hash), `yetkiler` (JSON — `src/yetkiler.js` alanları; eski `degerlendirme`/`bes_s`/`tam` okunurken alanlara açılır), oluşturma |
 | `isim_eslestirme` | `kaynak` | elle isim birleştirme: kaynak isim anahtarı → hedef anahtar (zincir izlenir, döngü engellenir) |
-| `kontrol_kayitlari` | otomatik (`bolum_id, ay, gun, madde` tekil) | T-FR016 işaretleri: durum (uygun/uygunsuz), açıklama, açılan aksiyon id, işaretleyen, zaman |
+| `kontrol_kayitlari` | otomatik (`bolum_id, ay, gun, madde` tekil) | T-FR016 işaretleri: durum (uygun/uygunsuz), açıklama, işaretleyen, zaman |
 | `kontrol_onaylari` | otomatik (`bolum_id, ay, tip, sira` tekil) | haftalık (`tip=hafta`, `sira`=ay haftası) ve aylık (`tip=ay`) kontrol imzaları |
 | `islem_gunlugu` · `silinen_kayitlar` | otomatik | işlem günlüğü (flash ile) · silinen öneri/kaizenin ham satırı (geri yükleme) |
 | `sayaclar` | `onek` | öneri/kaizen numara sayaçları (ör. `ÖNFR2607-` → 2) — atomik artırma |
@@ -185,7 +185,8 @@ Yalnızca tur **tüm bölümlerde** puanlanmışsa çalışır (eksik bölümler
 aynı tur iki kez işlenemez. İlk 3 bölümün lider+üye tam listesi 100/75/50 puanla deftere yazılır.
 
 ### Değerlendirme akışı (öneri/kaizen)
-- `POST /durum` (Değerlendirme): **Onaylandı** → ilk onayda `nextFormNo()`; öneride isteğe bağlı görev alanları.
+- `POST /durum` (Değerlendirme): **Onaylandı** → öneride isteğe bağlı görev alanları (form no Ekim 2026'dan beri atanmaz;
+  `form_no` kolonu eski değerlerle yerinde durur, gösterilmez).
   **Reddedildi** → `red_nedeni` zorunlu. **Düzeltme İsteniyor** → `revize_denetmen` (denetmen id) + `revize_notu`
   zorunlu; atanan ad/isteyen/zaman yazılır. **Değerlendiriliyor** → reddedileni geri alır. Onaylı kayıt reddedilemez /
   düzeltmeye gönderilemez. Dönüş adresi `don` alanıdır (`guvenliYol` ile doğrulanır).
@@ -211,12 +212,16 @@ ile seçilen fotoğraflar (yalnız bu denetime aitse) silinir; puan yeniden hesa
 `revize_eden/revize_zamani` yazılır; yeni aksiyonlar `syncDenetimAksiyonlari` kuralıyla eklenir.
 
 ### T-FR016 periyodik kontrol formu
-`/5s/bolum/:bid/kontrol?ay=YYYY-MM&gun=N` herkese açık. **Doldurma** (`kontrolDoldurabilir`): bölümün ekip lideri
-(denetmen) veya `bes_denetim`. Gün ≤ bugün. Boş bırakılan madde kaydedilmez; "uygunsuz" açıklama ister;
-"aksiyon aç" seçilirse `aksiyonlar`a `denetim_id=''`, `tur_adi="Periyodik Kontrol — Ay Yıl"`, `kriter_k="pk_<madde>"`
-satırı açılır (kapatma kuralları normal aksiyonla aynı). **İmza** (`kontrolImzalayabilir`): `bes_denetim` veya
-bölümün lideri olmayan denetmen; haftalık (ay haftası) / aylık. `kontrolOzet(ay)` Bölümler tablosundaki
-"günlük maddeleri tam işaretlenen gün / geçen gün" değerini verir. Excel: `generateKontrolExcel` (kâğıt düzeni).
+`/5s/bolum/:bid/kontrol?tarih=YYYY-MM-DD` herkese açık (takvim alanı `static/takvim.js` flatpickr ile açılır, gün
+seçilince form kendiliğinden yenilenir; ileri tarih bugüne çekilir; eski `?ay=&gun=` bağlantıları da çalışır).
+**Doldurma** (`kontrolDoldurabilir`): bölümün ekip lideri (denetmen) veya `bes_denetim`. Gün ≤ bugün. Boş bırakılan
+madde kaydedilmez; "uygunsuz" açıklama ister. Formdan 5S aksiyonu **açılmaz** (uygunsuzluklar formun altında ve
+Excel'de listelenir). **İmza** (`kontrolImzalayabilir`): `bes_denetim` veya bölümün lideri olmayan denetmen;
+haftalık (ay haftası) / aylık. `kontrolOzet(ay)` Bölümler tablosundaki "günlük maddeleri tam işaretlenen gün / geçen
+gün" değerini verir. **Excel** (`/kontrol/excel?ay=YYYY-MM`): `kontrolAylari(bid)` ile seçilen aydan önceki kayıtlı
+aylar + seçilen ay; `generateKontrolExcel(b, sayfalar)` → ÖZET sayfası (ay başına kontrol günü, tam gün, uygun /
+uygun değil, uygunluk %, imzalı hafta, aylık imza + tüm ayların uygunsuzluk listesi) ve her ay için kâğıt düzeninde
+ayrı sayfa (`kontrolAySayfasi`).
 
 ### Panel istatistikleri
 `dashboardIstatistik` → `donemler` (ay/6ay/yıl/tüm × öneri/kaizen/toplam × gelen, değerlendiriliyor, düzeltme,
@@ -232,10 +237,10 @@ Grafikler sunucu tarafında SVG olarak çizilir (dış kütüphane yok); her gra
   `session.yonetici_id` (yetkiler her istekte veritabanından taze okunur, `web.js:ortakLocals`);
   denetmen → `session.denetmen_id`.
 - **Yetki alanları** (`src/yetkiler.js`): `degerlendir`, `puanla`, `kayit`, `bes_plan`, `bes_denetim`,
-  `bes_revize`, `bes_aksiyon`, `bes_odul`, `odul`, `kullanici` + `tam`. Rotalar `yetkiGerek(alan)` ile kapılanır;
-  ana yönetici ve tam yetkili ek yönetici her zaman geçer. Ek yönetici CRUD + işlem günlüğü `tamYetkiRequired`,
-  ana yönetici şifresi `anaYoneticiRequired`. Girişli herkes (denetmen dahil): `girisRequired`.
-  Eski kayıtlı `degerlendirme` → `degerlendir+puanla`, `bes_s` → tüm 5S alanları + `kullanici` (okurken açılır). Şablonlarda `yetki('alan')` yardımcısı
+  `bes_revize`, `bes_aksiyon`, `bes_odul`, `odul`, `kullanici`. Rotalar `yetkiGerek(alan)` ile kapılanır;
+  ana yönetici her zaman geçer. Ek yönetici CRUD, işlem günlüğü ve ana yönetici şifresi yalnız ana yönetici
+  (`anaYoneticiRequired`) — ek yöneticiye tam yetki verilemez. Girişli herkes (denetmen dahil): `girisRequired`.
+  Eski kayıtlı `degerlendirme` → `degerlendir+puanla`, `bes_s` → tüm 5S alanları + `kullanici`, `tam` → 10 alanın tamamı (yönetici hesapları hariç; okurken açılır). Şablonlarda `yetki('alan')` yardımcısı
   butonları gizler; **arayüzde gizli bir eylem sunucuda da reddedilir** (çift katman).
 - Hash formatı werkzeug uyumludur: yeni hash `pbkdf2:sha256:600000$salt$hex` üretilir;
   doğrulamada `pbkdf2:*` ve `scrypt:N:r:p` formatları desteklenir (`timingSafeEqual` ile).
@@ -330,5 +335,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 122 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 133 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

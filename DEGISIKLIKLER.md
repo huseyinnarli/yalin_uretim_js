@@ -32,15 +32,15 @@
   **periyodik kontrol formunu** doldurur, öneri/kaizenleri görüntüler, kendisine atanan düzeltme ve görevleri yapar.
 - **Görevlerim** sayfası: atanan düzeltmeler, kaizene dönüştürme görevleri, planlanan denetimler, kapatılacak
   aksiyonlar ve bugünkü kontrol formu. Menüde bekleyen iş sayısı rozeti görünür.
-- Ek yönetici yetkileri **ayrıntılandı** (4 → 10 alan + ⭐ tam yetki):
+- Ek yönetici yetkileri **ayrıntılandı** (4 → 10 alan):
   | Grup | Yetki |
   |---|---|
   | Öneri & Kaizen | Değerlendirme · Puanlama · Kayıt düzenle-sil & raporlar |
   | 5S | Bölüm & denetim planı · Denetim yapma · Denetim revize & silme · Aksiyon yönetimi · 5S ödül & raporlar |
   | Puan & Ödül | Ödül verme & isim birleştirme |
   | Hesaplar | Denetmen hesapları |
-- **⭐ Tam yetki:** ana yönetici kadar yetkili ek yönetici (yönetici ekleyebilir, işlem günlüğünü görür) — ama
-  silinebilir ve ana yönetici şifresini değiştiremez. Ana yönetici sabittir; kimse kendi hesabını silemez.
+- **Tam yetki yalnız ana yöneticide:** ek yönetici ekleme/düzenleme/silme ve işlem günlüğü yalnızca ana yöneticidedir;
+  ek yöneticiye "tam yetki" verilemez (bir ara sunulan ⭐ tam yetki seçeneği kaldırıldı). Ana yönetici sabittir.
 
 **Panel ve 5S**
 - **Panel** (`/panel`) denetmenler ve tüm yöneticilere açık: dönem butonlu tek istatistik tablosu (Bu Ay /
@@ -53,13 +53,22 @@
 - **Denetim revize:** "Denetim revize & silme" yetkili yönetici yapılmış denetimi düzeltebilir (bulgular,
   açıklamalar, fotoğraf ekle/sil, yeni aksiyon). **Ödülleri işlenmiş turda revize kapalıdır.**
 - **T-FR016 Periyodik Kontrol Formu** (Günlük/Haftalık/Aylık 5S ve Güvenlik): bölüm sayfasından açılır,
-  bölümün ekip lideri doldurur; uygunsuzluktan doğrudan 5S aksiyonu açılır; haftalık (grup lideri) ve aylık
-  (bölüm sorumlusu) kontrol imzası; kâğıt düzeninde Excel. Herkes görüntüleyebilir.
+  bölümün ekip lideri doldurur; kontrol günü **Türkçe takvimden** seçilir (gün seçilince form açılır, ileri tarih
+  seçilemez); uygun değil işaretlenen maddeye açıklama zorunlu, uygunsuzluklar formun altında listelenir
+  (formdan aksiyon açılmaz); haftalık (grup lideri) ve aylık (bölüm sorumlusu) kontrol imzası. Herkes görüntüleyebilir.
+- **Kontrol formu Excel'i:** ay seçilir, **o aya kadar doldurulmuş tüm aylar** tek dosyada iner — her ay kâğıt
+  düzeninde ayrı sayfa, başta ÖZET (ay başına kontrol günü, uygun/uygun değil, uygunluk %, imzalı hafta, aylık imza)
+  ve tüm ayların uygunsuzluk listesi.
+
+**Form No kaldırıldı**
+- Onaylanan öneri/kaizene artık `FR-YYYY-NNNN` form numarası **verilmez**; liste, detay, arama ve Excel'den çıkarıldı
+  (öneri Excel'inde 2. sütun, kaizen Excel'inde "Form No" sütunu yok). Daha önce verilmiş numaralar veritabanında
+  (`form_no` kolonu) **olduğu gibi durur**, yalnızca gösterilmez.
 
 **Demo (tasarım önizleme)**
 - `Dockerfile` + `scripts/demo-baslat.sh` + `scripts/demo-veri.js`: Render'da harici veritabanı olmadan, içinde geçici
   MariaDB ve örnek veriyle çalışan demo. Canlı kurulumu etkilemez (bkz. DAGITIM.md §11). Uygulama MariaDB 10.11'de
-  de test edildi (122/122).
+  de test edildi (133/133).
 
 ### Veritabanı değişiklikleri (otomatik, yalnızca EKLEME)
 
@@ -74,14 +83,16 @@ adlandırma/tip değişikliği yoktur. MySQL 8'de sona kolon ekleme anlık (inst
 | `denetimler` | `revize_eden`, `revize_zamani` |
 | yeni tablo | `isim_eslestirme` (elle isim birleştirme) |
 | yeni tablo | `kontrol_kayitlari`, `kontrol_onaylari` (T-FR016 formu) |
+| değişmeyen | `oneriler.form_no`, `kaizenler.form_no` kolonları ve değerleri yerinde kalır (artık yazılmaz/gösterilmez) |
 
 **Eski yetkiler:** veritabanında `degerlendirme` kayıtlı ek yönetici otomatik olarak *Değerlendirme + Puanlama*,
-`bes_s` kayıtlı olan *tüm 5S yetkileri + Denetmen hesapları* alır. Kayıt değişmez; yönetici bir kez
+`bes_s` kayıtlı olan *tüm 5S yetkileri + Denetmen hesapları*, (test ortamında verilmiş olabilecek) `tam` kayıtlı olan
+*10 alanın tamamını* alır — yönetici hesapları ve işlem günlüğü hariç. Kayıt değişmez; yönetici bir kez
 kaydedilince yeni anahtarlarla yazılır.
 
 **Doğrulama:** Eski sürümün oluşturduğu veritabanı yeni kodla açılarak denendi — eski kolonlardaki verinin
 tamamı birebir aynı kaldı, puan listesi aynı çıktı, eski ek yönetici ve denetmen girişleri çalıştı.
-Uçtan uca test: **122/122**.
+Uçtan uca test: **133/133**.
 
 ### Canlıya alma
 

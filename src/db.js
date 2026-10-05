@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS silinen_kayitlar (
 CREATE TABLE IF NOT EXISTS kontrol_kayitlari (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   bolum_id VARCHAR(16) NOT NULL, ay VARCHAR(7) NOT NULL, gun INT NOT NULL, madde VARCHAR(8) NOT NULL,
-  durum VARCHAR(10), aciklama TEXT, aksiyon_id VARCHAR(16), isaretleyen VARCHAR(191), zaman VARCHAR(20),
+  durum VARCHAR(10), aciklama TEXT, isaretleyen VARCHAR(191), zaman VARCHAR(20),
   UNIQUE KEY uq_kontrol (bolum_id, ay, gun, madde),
   INDEX ix_kontrol_ay (ay)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
@@ -222,7 +222,8 @@ async function init() {
   if (!kolon.length) {
     await pool.query("ALTER TABLE denetimler ADD COLUMN bulgular TEXT AFTER puanlar");
   }
-  // form_no: onaylanınca atanan form numarası (öneri + kaizen)
+  // form_no: eski sürümde onaylanınca atanan form numarası (öneri + kaizen). Ekim 2026'dan itibaren
+  // atanmıyor ve gösterilmiyor; kolon ve mevcut değerler veriyi korumak için yerinde bırakıldı.
   for (const t of ["oneriler", "kaizenler"]) {
     const [c] = await pool.query(`SHOW COLUMNS FROM ${t} LIKE 'form_no'`);
     if (!c.length) await pool.query(`ALTER TABLE ${t} ADD COLUMN form_no VARCHAR(20) AFTER \`no\``);

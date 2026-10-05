@@ -102,17 +102,6 @@ function safeName(no) {
   return String(no).replace(/Ö/g, "O").replace(/ö/g, "o").replace(/-/g, "_");
 }
 
-// Onaylanan kayda verilen form numarası — yıllık sıralı (FR-2026-0001).
-// `sayaclar` tablosunda atomik sayaç (öneri+kaizen ortak, her yıl sıfırlanır).
-async function nextFormNo() {
-  const yil = S.nowTr().getFullYear();
-  const onek = `FORM-${yil}`;
-  await calistir("INSERT IGNORE INTO sayaclar(onek, sayac) VALUES(?, 0)", [onek]);
-  const r = await calistir(
-    "UPDATE sayaclar SET sayac = LAST_INSERT_ID(sayac + 1) WHERE onek = ?", [onek]);
-  return `FR-${yil}-${String(r.insertId).padStart(4, "0")}`;
-}
-
 function allowedFile(filename) {
   return S.ALLOWED_EXT.has(path.extname(filename || "").toLowerCase());
 }
@@ -231,7 +220,7 @@ function filtrele(records, tip, ay, q, durum = "") {
     if (durum === "revize" && r.durum !== "Düzeltme İsteniyor") return false;
     if (durum === "onay" && r.durum !== "Onaylandı") return false;
     if (q) {
-      const hay = `${r.baslik || ""} ${r.kisi || ""} ${r.no || ""} ${r.form_no || ""}`.toLocaleLowerCase("tr");
+      const hay = `${r.baslik || ""} ${r.kisi || ""} ${r.no || ""}`.toLocaleLowerCase("tr");
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -826,18 +815,17 @@ async function aktifYonetici(session) {
   return y;
 }
 
-// Oturumun yetki durumu (Express'ten bağımsız): ana yönetici / tam yetkili ek yönetici /
-// ayrıntılı yetki listesi. Ek yönetici yetkileri her çağrıda veritabanından TAZE okunur.
+// Oturumun yetki durumu (Express'ten bağımsız): ana yönetici (tüm yetkiler + yönetici hesapları) /
+// ek yönetici (ayrıntılı yetki listesi). Ek yönetici yetkileri her çağrıda veritabanından TAZE okunur.
 async function oturumYetkileri(session) {
-  const bos = { yonetici: false, ana: false, tam: false, yetkiler: [], ad: null };
+  const bos = { yonetici: false, ana: false, yetkiler: [], ad: null };
   if (!session || !session.admin) return bos;
   if (session.super) {
-    return { yonetici: true, ana: true, tam: true, yetkiler: [...Y.TUM_YETKILER], ad: "Ana Yönetici" };
+    return { yonetici: true, ana: true, yetkiler: [...Y.TUM_YETKILER], ad: "Ana Yönetici" };
   }
   const y = await aktifYonetici(session);
   if (!y) return bos;
-  const g = Y.yetkiGenislet(y.yetkiler);
-  return { yonetici: true, ana: false, tam: g.tam, yetkiler: g.yetkiler, ad: y.ad };
+  return { yonetici: true, ana: false, yetkiler: Y.yetkiGenislet(y.yetkiler).yetkiler, ad: y.ad };
 }
 
 async function denetmenById(id) {
@@ -1116,34 +1104,29 @@ async function kontrolAy(bid, ay) {
   return { isaret, onaylar };
 }
 
-// Günün işaretlerini kaydeder (boş bırakılan madde dokunulmaz). Uygunsuz + "aksiyon aç" seçilen
-// maddeler için 5S aksiyonu açılır (önlem planı). Dönüş: { kaydedilen, aksiyon }
+// Günün işaretlerini kaydeder (boş bırakılan madde dokunulmaz). Uygunsuzluklar formun
+// "Uygunsuzluklar" listesinde ve Excel'de görünür; formdan 5S aksiyonu açılmaz. Dönüş: kaydedilen madde sayısı
 async function kontrolKaydet(b, ay, gun, isaretler, kim) {
   const now = S.zamanTr();
-  let kaydedilen = 0, aksiyon = 0;
-  const c = K.ayCoz(ay);
-  const turAdi = `Periyodik Kontrol — ${S.TR_AYLAR[c.a - 1]} ${c.y}`;
+  let kaydedilen = 0;
   for (const x of isaretler) {
-    let aksiyonId = null;
-    if (x.durum === "uygunsuz" && x.aksiyon && x.aciklama) {
-      aksiyonId = uid();
-      await calistir(
-        `INSERT INTO aksiyonlar(id, denetim_id, tarih, tur_adi, bolum_id, bolum_ad, kriter_k, kriter_m,
-           aksiyon, sorumlu, atanan_lider, termin, durum, olusturma_zamani, kapatma)
-         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL)`,
-        [aksiyonId, "", `${ay}-01`, turAdi, b.id, b.ad, "pk_" + x.madde, K.MADDELER[x.madde].m,
-          x.aciklama, (b.sorumlu || "").trim(), (b.sorumlu || "").trim(), x.termin || "", "acik", now]);
-      aksiyon += 1;
-    }
     await calistir(
-      `INSERT INTO kontrol_kayitlari(bolum_id, ay, gun, madde, durum, aciklama, aksiyon_id, isaretleyen, zaman)
-       VALUES(?,?,?,?,?,?,?,?,?)
+      `INSERT INTO kontrol_kayitlari(bolum_id, ay, gun, madde, durum, aciklama, isaretleyen, zaman)
+       VALUES(?,?,?,?,?,?,?,?)
        ON DUPLICATE KEY UPDATE durum = VALUES(durum), aciklama = VALUES(aciklama),
-         aksiyon_id = COALESCE(VALUES(aksiyon_id), aksiyon_id), isaretleyen = VALUES(isaretleyen), zaman = VALUES(zaman)`,
-      [b.id, ay, gun, x.madde, x.durum, x.aciklama || "", aksiyonId, kim, now]);
+         isaretleyen = VALUES(isaretleyen), zaman = VALUES(zaman)`,
+      [b.id, ay, gun, x.madde, x.durum, x.aciklama || "", kim, now]);
     kaydedilen += 1;
   }
-  return { kaydedilen, aksiyon };
+  return kaydedilen;
+}
+
+// Bir bölümün kontrol formu kaydı (işaret veya imza) olan ayları, eskiden yeniye: ["2026-08", "2026-09", ...]
+async function kontrolAylari(bid) {
+  const satirlar = await sorgu(
+    `SELECT DISTINCT ay FROM kontrol_kayitlari WHERE bolum_id = ?
+     UNION SELECT DISTINCT ay FROM kontrol_onaylari WHERE bolum_id = ?`, [bid, bid]);
+  return [...new Set(satirlar.map((r) => r.ay).filter((a) => K.ayCoz(a)))].sort();
 }
 
 async function kontrolImzala(bid, ay, tip, sira, kim, notu) {
@@ -1213,13 +1196,13 @@ function logoBul() {
 module.exports = {
   hashPassword, hashMi, checkPassword, getAdminPassword, adminSifreDogru,
   setAdminPassword, sifreleriHashle, getSecretKey,
-  uid, nextNumber, nextFormNo, safeName, allowedFile, guvenliYol, trdate, ayEtiketi, puanfmt,
+  uid, nextNumber, safeName, allowedFile, guvenliYol, trdate, ayEtiketi, puanfmt,
   gorselKaydet, getRecord, updateRecord, combinedRecords, filtrele, sayfala, mevcutAylar,
   puanDurumu, dashboardIstatistik, puanVar,
   isimCozucu, isimGruplari, isimBirlestir, isimAyir,
   oturumYetkileri, denetmenById, kayitDuzenleyebilir, kaizeneDonusturebilir,
   gorevlerim, acikAtamalar, gorevSayisi, turIslendi,
-  kontrolDoldurabilir, kontrolImzalayabilir, kontrolAy, kontrolKaydet, kontrolImzala, kontrolOzet,
+  kontrolDoldurabilir, kontrolImzalayabilir, kontrolAy, kontrolAylari, kontrolKaydet, kontrolImzala, kontrolOzet,
   loadBolumler, bolumById, bolumMap, loadDenetimler, denetimById, loadAksiyonlar, aksiyonById,
   loadDenetmenler, loadMisafirler, odulIslenenler, odulKayitlari,
   bolumDenetimleri, sonDenetim, denetimKriterPuanlari, denetimTarihi, denetimFotolari,

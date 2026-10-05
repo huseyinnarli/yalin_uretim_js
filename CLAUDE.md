@@ -27,7 +27,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 122 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 133 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
 # Demo (Render, tasarım önizleme): Dockerfile → scripts/demo-baslat.sh (geçici MariaDB) → scripts/demo-veri.js
@@ -82,10 +82,10 @@ Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İ�
    kaydı da transaction içinde geri alınır (puan otomatik düşer). Bu kuralı bozma.
 8b. **Yetki sistemi:** roller = ana yönetici (`session.super`, sabit, tüm yetkiler), ek yönetici
    (`session.yonetici_id`, `yoneticiler.yetkiler` JSON — alanlar `src/yetkiler.js`: `degerlendir`, `puanla`,
-   `kayit`, `bes_plan`, `bes_denetim`, `bes_revize`, `bes_aksiyon`, `bes_odul`, `odul`, `kullanici`; ya da
-   `["tam"]` = ana yönetici kadar), denetmen (`session.denetmen_id`). Yetkiler her istekte
-   `cekirdek.js:oturumYetkileri` ile çözülür (`req.yetkiler`, `req.superAdmin`=tam, `req.anaYonetici`,
-   `req.denetmen`). Rotayı `yetkiGerek(alan)` / `girisRequired` / `tamYetkiRequired` / `anaYoneticiRequired` ile
+   `kayit`, `bes_plan`, `bes_denetim`, `bes_revize`, `bes_aksiyon`, `bes_odul`, `odul`, `kullanici`;
+   tam yetki YOK — ek yönetici hesapları + işlem günlüğü yalnız ana yönetici; eski `["tam"]` kaydı 10 alana açılır),
+   denetmen (`session.denetmen_id`). Yetkiler her istekte `cekirdek.js:oturumYetkileri` ile çözülür (`req.yetkiler`,
+   `req.anaYonetici`, `req.denetmen`). Rotayı `yetkiGerek(alan)` / `girisRequired` / `anaYoneticiRequired` ile
    kapıla; şablonda `yetki('alan')` ile gizle — HER İKİSİNİ de yap. Eski kayıtlı `degerlendirme`/`bes_s`
    anahtarları okurken açılır (`ESKI_YETKILER`) — veritabanını elle güncellemeye gerek yok.
 8c. **İsimler:** kişi girişleri ad + soyad ayrı kutulardır (`web.js:kisiOku`). Kişi karşılaştırmalarında
@@ -119,7 +119,8 @@ Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İ�
 14. **Silinen kayıtlar:** `/sil` artık hard-delete değil — kaydı `silinen_kayitlar`e (ham JSON)
     taşır, kaizen görselleri diskte KALIR. `/silinenler` (yetki kayit): görüntüle/geri yükle/
     kalıcı sil (kalıcıda görseller de silinir). Geri yükleme ham satırı tabloya yeniden ekler.
-15. **Form no:** kayıt İLK "Onaylandı" olunca `nextFormNo()` (sayaclar `FORM-<yıl>`, atomik)
+15. **Form no** (Ekim 2026'da KALDIRILDI — atanmıyor/gösterilmiyor; `form_no` kolonu ve eski değerler yerinde):
+    kayıt İLK "Onaylandı" olunca `nextFormNo()` (sayaclar `FORM-<yıl>`, atomik)
     ile `FR-YYYY-NNNN` atanır (öneri+kaizen ortak). `/durum` ve `/degerlendir/puan`'da atanır;
     `oneriler/kaizenler.form_no` kolonu (init migrasyonu). Excel'de: öneri 2. sütun, kaizen SON
     sütun (görsel J/K sütunları kaymasın diye).
@@ -127,10 +128,13 @@ Veri erişimi tamamen async (`sorgu/tek/calistir/transaction`, `src/db.js`). İ�
 16. **Ekim 2026 sürümü** (ayrıntı: DEGISIKLIKLER.md): öneri/kaizen liste+detay girişe kapalı (formlar açık),
     20'li sayfalama; detayda onay / gerekçeli red / denetmene düzeltme ataması; onaylanan öneriye görev +
     kaizene dönüştürme (`kaizen_no` ↔ `kaynak_oneri_no`); Reddedilen & Silinen arşivi (`/arsiv`); Görevlerim;
-    ad/soyad ayrı + otomatik/elle isim birleştirme (`/isimler`); 10 ayrıntılı yetki + tam yetki;
+    ad/soyad ayrı + otomatik/elle isim birleştirme (`/isimler`); 10 ayrıntılı yetki;
     Panel (`/panel`, girişli herkes) ve Yönetim (`/yonetici`) ayrımı; 5S bölümler tablosu, bölüm trendi + S1–S5;
     denetim revize (ödül işlenmiş turda kapalı); **T-FR016 periyodik kontrol formu** (`kontrol_kayitlari`,
-    `kontrol_onaylari`). Tüm şema değişiklikleri `init()` içinde yalnız ekleme (`kolonEkle`). e2e 122/122.
+    `kontrol_onaylari`). Tüm şema değişiklikleri `init()` içinde yalnız ekleme (`kolonEkle`).
+    Aynı sürümün devamında: kontrol formunda takvimli tarih (`?tarih=`), formdan aksiyon açma kaldırıldı,
+    Excel seçilen aya kadar tüm aylar (her ay sayfa + ÖZET); ek yöneticiye tam yetki kaldırıldı (yönetici hesapları +
+    günlük yalnız ana yönetici); form no kaldırıldı. e2e 133/133.
 
 ## Açık konular
 
