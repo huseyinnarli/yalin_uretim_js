@@ -162,6 +162,21 @@ CREATE TABLE IF NOT EXISTS silinen_kayitlar (
   silen VARCHAR(191), silme_zamani VARCHAR(20)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
 
+CREATE TABLE IF NOT EXISTS kontrol_kayitlari (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  bolum_id VARCHAR(16) NOT NULL, ay VARCHAR(7) NOT NULL, gun INT NOT NULL, madde VARCHAR(8) NOT NULL,
+  durum VARCHAR(10), aciklama TEXT, aksiyon_id VARCHAR(16), isaretleyen VARCHAR(191), zaman VARCHAR(20),
+  UNIQUE KEY uq_kontrol (bolum_id, ay, gun, madde),
+  INDEX ix_kontrol_ay (ay)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
+
+CREATE TABLE IF NOT EXISTS kontrol_onaylari (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  bolum_id VARCHAR(16) NOT NULL, ay VARCHAR(7) NOT NULL, tip VARCHAR(8) NOT NULL, sira INT NOT NULL,
+  onaylayan VARCHAR(191), notu TEXT, zaman VARCHAR(20),
+  UNIQUE KEY uq_kontrol_onay (bolum_id, ay, tip, sira)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_turkish_ci;
+
 CREATE TABLE IF NOT EXISTS isim_eslestirme (
   kaynak VARCHAR(191) PRIMARY KEY,
   hedef  VARCHAR(191) NOT NULL,
@@ -280,7 +295,7 @@ function yoneticiRow(r) {
 const _YEDEK_TABLOLAR = ["config", "oneriler", "kaizenler", "bolumler", "denetimler",
   "aksiyonlar", "odul_islenen", "odul_kayitlari", "odul_arsiv", "silinen_kisiler",
   "denetmenler", "misafirler", "yoneticiler", "sayaclar", "islem_gunlugu",
-  "silinen_kayitlar", "isim_eslestirme"];
+  "silinen_kayitlar", "isim_eslestirme", "kontrol_kayitlari", "kontrol_onaylari"];
 const _YEDEK_GORSEL_DIRLER = [
   ["kaizen_gorseller", S.KAIZEN_IMG_DIR],
   ["bes_s_gorseller", S.BESS_FOTO_DIR],

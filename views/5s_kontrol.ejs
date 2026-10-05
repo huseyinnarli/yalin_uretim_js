@@ -1,0 +1,153 @@
+<%- include('partials/header') %>
+<% const gunler = Array.from({ length: gun_sayisi }, (_, i) => i + 1);
+   const isaretOku = (k, g) => (isaret[k] || {})[g];
+   // Haftalık/aylık maddenin bu hafta/ay içinde işaretlendiği gün
+   const donemIsaret = (m, g) => {
+     const kayitlar = isaret[m.k] || {};
+     const gunlerIs = Object.keys(kayitlar).map(Number).sort((a, b) => a - b);
+     if (m.p === 'H') return gunlerIs.filter((x) => haftaNo(x) === haftaNo(g)).map((x) => kayitlar[x]).pop();
+     if (m.p === 'A') return gunlerIs.map((x) => kayitlar[x]).pop();
+     return kayitlar[g];
+   };
+   const uygunsuzlar = [];
+   for (const m of form.maddeler) for (const g of Object.keys(isaret[m.k] || {}).map(Number).sort((a, b) => a - b)) {
+     const r = isaret[m.k][g]; if (r.durum === 'uygunsuz') uygunsuzlar.push({ m, g, r });
+   } %>
+
+<div class="list-head">
+    <h1 class="page-title">✅ 5S ve Güvenlik Kontrol Formu — <%= b.ad %></h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/5s/bolum/<%= b.id %>">← Bölüm</a>
+        <a class="btn ghost" href="/5s/bolum/<%= b.id %>/kontrol?ay=<%= onceki_ay %>">‹ Önceki Ay</a>
+        <a class="btn ghost" href="/5s/bolum/<%= b.id %>/kontrol?ay=<%= sonraki_ay %>">Sonraki Ay ›</a>
+        <% if (girisli) { %><a class="btn ghost" href="/5s/bolum/<%= b.id %>/kontrol/excel?ay=<%= ay %>">⬇ Excel</a><% } %>
+    </div>
+</div>
+<p class="subtitle"><strong><%= form.kod %></strong> REV<%= form.rev %> · Takım: <strong><%= b.ad %></strong> ·
+    Takım lideri: <strong><%= b.sorumlu || '—' %></strong> · Dönem: <strong><%= ay_etiketi %></strong></p>
+
+<% if (doldurabilir) { %>
+<!-- Günün kontrolü (takım lideri) -->
+<div class="form-card kontrol-doldur">
+    <form method="get" action="/5s/bolum/<%= b.id %>/kontrol" class="satir-form">
+        <input type="hidden" name="ay" value="<%= ay %>">
+        <label class="inline-label">Kontrol günü:</label>
+        <select name="gun" onchange="this.form.submit()">
+            <% for (let g = son_gun; g >= 1; g--) { %>
+            <option value="<%= g %>" <%= g === gun ? 'selected' : '' %>><%= g %> <%= ay_etiketi %><%= g === son_gun ? ' (son gün)' : '' %></option>
+            <% } %>
+        </select>
+    </form>
+
+    <form method="post" action="/5s/bolum/<%= b.id %>/kontrol" class="kontrol-form"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+        <input type="hidden" name="ay" value="<%= ay %>"><input type="hidden" name="gun" value="<%= gun %>">
+        <% for (const p of ['G', 'H', 'A']) { %>
+        <h3 class="kontrol-grup"><%= periyotlar[p] %> kontroller</h3>
+        <% for (const m of form.maddeler.filter((x) => x.p === p)) {
+             const bugunku = isaretOku(m.k, gun);
+             const donem = p === 'G' ? null : donemIsaret(m, gun); %>
+        <div class="kontrol-madde">
+            <div class="km-metin"><span class="km-kod"><%= m.k.toUpperCase() %></span> <%= m.m %>
+                <% if (donem && !bugunku) { %><small class="bos-not">— bu <%= p === 'H' ? 'hafta' : 'ay' %> <%= donem.gun %>'inde işaretlendi (<%= donem.durum === 'uygun' ? '✓' : '✗' %>)</small><% } %>
+            </div>
+            <div class="km-secim">
+                <label class="km-uygun"><input type="radio" name="durum_<%= m.k %>" value="uygun" <%= bugunku && bugunku.durum === 'uygun' ? 'checked' : '' %>> ✓ Uygun</label>
+                <label class="km-uygunsuz"><input type="radio" name="durum_<%= m.k %>" value="uygunsuz" <%= bugunku && bugunku.durum === 'uygunsuz' ? 'checked' : '' %>> ✗ Uygun Değil</label>
+            </div>
+            <div class="km-detay">
+                <input type="text" name="aciklama_<%= m.k %>" value="<%= bugunku ? bugunku.aciklama : '' %>" placeholder="Tespit / açıklama (Uygun Değil ise zorunlu)">
+                <% if (!(bugunku && bugunku.aksiyon_id)) { %>
+                <label class="km-aksiyon"><input type="checkbox" name="aksiyon_<%= m.k %>" value="1"> ⚑ Aksiyon aç</label>
+                <span class="km-termin"><input type="date" name="termin_<%= m.k %>" title="Aksiyon termini (isteğe bağlı)" placeholder="Termin"></span>
+                <% } else { %><small class="bos-not">⚑ aksiyon açıldı</small><% } %>
+            </div>
+        </div>
+        <% } } %>
+        <div class="form-actions">
+            <button type="submit" class="btn primary">✓ <%= gun %> <%= ay_etiketi %> Kontrolünü Kaydet</button>
+        </div>
+        <p class="bos-not">Boş bırakılan maddeler kaydedilmez. Haftalık maddeler haftada bir, aylık maddeler ayda bir işaretlenir.</p>
+    </form>
+</div>
+<% } else if (son_gun > 0) { %>
+<p class="bos-not">Bu formu bölümün ekip lideri (<%= b.sorumlu || '—' %>) denetmen girişiyle doldurur.<% if (!girisli) { %> <a href="/yonetici/giris?next=<%= encodeURIComponent('/5s/bolum/' + b.id + '/kontrol') %>">Giriş</a><% } %></p>
+<% } %>
+
+<!-- Aylık tablo (kâğıt formdaki gibi) -->
+<h2 class="bolum-baslik">📅 <%= ay_etiketi %> — Aylık Tablo</h2>
+<div class="table-wrap">
+<table class="data-table kontrol-tablo">
+    <thead>
+        <tr><th class="kt-madde">Yapılacak işlemler</th><th>P</th>
+            <% for (const g of gunler) { %><th class="<%= haftaGunu(g) === 0 ? 'kt-pazar' : '' %><%= g === gun && doldurabilir ? ' kt-secili' : '' %>"><%= g %></th><% } %></tr>
+    </thead>
+    <tbody>
+        <% for (const m of form.maddeler) { %>
+        <tr class="kt-<%= m.p.toLowerCase() %>">
+            <td class="kt-madde" title="<%= m.m %>"><span class="km-kod"><%= m.k.toUpperCase() %></span> <%= m.m.length > 70 ? m.m.slice(0, 68) + '…' : m.m %></td>
+            <td class="kt-p"><%= m.p %></td>
+            <% for (const g of gunler) { const r = isaretOku(m.k, g); %>
+            <td class="kt-hucre <%= haftaGunu(g) === 0 ? 'kt-pazar' : '' %> <%= r ? (r.durum === 'uygun' ? 'kt-ok' : 'kt-x') : '' %>"
+                <% if (r) { %>title="<%= g %> <%= ay_etiketi %> · <%= r.durum === 'uygun' ? 'Uygun' : 'Uygun değil' %><%= r.aciklama ? ' — ' + r.aciklama : '' %> · <%= r.isaretleyen %>"<% } %>><%= r ? (r.durum === 'uygun' ? '✓' : '✗') : '' %></td>
+            <% } %>
+        </tr>
+        <% } %>
+        <tr class="kt-imza">
+            <td class="kt-madde"><strong>Takım lideri</strong></td><td></td>
+            <% for (const g of gunler) { const kim = form.maddeler.map((m) => isaretOku(m.k, g)).filter(Boolean).map((r) => r.isaretleyen)[0]; %>
+            <td class="kt-hucre" <% if (kim) { %>title="<%= kim %>"<% } %>><%= kim ? kim.split(' ').map((x) => x[0]).join('') : '' %></td>
+            <% } %>
+        </tr>
+    </tbody>
+</table>
+</div>
+<p class="bos-not">G: Günlük · H: Haftalık · A: Aylık · ✓ uygun · ✗ uygun değil · hücrenin üzerine gelince ayrıntı görünür.</p>
+
+<!-- Kontrol imzaları -->
+<h2 class="bolum-baslik" id="imzalar">✍ Kontrol İmzaları</h2>
+<div class="imza-grid">
+    <% for (const h of haftalar) { const o = onaylar['hafta-' + h.no]; %>
+    <div class="imza-kutu <%= o ? 'imzali' : '' %>">
+        <strong><%= h.no %>. hafta</strong> <small>(<%= h.bas %>–<%= h.son %>)</small>
+        <span class="bos-not">Grup lideri kontrolü</span>
+        <% if (o) { %><span>✔ <%= o.onaylayan %><br><small><%= o.zaman %><%= o.notu ? ' · ' + o.notu : '' %></small></span>
+        <% } else if (imzalayabilir && h.bas <= son_gun) { %>
+        <form method="post" action="/5s/bolum/<%= b.id %>/kontrol/imza"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+            <input type="hidden" name="ay" value="<%= ay %>"><input type="hidden" name="tip" value="hafta"><input type="hidden" name="sira" value="<%= h.no %>">
+            <input type="text" name="notu" placeholder="Not (isteğe bağlı)">
+            <button type="submit" class="btn-mini onay">✍ Kontrol Ettim</button>
+        </form>
+        <% } else { %><span class="bos-not">— imza yok</span><% } %>
+    </div>
+    <% } %>
+    <% const ao = onaylar['ay-0']; %>
+    <div class="imza-kutu aylik <%= ao ? 'imzali' : '' %>">
+        <strong>Aylık</strong>
+        <span class="bos-not">Yetkili bölüm sorumlusu kontrolü</span>
+        <% if (ao) { %><span>✔ <%= ao.onaylayan %><br><small><%= ao.zaman %><%= ao.notu ? ' · ' + ao.notu : '' %></small></span>
+        <% } else if (imzalayabilir && son_gun > 0) { %>
+        <form method="post" action="/5s/bolum/<%= b.id %>/kontrol/imza"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+            <input type="hidden" name="ay" value="<%= ay %>"><input type="hidden" name="tip" value="ay">
+            <input type="text" name="notu" placeholder="Not (isteğe bağlı)">
+            <button type="submit" class="btn-mini onay">✍ Kontrol Ettim</button>
+        </form>
+        <% } else { %><span class="bos-not">— imza yok</span><% } %>
+    </div>
+</div>
+
+<!-- Uygunsuzluklar (önlem planı) -->
+<h2 class="bolum-baslik">⚠ Uygunsuzluklar <span class="rozet-acik"><%= uygunsuzlar.length %></span></h2>
+<% if (uygunsuzlar.length) { %>
+<div class="gorev-liste">
+    <% for (const u of uygunsuzlar) { %>
+    <div class="gorev-satir">
+        <span class="gs-govde"><strong><%= u.g %> <%= ay_etiketi %></strong> · <span class="km-kod"><%= u.m.k.toUpperCase() %></span> <%= u.r.aciklama || '—' %>
+            <small><%= u.m.m %> · <%= u.r.isaretleyen %></small></span>
+        <% if (u.r.aksiyon_id) { %><a class="btn-mini edit" href="/5s/aksiyonlar#a-<%= u.r.aksiyon_id %>">⚑ Aksiyon</a><% } %>
+    </div>
+    <% } %>
+</div>
+<% } else { %><p class="bos-not">Bu ay uygunsuzluk işaretlenmedi.</p><% } %>
+
+<p class="bos-not kontrol-not"><strong>Not:</strong> <%= form.not %></p>
+<%- include('partials/footer') %>

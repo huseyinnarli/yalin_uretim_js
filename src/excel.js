@@ -5,6 +5,7 @@ const ExcelJS = require("exceljs");
 const S = require("./sabitler");
 const P = require("./puanlama");
 const C = require("./cekirdek");
+const K = require("./kontrol");
 const { sorgu, oneriRow, kaizenRow } = require("./db");
 
 const HEADER_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2E5C8A" } };
@@ -245,7 +246,84 @@ async function generateTrendExcel() {
   return wb.xlsx.writeBuffer();
 }
 
+// T-FR016 5S ve Güvenlik Kontrol Formu — kâğıt formun düzeninde aylık tablo
+async function generateKontrolExcel(b, ay, veri) {
+  const F = K.KONTROL_FORMU;
+  const gunSayisi = K.ayGunSayisi(ay);
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("KONTROL FORMU", { pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1 } });
+  const sonSutun = 3 + gunSayisi;
+  ws.mergeCells(1, 1, 1, sonSutun - 6);
+  ws.getCell(1, 1).value = F.baslik.toLocaleUpperCase("tr");
+  ws.getCell(1, 1).font = { bold: true, size: 13 };
+  ws.getCell(1, 1).alignment = CENTER;
+  ws.mergeCells(1, sonSutun - 5, 1, sonSutun);
+  ws.getCell(1, sonSutun - 5).value = `Doküman No: ${F.kod} · Rev: ${F.rev}`;
+  ws.getRow(1).height = 26;
+  ws.mergeCells(2, 1, 2, 2);
+  ws.getCell(2, 1).value = `TAKIM: ${b.ad}`;
+  ws.getCell(2, 3).value = `Takım lideri: ${b.sorumlu || ""}`;
+  ws.mergeCells(2, sonSutun - 5, 2, sonSutun);
+  ws.getCell(2, sonSutun - 5).value = `DÖNEM / AY: ${C.ayEtiketi(ay)}`;
+  [2].forEach((r) => ws.getRow(r).eachCell((c) => { c.font = { bold: true }; }));
+
+  const bas = ws.addRow(["NO", "Yapılacak İşlemler", "P", ...Array.from({ length: gunSayisi }, (_, i) => i + 1)]);
+  bas.eachCell((c) => { c.fill = HEADER_FILL; c.font = HEADER_FONT; c.alignment = CENTER; c.border = BORDER; });
+  const yesil = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE4F6EC" } };
+  const kirmizi = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFCEBEA" } };
+  for (const m of F.maddeler) {
+    const satir = [K.PERIYOTLAR[m.p].toLocaleUpperCase("tr"), m.m, m.p];
+    for (let g = 1; g <= gunSayisi; g++) {
+      const r = ((veri.isaret || {})[m.k] || {})[g];
+      satir.push(r ? (r.durum === "uygun" ? "✓" : "✗") : "");
+    }
+    const row = ws.addRow(satir);
+    row.eachCell({ includeEmpty: true }, (c, col) => {
+      c.border = BORDER;
+      c.alignment = col === 2 ? WRAP : CENTER;
+      if (col > 3 && c.value === "✓") c.fill = yesil;
+      if (col > 3 && c.value === "✗") { c.fill = kirmizi; c.font = { bold: true, color: { argb: "FFA4322A" } }; }
+    });
+    row.height = 42;
+  }
+  const imza = ["TAKIM LİDERİ", "İMZA", ""];
+  for (let g = 1; g <= gunSayisi; g++) {
+    const kim = F.maddeler.map((m) => ((veri.isaret || {})[m.k] || {})[g]).filter(Boolean).map((r) => r.isaretleyen)[0];
+    imza.push(kim ? kim.split(" ").map((x) => x[0]).join("") : "");
+  }
+  ws.addRow(imza).eachCell({ includeEmpty: true }, (c) => { c.border = BORDER; c.alignment = CENTER; c.font = { bold: true }; });
+  ws.addRow(["G: GÜNLÜK    H: HAFTALIK    A: AYLIK"]);
+  ws.addRow([]);
+  ws.addRow(["GRUP LİDERİ KONTROLLERİ (haftalık)"]).getCell(1).font = { bold: true };
+  for (const h of K.haftalar(ay)) {
+    const o = (veri.onaylar || {})[`hafta-${h.no}`];
+    ws.addRow([`${h.no}. hafta`, `${h.bas}–${h.son} ${C.ayEtiketi(ay)}`, "",
+      o ? `${o.onaylayan} · ${o.zaman}${o.notu ? " · " + o.notu : ""}` : "—"]);
+  }
+  const ao = (veri.onaylar || {})["ay-0"];
+  ws.addRow(["YETKİLİ BÖLÜM SORUMLUSU (aylık)", "", "", ao ? `${ao.onaylayan} · ${ao.zaman}${ao.notu ? " · " + ao.notu : ""}` : "—"])
+    .getCell(1).font = { bold: true };
+  ws.addRow([]);
+  ws.addRow(["UYGUNSUZLUKLAR (önlem planı)"]).getCell(1).font = { bold: true };
+  for (const m of F.maddeler) {
+    for (const [g, r] of Object.entries((veri.isaret || {})[m.k] || {})) {
+      if (r.durum === "uygunsuz") ws.addRow([`${g} ${C.ayEtiketi(ay)}`, `${m.k.toUpperCase()} — ${r.aciklama || ""}`, "", r.isaretleyen || ""]);
+    }
+  }
+  ws.addRow([]);
+  const notRow = ws.addRow(["NOT: " + F.not]);
+  ws.mergeCells(notRow.number, 1, notRow.number, sonSutun);
+  notRow.getCell(1).alignment = WRAP;
+  notRow.height = 48;
+  ws.getColumn(1).width = 12;
+  ws.getColumn(2).width = 60;
+  ws.getColumn(3).width = 4;
+  for (let c = 4; c <= sonSutun; c++) ws.getColumn(c).width = 4;
+  ws.views = [{ state: "frozen", xSplit: 3, ySplit: 3 }];
+  return wb.xlsx.writeBuffer();
+}
+
 module.exports = {
   generateOneriExcel, generateKaizenExcel, generate5sExcel, generate5sFormExcel,
-  generateAksiyonExcel, generatePuanExcel, generateOdulExcel, generateTrendExcel,
+  generateAksiyonExcel, generatePuanExcel, generateOdulExcel, generateTrendExcel, generateKontrolExcel,
 };

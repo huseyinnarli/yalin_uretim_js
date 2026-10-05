@@ -8,7 +8,10 @@ const C = require("../cekirdek");
 const X = require("../excel");
 const { sorgu, tek, calistir, transaction, js, aksiyonRow } = require("../db");
 const I = require("../isim");
-const { sar, flash, yetkiGerek, denetciRequired, alan, kisiOku, guvenliYol, hizLimitAsildi, dosyaYukleyici } = require("../web");
+const K = require("../kontrol");
+const {
+  sar, flash, yetkiGerek, denetciRequired, girisRequired, alan, kisiOku, guvenliYol, hizLimitAsildi, dosyaYukleyici,
+} = require("../web");
 const { xlsxGonder } = require("./genel");
 
 function zipGonder(res, ad, ekleyici) {
@@ -58,10 +61,12 @@ module.exports = function register(app) {
     for (const a of await sorgu("SELECT bolum_id FROM aksiyonlar WHERE durum = 'acik'")) {
       acikAks[a.bolum_id] = (acikAks[a.bolum_id] || 0) + 1;
     }
+    const kontrolAyi = S.bugunIso().slice(0, 7);
+    const kontrol = await C.kontrolOzet(kontrolAyi);
     const bolumler = [];
     for (const b of await C.loadBolumler()) {
       bolumler.push({ ...b, _son: await C.sonDenetim(b.id), _personel: bolumPersonelSayisi(b),
-        _acik_aksiyon: acikAks[b.id] || 0 });
+        _acik_aksiyon: acikAks[b.id] || 0, _kontrol: kontrol.ozet[b.id] || null });
     }
     const islenen = await C.odulIslenenler();
     const sonucTur = await C.besSSonSonucTur();
@@ -90,7 +95,7 @@ module.exports = function register(app) {
         ? a.bolum_ad.localeCompare(b.bolum_ad, "tr") : (a.benim ? -1 : 1));
     }
     res.render("5s_liste", {
-      title: "5S", bolumler, bugun: S.bugunIso(),
+      title: "5S", bolumler, bugun: S.bugunIso(), kontrol_gecen: kontrol.gecen, kontrol_ay: kontrolAyi,
       sonuc_tur: sonucTur, sonuc_siralama: sonucSiralama,
       sonuc_tur_adi: sonucTur ? await C.besSTurAdi(sonucTur) : "",
       sonuc_islendi: islenen.includes(sonucTur),
@@ -549,6 +554,107 @@ module.exports = function register(app) {
       kriter_puan: P.BESS_KRITER_PUAN, gosterilen_tarih: C.denetimTarihi(d),
       aksiyon_map: aksiyonMap, geri, kriter_puanlari: C.denetimKriterPuanlari(d),
     });
+  }));
+
+  // ----- 5S Periyodik Kontrol Formu (T-FR016) -----
+  // Görüntüleme herkese açık; doldurma: bölümün ekip lideri (denetmen) veya denetim yetkili yönetici;
+  // haftalık/aylık kontrol imzası: denetim yetkili yönetici veya bölümün kendi lideri olmayan denetmen.
+  function kontrolAyiOku(req) {
+    const ay = String((req.query && req.query.ay) || (req.body && req.body.ay) || "");
+    return K.ayCoz(ay) ? ay : S.bugunIso().slice(0, 7);
+  }
+  // Ayın işaretlenebilir son günü (bugünden ileri gün işaretlenemez)
+  function kontrolSonGun(ay) {
+    const bugun = S.bugunIso();
+    if (bugun.slice(0, 7) === ay) return parseInt(bugun.slice(8, 10), 10);
+    return ay < bugun.slice(0, 7) ? K.ayGunSayisi(ay) : 0;
+  }
+  function kontrolKim(req) {
+    if (req.denetmen) return req.denetmen.ad;
+    return req.yetkiBilgi.ana ? "Ana Yönetici" : (req.yetkiBilgi.ad || "Yönetici");
+  }
+
+  app.get("/5s/bolum/:bid/kontrol", sar(async (req, res) => {
+    const b = await C.bolumById(req.params.bid);
+    if (!b) return res.status(404).send("Bölüm bulunamadı.");
+    const ay = kontrolAyiOku(req);
+    const sonGun = kontrolSonGun(ay);
+    let gun = parseInt(req.query.gun, 10);
+    if (!(gun >= 1 && gun <= sonGun)) gun = sonGun;
+    res.render("5s_kontrol", {
+      title: `Kontrol Formu · ${b.ad}`, b, ay, ay_etiketi: C.ayEtiketi(ay),
+      onceki_ay: K.ayKaydir(ay, -1), sonraki_ay: K.ayKaydir(ay, 1),
+      gun_sayisi: K.ayGunSayisi(ay), son_gun: sonGun, gun,
+      form: K.KONTROL_FORMU, periyotlar: K.PERIYOTLAR, haftalar: K.haftalar(ay),
+      haftaNo: (g) => K.haftaNo(ay, g), haftaGunu: (g) => K.haftaGunu(ay, g),
+      ...(await C.kontrolAy(b.id, ay)),
+      doldurabilir: sonGun > 0 && C.kontrolDoldurabilir(b, req.yetkiler, req.denetmen),
+      imzalayabilir: C.kontrolImzalayabilir(b, req.yetkiler, req.denetmen),
+    });
+  }));
+
+  app.post("/5s/bolum/:bid/kontrol", girisRequired, sar(async (req, res) => {
+    const b = await C.bolumById(req.params.bid);
+    if (!b) return res.status(404).send("Bölüm bulunamadı.");
+    const ay = kontrolAyiOku(req);
+    const gun = parseInt(req.body.gun, 10);
+    const geri = `/5s/bolum/${b.id}/kontrol?ay=${ay}&gun=${gun || ""}`;
+    if (!C.kontrolDoldurabilir(b, req.yetkiler, req.denetmen)) {
+      flash(req, "error", "Bu bölümün kontrol formunu yalnızca bölümün ekip lideri (denetmen girişiyle) doldurabilir.");
+      return res.redirect(geri);
+    }
+    if (!(gun >= 1 && gun <= kontrolSonGun(ay))) {
+      flash(req, "error", "Geçersiz gün — ileri tarihli kontrol işaretlenemez.");
+      return res.redirect(geri);
+    }
+    const isaretler = [];
+    for (const m of K.KONTROL_FORMU.maddeler) {
+      const durum = req.body["durum_" + m.k];
+      if (durum !== "uygun" && durum !== "uygunsuz") continue;
+      isaretler.push({
+        madde: m.k, durum,
+        aciklama: String(req.body["aciklama_" + m.k] || "").trim().slice(0, S.ALAN_MAX),
+        aksiyon: Boolean(req.body["aksiyon_" + m.k]),
+        termin: String(req.body["termin_" + m.k] || "").trim().slice(0, 10),
+      });
+    }
+    if (!isaretler.length) {
+      flash(req, "error", "İşaretlenmiş madde yok.");
+      return res.redirect(geri);
+    }
+    if (isaretler.some((x) => x.durum === "uygunsuz" && !x.aciklama)) {
+      flash(req, "error", "\"Uygun Değil\" işaretlenen her madde için açıklama (tespit) yazın.");
+      return res.redirect(geri);
+    }
+    const { kaydedilen, aksiyon } = await C.kontrolKaydet(b, ay, gun, isaretler, kontrolKim(req));
+    flash(req, "success", `${b.ad} — ${gun} ${C.ayEtiketi(ay)} kontrolü kaydedildi (${kaydedilen} madde` +
+      (aksiyon ? `, ${aksiyon} aksiyon açıldı)` : ")"));
+    res.redirect(geri);
+  }));
+
+  app.post("/5s/bolum/:bid/kontrol/imza", girisRequired, sar(async (req, res) => {
+    const b = await C.bolumById(req.params.bid);
+    if (!b) return res.status(404).send("Bölüm bulunamadı.");
+    const ay = kontrolAyiOku(req);
+    const geri = `/5s/bolum/${b.id}/kontrol?ay=${ay}#imzalar`;
+    if (!C.kontrolImzalayabilir(b, req.yetkiler, req.denetmen)) {
+      flash(req, "error", "Kontrol imzasını bölümün ekip lideri dışındaki bir denetmen veya yetkili yönetici atar.");
+      return res.redirect(geri);
+    }
+    const tip = req.body.tip === "ay" ? "ay" : "hafta";
+    const sira = tip === "ay" ? 0 : parseInt(req.body.sira, 10);
+    if (tip === "hafta" && !K.haftalar(ay).some((h) => h.no === sira)) return res.status(400).send("Geçersiz hafta.");
+    await C.kontrolImzala(b.id, ay, tip, sira, kontrolKim(req), alan(req, "notu"));
+    flash(req, "success", `${b.ad} — ${tip === "ay" ? "aylık kontrol" : sira + ". hafta kontrolü"} imzalandı.`);
+    res.redirect(geri);
+  }));
+
+  app.get("/5s/bolum/:bid/kontrol/excel", girisRequired, sar(async (req, res) => {
+    const b = await C.bolumById(req.params.bid);
+    if (!b) return res.status(404).send("Bölüm bulunamadı.");
+    const ay = kontrolAyiOku(req);
+    const buf = await X.generateKontrolExcel(b, ay, await C.kontrolAy(b.id, ay));
+    xlsxGonder(res, buf, `T-FR016_${b.ad}_${ay}.xlsx`.replace(/\s+/g, "_"));
   }));
 
   // ----- Denetim revize: yapılmış denetimin düzeltilmesi ('bes_revize' yetkisi) -----

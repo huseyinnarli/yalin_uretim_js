@@ -556,6 +556,44 @@ async function main() {
     html = await getText(`/5s/bolum/${bidler[0]}`);
     ok("bölüm sayfasında trend + S kırılımı", html.includes("5S Skor Trendi") && html.includes("S1 <small>") && html.includes("Personel"));
 
+    // --- 5S Periyodik Kontrol Formu (T-FR016) ---
+    const trBugun = new Date().toLocaleString("sv-SE", { timeZone: "Europe/Istanbul" }).slice(0, 10);
+    const kAy = trBugun.slice(0, 7), kGun = String(parseInt(trBugun.slice(8, 10), 10));
+    const [[aliBolum]] = await db.query("SELECT id FROM bolumler WHERE sorumlu = 'Ali Test'");
+    const kUrl = `/5s/bolum/${aliBolum.id}/kontrol`;
+    await get("/yonetici/cikis");
+    r = await get(kUrl);
+    ok("kontrol formu girişsiz görüntülenebiliyor", r.status === 200);
+    csrf = await girisYap("deniz123"); // bölüm lideri olmayan denetmen
+    r = await post(kUrl, { csrf_token: csrf, ay: kAy, gun: kGun, durum_g1: "uygun" });
+    let [[kSay]] = await db.query("SELECT COUNT(*) AS n FROM kontrol_kayitlari");
+    ok("lider olmayan denetmen formu dolduramaz", kSay.n === 0);
+    r = await post(kUrl + "/imza", { csrf_token: csrf, ay: kAy, tip: "hafta", sira: "1" });
+    const [[imz]] = await db.query("SELECT onaylayan FROM kontrol_onaylari WHERE tip = 'hafta' AND sira = 1");
+    ok("lider olmayan denetmen haftalık kontrolü imzalayabilir", imz && imz.onaylayan === "Deniz Denetmen");
+    csrf = await girisYap("alitest99"); // bölümün ekip lideri
+    html = await getText("/gorevlerim");
+    ok("görevlerimde bugünkü kontrol formu", html.includes("Bugünkü periyodik kontrol"));
+    r = await post(kUrl, { csrf_token: csrf, ay: kAy, gun: kGun, durum_g1: "uygun", durum_g2: "uygunsuz" });
+    [[kSay]] = await db.query("SELECT COUNT(*) AS n FROM kontrol_kayitlari");
+    ok("uygun değil açıklamasız kaydedilmedi", kSay.n === 0);
+    const kForm = { csrf_token: csrf, ay: kAy, gun: kGun, durum_g2: "uygunsuz",
+      aciklama_g2: "Acil stop butonu çalışmıyor", aksiyon_g2: "1", termin_g2: "2099-01-01", durum_h1: "uygun" };
+    for (const k of ["g1", "g3", "g4", "g5", "g6", "g7", "g8", "g9", "g10"]) kForm["durum_" + k] = "uygun";
+    r = await post(kUrl, kForm);
+    [[kSay]] = await db.query("SELECT COUNT(*) AS n FROM kontrol_kayitlari WHERE ay = ?", [kAy]);
+    ok("lider formu kaydetti (11 madde)", kSay.n === 11, "kayıt: " + kSay.n);
+    const [[kAks]] = await db.query("SELECT a.aksiyon, a.durum FROM kontrol_kayitlari k JOIN aksiyonlar a ON a.id = k.aksiyon_id WHERE k.madde = 'g2'");
+    ok("uygunsuzluktan aksiyon açıldı", kAks && kAks.durum === "acik" && kAks.aksiyon.includes("Acil stop"));
+    r = await post(kUrl, { csrf_token: csrf, ay: kAy, gun: "31", durum_g1: "uygun" });
+    ok("ileri tarih işaretlenemez (ayın 31'i bugün değilse)", kGun === "31" || konum(r).includes("gun=31"));
+    html = await getText(kUrl);
+    ok("aylık tabloda işaretler görünüyor", html.includes("kt-ok") && html.includes("kt-x") && html.includes("Acil stop"));
+    r = await get(kUrl + "/excel?ay=" + kAy);
+    ok("kontrol formu Excel", r.status === 200 && (r.headers.get("content-type") || "").includes("spreadsheet"));
+    html = await getText("/5s");
+    ok("bölümler listesinde bu ay kontrol sütunu", html.includes("Bu Ay Kontrol") && html.includes("1/" + kGun + " gün"));
+
     await db.end();
   } finally {
     srv.kill();

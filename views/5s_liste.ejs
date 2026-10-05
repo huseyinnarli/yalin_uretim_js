@@ -81,7 +81,8 @@
     <div class="table-wrap">
     <table class="data-table bolum-tablo">
         <thead>
-            <tr><th>Bölüm</th><th>Ekip Lideri</th><th>Personel</th><th>Son Skor</th><th>Son Denetim</th><th>Açık Aksiyon</th><th></th></tr>
+            <tr><th>Bölüm</th><th>Ekip Lideri</th><th>Personel</th><th>Son Skor</th><th>Son Denetim</th><th>Açık Aksiyon</th>
+                <th title="T-FR016 bu ay: günlük maddeleri tam işaretlenen gün / geçen gün">Bu Ay Kontrol</th><th></th></tr>
         </thead>
         <tbody>
             <% for (const b of bolumler) { %>
@@ -99,6 +100,12 @@
                 <td data-label="Açık Aksiyon">
                     <% if (b._acik_aksiyon) { %><a class="aksiyon-rozet acik" href="/5s/aksiyonlar">⚑ <%= b._acik_aksiyon %> açık</a>
                     <% } else { %><span class="bos-not">—</span><% } %>
+                </td>
+                <td class="nowrap" data-label="Bu Ay Kontrol">
+                    <% const k = b._kontrol || { tam_gun: 0, uygunsuz: 0 }; %>
+                    <a class="btn-mini <%= kontrol_gecen && k.tam_gun >= kontrol_gecen ? 'onay' : 'edit' %>" href="/5s/bolum/<%= b.id %>/kontrol"
+                       title="Kontrol formunu aç">✅ <%= k.tam_gun %>/<%= kontrol_gecen %> gün</a>
+                    <% if (k.uygunsuz) { %><span class="aksiyon-rozet acik" title="Bu ay uygun değil işaretlenen madde">⚠ <%= k.uygunsuz %></span><% } %>
                 </td>
                 <td class="nowrap" data-label="">
                     <a class="btn-mini eval" href="/5s/bolum/<%= b.id %>">Detay →</a>

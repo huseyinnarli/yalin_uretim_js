@@ -862,3 +862,38 @@ div.hub-box { cursor: default; }
 .btn.devre-disi, .btn.disabled { opacity: .6; cursor: not-allowed; }
 .foto-mevcut { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; font-size: .78rem; }
 .bolum-tablo td { vertical-align: middle; }
+
+/* 5S Periyodik Kontrol Formu (T-FR016) */
+.kontrol-doldur { margin-bottom: 20px; }
+.kontrol-grup { margin: 16px 0 6px; color: var(--primary); border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.kontrol-madde { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 14px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.km-metin { font-size: .92rem; }
+.km-kod { display: inline-block; font-family: monospace; font-size: .75rem; background: #eef1f5; border-radius: 4px; padding: 1px 5px; color: var(--muted); }
+.km-secim { display: flex; gap: 8px; align-items: flex-start; white-space: nowrap; }
+.km-secim label { border: 1px solid var(--line); border-radius: 8px; padding: 5px 10px; cursor: pointer; font-weight: 600; font-size: .85rem; }
+.km-uygun:has(input:checked) { background: #e4f6ec; border-color: #7cc79b; color: #1e6b43; }
+.km-uygunsuz:has(input:checked) { background: #fcebea; border-color: #e08c84; color: #a4322a; }
+.km-detay { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.km-detay input[type=text] { flex: 1 1 260px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.km-detay input[type=date] { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.km-aksiyon { font-size: .85rem; white-space: nowrap; }
+@media (max-width: 640px) { .kontrol-madde { grid-template-columns: 1fr; } }
+.kontrol-tablo { min-width: 0; font-size: .8rem; }
+.kontrol-tablo th, .kontrol-tablo td { padding: 4px 3px; text-align: center; }
+.kontrol-tablo .kt-madde { text-align: left; min-width: 240px; max-width: 320px; white-space: normal; }
+.kt-hucre { width: 22px; font-weight: 700; }
+.kt-ok { background: #e4f6ec; color: #1e6b43; }
+.kt-x { background: #fcebea; color: #a4322a; }
+.kt-pazar { background: #f4f5f7; }
+.kt-secili { outline: 2px solid var(--primary); }
+.kt-h td.kt-madde, .kt-a td.kt-madde { font-style: italic; }
+.kt-imza td { font-size: .72rem; color: var(--muted); }
+.imza-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.imza-kutu { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; font-size: .88rem; }
+.imza-kutu.imzali { border-color: #b7e4c9; background: #f3fbf6; }
+.imza-kutu.aylik { border-style: dashed; }
+.imza-kutu input[type=text] { width: 100%; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 4px; }
+.kontrol-not { margin-top: 20px; }
+.km-termin { flex: 0 0 150px; }
+.km-termin input { width: 150px !important; flex: none !important; }
+.degerlendir-kart input[type=text] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }

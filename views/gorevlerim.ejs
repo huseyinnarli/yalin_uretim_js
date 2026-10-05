@@ -7,6 +7,18 @@
 </div>
 
 <% if (benim) { %>
+<% if (benim.kontroller.length) { %>
+<h2 class="bolum-baslik">✅ Bugünkü periyodik kontrol (T-FR016)</h2>
+<div class="gorev-liste">
+    <% for (const k of benim.kontroller) { %>
+    <div class="gorev-satir">
+        <span class="gs-govde"><strong><%= k.ad %></strong>
+            <small>Günlük maddeler: <%= k.isaretli %>/<%= k.toplam %> işaretli<%= k.isaretli >= k.toplam ? ' ✔' : '' %></small></span>
+        <a class="btn-mini <%= k.isaretli >= k.toplam ? 'onay' : 'edit' %>" href="/5s/bolum/<%= k.id %>/kontrol">✅ Formu Aç</a>
+    </div>
+    <% } %>
+</div>
+<% } %>
 <h2 class="bolum-baslik">✏ Düzeltmesi bana atanan kayıtlar <span class="rozet-acik"><%= benim.revizeler.length %></span></h2>
 <% if (benim.revizeler.length) { %>
 <div class="gorev-liste">

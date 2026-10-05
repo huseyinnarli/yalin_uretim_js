@@ -189,7 +189,7 @@
         <% if (tip == 'oneri') { %>
         <p class="bos-not">İsterseniz uygulayıp kaizene dönüştürecek kişiyi şimdi atayın:</p>
         <select name="gorev_denetmen"><option value="">— görev atama (isteğe bağlı) —</option><%- denetmenSecim() %></select>
-        <input type="date" name="gorev_termin" title="Termin (isteğe bağlı)">
+        <input type="date" name="gorev_termin" title="Termin (isteğe bağlı)" placeholder="Termin (isteğe bağlı)">
         <textarea name="gorev_notu" rows="2" placeholder="Görev notu (isteğe bağlı)"></textarea>
         <% } else { %>
         <p class="bos-not">Onaylanınca form numarası atanır; ardından puanlanabilir.</p>
@@ -231,7 +231,7 @@
         <h3>📌 <%= r.gorev_atanan_id ? 'Görevi Değiştir' : 'Uygulama Görevi Ata' %></h3>
         <p class="bos-not">Atanan kişi öneriyi uygular ve kaizene dönüştürür.</p>
         <select name="gorev_denetmen" required><option value="">— denetmen seçin —</option><%- denetmenSecim(null, r.gorev_atanan_id) %></select>
-        <input type="date" name="gorev_termin" value="<%= r.gorev_termin || '' %>" title="Termin (isteğe bağlı)">
+        <input type="date" name="gorev_termin" value="<%= r.gorev_termin || '' %>" title="Termin (isteğe bağlı)" placeholder="Termin (isteğe bağlı)">
         <textarea name="gorev_notu" rows="2" placeholder="Görev notu (isteğe bağlı)"><%= r.gorev_notu || '' %></textarea>
         <button type="submit" class="btn primary">📌 Kaydet</button>
         <% if (r.gorev_atanan_id) { %>
