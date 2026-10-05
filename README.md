@@ -161,6 +161,9 @@ npm start
 - Bu bilgisayar: **http://127.0.0.1:5000**
 - Aynı ağdaki cihazlar: **http://<PC-IP>:5000** (uygulama `0.0.0.0` dinler)
 
+> **Sadece tasarımı çevrimiçi görmek için** (ör. Render): depodaki `Dockerfile` uygulamayı kendi içindeki geçici
+> MariaDB ve örnek veriyle açar — harici veritabanı gerekmez. Ayrıntı: DAGITIM.md §11.
+
 ### Veritabanı bağlantısı
 
 Bağlantı ayarları öncelik sırasıyla **ortam değişkenlerinden** veya

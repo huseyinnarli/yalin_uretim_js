@@ -897,3 +897,5 @@ div.hub-box { cursor: default; }
 .km-termin { flex: 0 0 150px; }
 .km-termin input { width: 150px !important; flex: none !important; }
 .degerlendir-kart input[type=text] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+.demo-serit { background: #fff5e0; border-bottom: 1px solid #f0dca6; color: #6b4e00; padding: 8px 20px; font-size: .85rem; text-align: center; }
+.demo-serit code { background: #fff; border: 1px solid #f0dca6; border-radius: 4px; padding: 0 4px; }

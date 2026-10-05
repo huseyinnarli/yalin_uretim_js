@@ -56,6 +56,11 @@
   bölümün ekip lideri doldurur; uygunsuzluktan doğrudan 5S aksiyonu açılır; haftalık (grup lideri) ve aylık
   (bölüm sorumlusu) kontrol imzası; kâğıt düzeninde Excel. Herkes görüntüleyebilir.
 
+**Demo (tasarım önizleme)**
+- `Dockerfile` + `scripts/demo-baslat.sh` + `scripts/demo-veri.js`: Render'da harici veritabanı olmadan, içinde geçici
+  MariaDB ve örnek veriyle çalışan demo. Canlı kurulumu etkilemez (bkz. DAGITIM.md §11). Uygulama MariaDB 10.11'de
+  de test edildi (122/122).
+
 ### Veritabanı değişiklikleri (otomatik, yalnızca EKLEME)
 
 Uygulama açılışında `db.js:init()` eksik olanları ekler; **mevcut satır ve kolonlara dokunulmaz**, silme/yeniden

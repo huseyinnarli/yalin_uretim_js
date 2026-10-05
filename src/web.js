@@ -118,6 +118,7 @@ const ortakLocals = sar(async (req, res, next) => {
   res.locals.girisli = req.girisli;
   res.locals.gorev_sayisi = d ? await C.gorevSayisi(d.id) : 0;
   res.locals.csrf_token = req.session.csrf;
+  res.locals.demo = process.env.YALIN_DEMO === "1"; // tasarım önizleme kabı (Dockerfile)
   res.locals.marka_adi = S.MARKA_ADI;
   res.locals.marka_logo = C.logoBul();
   res.locals.trdate = C.trdate;

@@ -35,6 +35,11 @@
         </nav>
     </header>
 
+    <% if (demo) { %>
+    <div class="demo-serit">🧪 <strong>Demo sürümü</strong> — örnek verilerle tasarım önizlemesi; her yeniden başlatmada sıfırlanır.
+        Giriş şifreleri: ana yönetici <code>admin123</code> · ek yönetici <code>zeynep1234</code> ·
+        denetmen <code>ali1234</code> (Abkant Pres lideri) · <code>mehmet1234</code></div>
+    <% } %>
     <main class="container">
         <% for (const [kategori, msg] of mesajlar) { %>
             <div class="flash <%= kategori %>"><%= msg %></div>

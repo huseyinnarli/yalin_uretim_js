@@ -13,6 +13,7 @@ güncelleme ve devreye alma kontrol listesi.
 | **A — Fabrika içi Windows PC** | Mevcut bir ofis PC'si, LAN | En hızlı yol; bu makinede zaten kurulu düzen (bkz. §4) |
 | **B — Linux sunucu (önerilen üretim)** | Şirket sunucusu veya bulut VM (Ubuntu LTS) | Servis yönetimi, yedek ve güncelleme en temiz burada (bkz. §5) |
 | **C — İnternete açık** | B üzerine reverse proxy + TLS | `https`/`proxy` bayrakları ŞART (bkz. §6) |
+| **D — Demo / tasarım önizleme** | Render (Docker) | Kendi içinde geçici MariaDB + örnek veri; gerçek veri YOK (bkz. §11) |
 
 Uygulama **tek Node.js süreci + MySQL** ister; konteyner, mesaj kuyruğu, önbellek sunucusu
 gibi ek bileşen gerekmez.
@@ -239,3 +240,24 @@ bir `mysqldump` alın.
 - [ ] Yedek klasörü farklı diske yönlendirildi; mysqldump cron'u kuruldu
 - [ ] Geri dönüş tatbikatı bir kez yapıldı
 - [ ] İnternet senaryosunda: `{"https":true,"proxy":true}` + reverse proxy + sertifika doğrulandı
+
+## 11. Senaryo D — Render'da demo (tasarım önizleme)
+
+Depodaki `Dockerfile` yalnızca **tasarımı çevrimiçi göstermek** içindir: uygulama, aynı kapta geçici bir
+**MariaDB** ve **örnek veri** (6 bölüm, 3 denetim turu, ~22 öneri, 5 kaizen, kontrol formu kayıtları) ile açılır.
+Harici veritabanı gerekmez. Veriler kalıcı değildir — kap her yeniden başladığında (deploy, uyku sonrası) demo
+sıfırdan kurulur. Sayfanın üstünde demo şeridi ve giriş şifreleri görünür.
+
+**Render'da kurulum:** New → **Web Service** → `huseyinnarli/yalin_uretim_js` → **Language: Docker** →
+Instance: Free → Create. (Var olan "Node" servisi Docker'a çevrilemez; yeni servis açıp eskisini silin.)
+Ortam değişkeni girmeye gerek yoktur; `PORT`'u Render verir.
+
+**Demo girişleri:** ana yönetici `admin123` · ek yönetici `zeynep1234` · denetmen `ali1234` (Abkant Pres lideri),
+`mehmet1234`, `ayse1234`, `murat1234`.
+
+**Bellek:** MariaDB düşük bellek ayarlarıyla açılır (`scripts/demo-baslat.sh`); uygulama + veritabanı ≈ 210 MB.
+
+**Yerelde deneme (Docker olmadan):** MariaDB kurulu bir Linux'ta `YALIN_DEMO=1 PORT=5030 sh scripts/demo-baslat.sh`.
+`scripts/demo-veri.js` yalnızca BOŞ veritabanına yazar; içinde bölüm kaydı olan bir veritabanına dokunmaz.
+
+> Canlı (fabrika) kurulumda `Dockerfile` ve `demo-*` betikleri kullanılmaz.

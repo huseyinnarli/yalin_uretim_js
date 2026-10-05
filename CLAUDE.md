@@ -30,6 +30,8 @@ npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
 npm test         # 122 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
+# Demo (Render, tasarım önizleme): Dockerfile → scripts/demo-baslat.sh (geçici MariaDB) → scripts/demo-veri.js
+# (yalnız BOŞ veritabanına örnek veri). YALIN_DEMO=1 üstte demo şeridi gösterir. Canlıda kullanılmaz.
 ```
 
 Sözdizimi hızlı kontrol: `node --check <dosya>`. Önizleme: kök `Projeler/.claude/launch.json`
