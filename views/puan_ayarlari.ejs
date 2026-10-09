@@ -1,6 +1,8 @@
 <%- include('partials/header') %>
-<% const fk = form.kural, fo = form.odul; %>
+<% const fk = form.kural, fo = form.odul;
+   const sabitMod = fk.oneri_mod === 'sabit'; %>
 
+<div class="ayar-sayfa">
 <div class="list-head">
     <h1 class="page-title">🏆 Puan ve Ödül Ayarları</h1>
     <div class="list-actions">
@@ -15,83 +17,79 @@
 <div class="uyari-kutu ayar-hata"><% for (const h of hatalar) { %><div>⚠ <%= h %></div><% } %></div>
 <% } %>
 
-<form method="post" action="/yonetici/puan-ayarlari" class="ayar-form" autocomplete="off">
+<form method="post" action="/yonetici/puan-ayarlari" class="form-card ayar-form" autocomplete="off">
     <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
 
-    <div class="ayar-grid">
-        <!-- Ödül -->
-        <section class="form-card ayar-kart">
-            <h3 class="ayar-baslik">🎁 Ödül</h3>
-            <div class="field">
-                <label for="esik">Ödül eşiği <small>(net puan)</small></label>
-                <input type="number" id="esik" name="esik" min="1" step="1" value="<%= fo.esik ?? '' %>" required>
-                <small class="bos-not">Net puanı bu değere ulaşana ödül verilebilir; ödülde bu kadar puan düşülür.
-                    Daha önce verilmiş ödüllerde düşülen puan değişmez.</small>
-            </div>
-            <label class="ayar-etiket">5S turu ödülü <small>(bölüm ekibindeki her kişiye)</small></label>
-            <div class="row ayar-uclu">
-                <% [['bes1', '1.'], ['bes2', '2.'], ['bes3', '3.']].forEach(function (b, i) { %>
-                <div class="field small"><label for="<%= b[0] %>"><%= b[1] %> bölüm</label>
-                    <input type="number" id="<%= b[0] %>" name="<%= b[0] %>" min="0" step="1" value="<%= fo.bes[i] ?? '' %>" required></div>
-                <% }); %>
-            </div>
-            <small class="bos-not">Bundan sonra işlenecek turlara uygulanır; ödülü işlenmiş turlar değişmez.</small>
-        </section>
-
-        <!-- Öneri -->
-        <section class="form-card ayar-kart">
-            <h3 class="ayar-baslik">💡 Öneri değerlendirme</h3>
-            <label class="radio-kart <%= fk.oneri_mod !== 'sabit' ? 'secili' : '' %>">
-                <input type="radio" name="oneri_mod" value="tablo" <%= fk.oneri_mod !== 'sabit' ? 'checked' : '' %>>
-                <span><strong>Puanlama tablosuyla</strong>
-                    <small>Öneri, kaizen gibi puanlama tablosuyla puanlanır; sahibine puanın belirlenen yüzdesi yazılır.</small>
-                    <span class="satir-ici">Sahibine yazılan pay: %
-                        <input type="number" name="oneri_oran" min="0" max="100" step="0.5" value="<%= fk.oneri_oran ?? '' %>" required></span>
-                </span>
-            </label>
-            <label class="radio-kart <%= fk.oneri_mod === 'sabit' ? 'secili' : '' %>">
-                <input type="radio" name="oneri_mod" value="sabit" <%= fk.oneri_mod === 'sabit' ? 'checked' : '' %>>
-                <span><strong>Onaylanınca sabit puan</strong>
-                    <small>Puanlama tablosu kullanılmaz; öneri onaylandığı an sahibine sabit puan yazılır.</small>
-                    <span class="satir-ici">Sahibine
-                        <input type="number" name="oneri_sabit" min="0" max="1000" step="0.5" value="<%= fk.oneri_sabit ?? '' %>" required> puan</span>
-                </span>
-            </label>
-        </section>
-
-        <!-- Kaizen -->
-        <section class="form-card ayar-kart">
-            <h3 class="ayar-baslik">🔧 Kaizen</h3>
-            <p class="bos-not">Kaizen her zaman puanlama tablosuyla puanlanır. Puanın yüzdesi:</p>
-            <div class="row ayar-uclu">
-                <div class="field small"><label for="kaizen_lider_oran">Lider %</label>
-                    <input type="number" id="kaizen_lider_oran" name="kaizen_lider_oran" min="0" max="100" step="0.5" value="<%= fk.kaizen_lider_oran ?? '' %>" required></div>
-                <div class="field small"><label for="kaizen_uye_oran">Her üye %</label>
-                    <input type="number" id="kaizen_uye_oran" name="kaizen_uye_oran" min="0" max="100" step="0.5" value="<%= fk.kaizen_uye_oran ?? '' %>" required></div>
-            </div>
-            <small class="bos-not">Örnek: 100 puanlık kaizende lider <%= puanfmt(fk.kaizen_lider_oran || 0) %>, her üye <%= puanfmt(fk.kaizen_uye_oran || 0) %> puan alır.</small>
-        </section>
-
-        <!-- Uygulama -->
-        <section class="form-card ayar-kart genis">
-            <h3 class="ayar-baslik">📅 Öneri ve kaizen kuralı hangi kayıtlara uygulansın?</h3>
-            <div class="ayar-ikili">
-            <label class="radio-kart <%= !form.geriyeDonuk ? 'secili' : '' %>">
-                <input type="radio" name="uygulama" value="ileri" <%= !form.geriyeDonuk ? 'checked' : '' %>>
-                <span><strong>Bugünden itibaren onaylananlara</strong> <span class="durum-badge onay">önerilen</span>
-                    <small>Daha önce onaylanmış kayıtların puanı değişmez; dağıtılmış puanlar korunur.</small></span>
-            </label>
-            <label class="radio-kart uyari <%= form.geriyeDonuk ? 'secili' : '' %>">
-                <input type="radio" name="uygulama" value="geri" <%= form.geriyeDonuk ? 'checked' : '' %>>
-                <span><strong>Tüm kayıtlara (geriye dönük)</strong>
-                    <small>Bütün öneri ve kaizen puanları yeni kurala göre yeniden hesaplanır; kural geçmişi silinir.
-                        Ödül verilmiş kişilerin net puanı düşebilir — önce önizleyin.</small></span>
-            </label>
-            </div>
-        </section>
+    <h3 class="ayar-baslik">🎁 Ödül</h3>
+    <div class="ayar-satir">
+        <div class="ayar-ad"><label for="esik">Ödül eşiği</label>
+            <small>Net puanı bu değere ulaşan kişiye ödül verilebilir; ödülde bu kadar puan düşülür.
+                Daha önce verilmiş ödüller değişmez.</small></div>
+        <div class="ayar-deger"><input type="number" id="esik" name="esik" min="1" step="1" value="<%= fo.esik ?? '' %>" required>
+            <span class="birim">puan</span></div>
+    </div>
+    <div class="ayar-satir">
+        <div class="ayar-ad"><span class="ayar-etiket">5S turu ödülü</span>
+            <small>Turda ilk 3 bölümün ekibindeki her kişiye. Bundan sonra işlenecek turlara uygulanır.</small></div>
+        <div class="ayar-deger ayar-uclu">
+            <% [['bes1', '1.'], ['bes2', '2.'], ['bes3', '3.']].forEach(function (b, i) { %>
+            <label class="kucuk-etiket"><%= b[1] %>
+                <input type="number" name="<%= b[0] %>" min="0" step="1" value="<%= fo.bes[i] ?? '' %>" required
+                       aria-label="5S <%= b[1] %> bölüm ödülü"></label>
+            <% }); %>
+            <span class="birim">puan</span>
+        </div>
     </div>
 
-    <div class="form-actions">
+    <h3 class="ayar-baslik">💡 Öneri</h3>
+    <div class="ayar-satir">
+        <div class="ayar-ad"><span class="ayar-etiket">Değerlendirme şekli</span>
+            <small>Puanlama tablosu: öneri kaizen gibi puanlanır. Sabit puan: tablo kullanılmaz, öneri onaylanınca puan yazılır.</small></div>
+        <div class="ayar-deger">
+            <div class="segment" role="radiogroup" aria-label="Öneri değerlendirme şekli">
+                <label><input type="radio" name="oneri_mod" value="tablo" <%= !sabitMod ? 'checked' : '' %>> Puanlama tablosu</label>
+                <label><input type="radio" name="oneri_mod" value="sabit" <%= sabitMod ? 'checked' : '' %>> Sabit puan</label>
+            </div>
+        </div>
+    </div>
+    <div class="ayar-satir" data-oneri-mod="tablo"<%= sabitMod ? ' hidden' : '' %>>
+        <div class="ayar-ad"><label for="oneri_oran">Sahibine yazılan pay</label>
+            <small>Puanlama tablosundaki puanın yüzdesi. Örnek: 80 puanlık öneri × %<%= puanfmt(fk.oneri_oran || 0) %> = <%= puanfmt(80 * (fk.oneri_oran || 0) / 100) %> puan.</small></div>
+        <div class="ayar-deger"><span class="birim">%</span>
+            <input type="number" id="oneri_oran" name="oneri_oran" min="0" max="100" step="0.5" value="<%= fk.oneri_oran ?? '' %>"></div>
+    </div>
+    <div class="ayar-satir" data-oneri-mod="sabit"<%= !sabitMod ? ' hidden' : '' %>>
+        <div class="ayar-ad"><label for="oneri_sabit">Onaylanınca yazılan puan</label>
+            <small>Öneri onaylandığı an sahibine yazılır; "Puanla" düğmesi görünmez.</small></div>
+        <div class="ayar-deger"><input type="number" id="oneri_sabit" name="oneri_sabit" min="0" max="1000" step="0.5" value="<%= fk.oneri_sabit ?? '' %>">
+            <span class="birim">puan</span></div>
+    </div>
+
+    <h3 class="ayar-baslik">🔧 Kaizen <small>(her zaman puanlama tablosuyla)</small></h3>
+    <div class="ayar-satir">
+        <div class="ayar-ad"><label for="kaizen_lider_oran">Lidere yazılan pay</label>
+            <small>Kaizen puanının yüzdesi.</small></div>
+        <div class="ayar-deger"><span class="birim">%</span>
+            <input type="number" id="kaizen_lider_oran" name="kaizen_lider_oran" min="0" max="100" step="0.5" value="<%= fk.kaizen_lider_oran ?? '' %>" required></div>
+    </div>
+    <div class="ayar-satir">
+        <div class="ayar-ad"><label for="kaizen_uye_oran">Her üyeye yazılan pay</label>
+            <small>Örnek: 100 puanlık kaizende lider <%= puanfmt(fk.kaizen_lider_oran || 0) %>, her üye <%= puanfmt(fk.kaizen_uye_oran || 0) %> puan alır.</small></div>
+        <div class="ayar-deger"><span class="birim">%</span>
+            <input type="number" id="kaizen_uye_oran" name="kaizen_uye_oran" min="0" max="100" step="0.5" value="<%= fk.kaizen_uye_oran ?? '' %>" required></div>
+    </div>
+
+    <h3 class="ayar-baslik">📅 Öneri ve kaizen değişikliği hangi kayıtlara uygulansın?</h3>
+    <div class="secenek-liste">
+        <label><input type="radio" name="uygulama" value="ileri" <%= !form.geriyeDonuk ? 'checked' : '' %>>
+            <span><strong>Bugünden itibaren onaylananlara <em>(önerilen)</em></strong>
+                <small>Daha önce onaylanmış kayıtların puanı değişmez.</small></span></label>
+        <label><input type="radio" name="uygulama" value="geri" <%= form.geriyeDonuk ? 'checked' : '' %>>
+            <span><strong>Tüm kayıtlara (geriye dönük)</strong>
+                <small class="uyari-yazi">Bütün öneri ve kaizen puanları yeniden hesaplanır; ödül almış kişilerin net puanı düşebilir. Önce önizleyin.</small></span></label>
+    </div>
+
+    <div class="ayar-butonlar">
         <button type="submit" name="islem" value="onizle" class="btn ghost">👁 Etkisini Önizle</button>
         <button type="submit" name="islem" value="kaydet" class="btn primary"
                 onclick="return confirm(this.dataset.onay)" data-onay="Puan ve ödül ayarları kaydedilecek. Devam?">💾 Kaydet</button>
@@ -110,13 +108,17 @@
     <% if (o.besDegisti) { %>5S tur ödülleri yalnız bundan sonra işlenecek turları etkiler; bu önizlemede görünmez.<% } %>
 </div>
 <div class="table-wrap">
-<table class="data-table onizleme-tablo">
-    <thead><tr><th></th><th>Öneri puanı</th><th>Kaizen puanı</th><th>5S puanı</th><th>Toplam kazanılan</th><th>Eşiği geçen kişi</th><th>Verilebilecek ödül</th></tr></thead>
+<table class="data-table mini-tablo onizleme-tablo">
+    <thead><tr><th>Toplam</th><th>Şu an</th><th>Yeni ayarla</th><th>Fark</th></tr></thead>
     <tbody>
-        <tr><td><strong>Şu an</strong></td><td><%= puanfmt(o.once.oneri) %></td><td><%= puanfmt(o.once.kaizen) %></td><td><%= puanfmt(o.once.bes) %></td>
-            <td><%= puanfmt(o.once.kazanilan) %></td><td><%= o.once.esigi_gecen %></td><td><%= o.once.olasi_odul %></td></tr>
-        <tr><td><strong>Yeni ayarla</strong></td><td><%= puanfmt(o.sonra.oneri) %></td><td><%= puanfmt(o.sonra.kaizen) %></td><td><%= puanfmt(o.sonra.bes) %></td>
-            <td><%= puanfmt(o.sonra.kazanilan) %></td><td><%= o.sonra.esigi_gecen %></td><td><%= o.sonra.olasi_odul %></td></tr>
+        <% [['Öneri puanı', 'oneri'], ['Kaizen puanı', 'kaizen'], ['5S puanı', 'bes'], ['Toplam kazanılan', 'kazanilan'],
+            ['Eşiği geçen kişi', 'esigi_gecen'], ['Verilebilecek ödül', 'olasi_odul']].forEach(function (m) {
+            const a = o.once[m[1]], b = o.sonra[m[1]], f = Math.round((b - a) * 100) / 100; %>
+        <tr><td data-label="Toplam"><strong><%= m[0] %></strong></td>
+            <td data-label="Şu an"><%= puanfmt(a) %></td>
+            <td data-label="Yeni ayarla"><%= puanfmt(b) %></td>
+            <td data-label="Fark" class="<%= f > 0 ? 's-iyi' : (f < 0 ? 's-dusuk' : '') %>"><%= f ? (f > 0 ? '+' : '') + puanfmt(f) : '—' %></td></tr>
+        <% }); %>
     </tbody>
 </table>
 </div>
@@ -127,9 +129,9 @@
     <thead><tr><th>Personel</th><th>Şu an net</th><th>Yeni net</th><th>Fark</th><th>Ödül durumu</th></tr></thead>
     <tbody>
         <% for (const k of o.degisen) { %>
-        <tr><td><%= k.ad %></td><td><%= puanfmt(k.once) %></td><td><%= puanfmt(k.sonra) %></td>
-            <td class="<%= k.fark > 0 ? 's-iyi' : (k.fark < 0 ? 's-dusuk' : '') %>"><%= k.fark > 0 ? '+' : '' %><%= puanfmt(k.fark) %></td>
-            <td><%= k.gecO === k.gecS ? (k.gecS ? 'eşiğin üstünde (değişmiyor)' : '—') : (k.gecS ? '✓ eşiği geçiyor' : '✗ eşiğin altına iniyor') %></td></tr>
+        <tr><td data-label="Personel"><strong><%= k.ad %></strong></td><td data-label="Şu an net"><%= puanfmt(k.once) %></td><td data-label="Yeni net"><%= puanfmt(k.sonra) %></td>
+            <td data-label="Fark" class="<%= k.fark > 0 ? 's-iyi' : (k.fark < 0 ? 's-dusuk' : '') %>"><%= k.fark > 0 ? '+' : '' %><%= puanfmt(k.fark) %></td>
+            <td data-label="Ödül durumu"><%= k.gecO === k.gecS ? (k.gecS ? 'eşiğin üstünde (değişmiyor)' : '—') : (k.gecS ? '✓ eşiği geçiyor' : '✗ eşiğin altına iniyor') %></td></tr>
         <% } %>
     </tbody>
 </table>
@@ -148,11 +150,11 @@
     <tbody>
         <% surumler.slice().reverse().forEach(function (s, i) { %>
         <tr>
-            <td class="nowrap"><%= s.gecerlilik === baslangic ? 'Başlangıçtan' : trdate(s.gecerlilik) + "'den" %> itibaren
+            <td data-label="Geçerlilik" class="nowrap"><%= s.gecerlilik === baslangic ? 'Başlangıçtan' : trdate(s.gecerlilik) + "'den" %> itibaren
                 <% if (s === guncel) { %><span class="durum-badge onay">şu an</span><% } %></td>
-            <td><%= s.oneri_mod === 'sabit' ? 'onaylanınca sabit ' + puanfmt(s.oneri_sabit) + ' puan' : 'tablo × %' + puanfmt(s.oneri_oran) %></td>
-            <td>lider %<%= puanfmt(s.kaizen_lider_oran) %> · üye %<%= puanfmt(s.kaizen_uye_oran) %></td>
-            <td><%= s.kaydeden || (s.gecerlilik === baslangic && !s.zaman ? 'varsayılan' : '—') %><% if (s.zaman) { %><br><small class="bos-not"><%= s.zaman %></small><% } %></td>
+            <td data-label="Öneri"><%= s.oneri_mod === 'sabit' ? 'onaylanınca sabit ' + puanfmt(s.oneri_sabit) + ' puan' : 'tablo × %' + puanfmt(s.oneri_oran) %></td>
+            <td data-label="Kaizen">lider %<%= puanfmt(s.kaizen_lider_oran) %> · üye %<%= puanfmt(s.kaizen_uye_oran) %></td>
+            <td data-label="Kaydeden"><%= s.kaydeden || (s.gecerlilik === baslangic && !s.zaman ? 'varsayılan' : '—') %><% if (s.zaman) { %><br><small class="bos-not"><%= s.zaman %></small><% } %></td>
             <td><% if (s.gecerlilik !== baslangic) { %>
                 <form method="post" action="/yonetici/puan-ayarlari/surum-sil" style="display:inline"
                       onsubmit="return confirm(this.dataset.onay)" data-onay="<%= trdate(s.gecerlilik) %> tarihli kural kaldırılacak; o tarihten sonra onaylanan kayıtlara bir önceki kural uygulanır. Devam?">
@@ -166,15 +168,19 @@
     </tbody>
 </table>
 </div>
+</div>
 
 <script>
-// Seçili seçenek kartını vurgula
-document.querySelectorAll('.radio-kart input[type=radio]').forEach(function (r) {
-    r.addEventListener('change', function () {
-        document.querySelectorAll('input[name="' + r.name + '"]').forEach(function (x) {
-            x.closest('.radio-kart').classList.toggle('secili', x.checked);
+// Öneri değerlendirme şekline göre ilgili satırı göster (gizli alan da gönderilir; sunucu doğrular)
+(function () {
+    var radyolar = document.querySelectorAll('input[name="oneri_mod"]');
+    function guncelle() {
+        var secili = document.querySelector('input[name="oneri_mod"]:checked');
+        document.querySelectorAll('[data-oneri-mod]').forEach(function (satir) {
+            satir.hidden = !secili || satir.getAttribute('data-oneri-mod') !== secili.value;
         });
-    });
-});
+    }
+    radyolar.forEach(function (r) { r.addEventListener('change', guncelle); });
+})();
 </script>
 <%- include('partials/footer') %>
