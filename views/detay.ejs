@@ -1,7 +1,9 @@
 <%- include('partials/header') %>
 <% const d = r.durum || 'Değerlendiriliyor';
    const detayGeri = '&geri=' + encodeURIComponent(geri);
-   const benimRevizem = !silinen && denetmen && d == 'Düzeltme İsteniyor' && r.revize_atanan_id == denetmen.id; %>
+   const benimRevizem = !silinen && denetmen && d == 'Düzeltme İsteniyor' && r.revize_atanan_id == denetmen.id;
+   // Sabit puan kuralındaki öneri puanlama tablosuyla puanlanmaz; onaylanınca sahibine sabit puan yazılır
+   const sabitOneri = tip == 'oneri' && kural.oneri_mod == 'sabit'; %>
 
 <div class="list-head">
     <h1 class="page-title">
@@ -12,7 +14,7 @@
         <% if (duzenleyebilir) { %>
         <a class="btn primary" href="/<%= tip %>/duzenle?no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">✏ Düzenle</a>
         <% } %>
-        <% if (!silinen && yetki('puanla') && d == 'Onaylandı') { %>
+        <% if (!silinen && yetki('puanla') && d == 'Onaylandı' && !sabitOneri) { %>
         <a class="btn primary" href="/degerlendir/puan?tip=<%= tip %>&no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">★ <%= r.puanlama ? 'Puanı Düzenle' : 'Puanla' %></a>
         <% } %>
         <% if (donusturebilir) { %>
@@ -51,10 +53,18 @@
         <% } else if (d == 'Reddedildi') { %><span class="durum-badge red"><%= d %></span>
         <% } else if (d == 'Düzeltme İsteniyor') { %><span class="durum-badge revize"><%= d %></span>
         <% } else { %><span class="durum-badge bekle"><%= d %></span><% } %>
-        <% if (r.puan !== null && r.puan !== '' && r.puan !== undefined) { %>
+        <% if (sabitOneri) { %>
+            <span class="puan-badge" title="Bu öneri puanlama tablosuyla değil, sabit puanla değerlendirilir">Sabit puan: <%= puanfmt(kural.oneri_sabit) %></span>
+        <% } else if (r.puan !== null && r.puan !== '' && r.puan !== undefined) { %>
             <span class="puan-badge">Puan: <%= r.puan %></span>
         <% } %>
     </div>
+    <% if (!silinen && (kazanc.sahibi > 0 || kazanc.lider > 0)) { %>
+    <p class="kazanc-not">🏆 Puan listesine yazılan:
+        <% if (tip == 'oneri') { %>öneri sahibine <strong>+<%= puanfmt(kazanc.sahibi) %></strong>
+        <% } else { %>lidere <strong>+<%= puanfmt(kazanc.lider) %></strong><% if (kazanc.uye > 0) { %>, her üyeye <strong>+<%= puanfmt(kazanc.uye) %></strong><% } %><% } %>
+        <small>(<%= sabitOneri ? 'sabit puan kuralı' : (tip == 'oneri' ? 'puanın %' + puanfmt(kural.oneri_oran) + ' payı' : 'lider %' + puanfmt(kural.kaizen_lider_oran) + ' · üye %' + puanfmt(kural.kaizen_uye_oran) + ' pay') %>)</small></p>
+    <% } %>
 
     <% if (tip == 'oneri') { %>
     <h2 class="detail-konu"><%= r.konu %></h2>
@@ -187,6 +197,7 @@
         <select name="gorev_denetmen"><option value="">— görev atama (isteğe bağlı) —</option><%- include('partials/denetmen_secenekleri', { denetmenler, secili: null }) %></select>
         <input type="date" name="gorev_termin" title="Termin (isteğe bağlı)" placeholder="Termin (isteğe bağlı)">
         <textarea name="gorev_notu" rows="2" placeholder="Görev notu (isteğe bağlı)"></textarea>
+        <% if (sabitOneri) { %><p class="bos-not">Onaylanınca öneri sahibine <strong><%= puanfmt(kural.oneri_sabit) %> puan</strong> yazılır (puanlama tablosu kullanılmaz).</p><% } %>
         <% } else { %>
         <p class="bos-not">Onaylandıktan sonra puanlanabilir.</p>
         <% } %>

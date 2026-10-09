@@ -27,8 +27,8 @@
 
         <% if (yetki('bes_odul') && !sonuc_islendi) { %>
             <% if (sonuc_tamam) { %>
-            <form method="post" action="/5s/odul-isle"
-                  onsubmit="return confirm('Bu turun ödülleri (1./2./3. bölüme 100/75/50) personellere KALICI eklenecek. Devam?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+            <form method="post" action="/5s/odul-isle" onsubmit="return confirm(this.dataset.onay)"
+                  data-onay="Bu turun ödülleri (1./2./3. bölüme <%= bes_odul.map(puanfmt).join('/') %>) personellere KALICI eklenecek. Devam?"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="tarih" value="<%= sonuc_tur %>">
                 <button type="submit" class="btn primary">🏆 Ödülleri İşle ve Puanlara Ekle</button>
             </form>

@@ -42,9 +42,9 @@
         <legend>Ekip (en fazla 3 kişi) — ad ve soyadı ayrı kutulara yazın</legend>
         <% const uy = kayit.uyeler || [];
            const kisiler = [
-             { onek: 'lider', etiket: 'Kaizen Lideri *', not: 'puanın %50\'si', v: adBol(kayit.lider || ''), zorunlu: true },
-             { onek: 'uye1', etiket: 'Üye 2', not: 'puanın %25\'i', v: adBol(uy[0] || ''), zorunlu: false },
-             { onek: 'uye2', etiket: 'Üye 3', not: 'puanın %25\'i', v: adBol(uy[1] || ''), zorunlu: false },
+             { onek: 'lider', etiket: 'Kaizen Lideri *', not: 'puanın %' + puanfmt(kural.kaizen_lider_oran), v: adBol(kayit.lider || ''), zorunlu: true },
+             { onek: 'uye1', etiket: 'Üye 2', not: 'puanın %' + puanfmt(kural.kaizen_uye_oran), v: adBol(uy[0] || ''), zorunlu: false },
+             { onek: 'uye2', etiket: 'Üye 3', not: 'puanın %' + puanfmt(kural.kaizen_uye_oran), v: adBol(uy[1] || ''), zorunlu: false },
            ]; %>
         <% for (const k of kisiler) { %>
         <div class="row ekip-satir">

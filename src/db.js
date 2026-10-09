@@ -225,6 +225,9 @@ const EK_KOLONLAR = [
   ...["oneriler", "kaizenler"].flatMap((t) => _DEGERLENDIRME_KOLONLARI.map(([k, tanim]) => [t, k, tanim])),
   ..._GOREV_KOLONLARI.map(([k, tanim]) => ["oneriler", k, tanim]),
   ["kaizenler", "kaynak_oneri_no", "VARCHAR(32)"],
+  // İlk onay zamanı: kayda hangi puan kuralı sürümünün uygulanacağını belirler (eski kayıtlarda boş → kayıt tarihi)
+  ["oneriler", "onay_zamani", "VARCHAR(20)"],
+  ["kaizenler", "onay_zamani", "VARCHAR(20)"],
   ["denetimler", "revize_eden", "VARCHAR(191)"],
   ["denetimler", "revize_zamani", "VARCHAR(20)"],
 ];

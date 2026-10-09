@@ -1,5 +1,32 @@
 # Sürüm Notları
 
+## 9 Ekim 2026 — Puan ve Ödül Ayarları
+
+**Ana yönetici** artık puan ve ödül kurallarını kod değiştirmeden ayarlayabilir: Yönetim › **🏆 Puan ve Ödül Ayarları**.
+
+- **Ödül eşiği** (varsayılan 300) ve **5S tur ödülleri** (1./2./3. bölüm, varsayılan 100/75/50) değiştirilebilir.
+  Hemen geçerlidir. Daha önce verilmiş ödülde düşülen puan ve ödülü işlenmiş 5S turlarının puanı **değişmez**
+  (ikisi de kayıtta saklanır).
+- **Öneri değerlendirme modu:**
+  - *Puanlama tablosuyla* (önceki davranış): öneri puanlanır, sahibine puanın belirlenen yüzdesi (varsayılan %10) yazılır.
+  - *Onaylanınca sabit puan*: puanlama tablosu kullanılmaz; öneri onaylandığı an sahibine sabit puan (ör. 10) yazılır.
+    Bu önerilerde "Puanla" düğmesi görünmez; listede "sabit +10" yazar.
+- **Kaizen oranları** (lider / her üye, varsayılan %50 / %25) değiştirilebilir.
+- Öneri/kaizen kuralı iki şekilde uygulanır: **bugünden itibaren onaylananlara** (önerilen; eski puanlar değişmez) veya
+  **tüm kayıtlara geriye dönük**. Her kayda **onaylandığı günün** kuralı uygulanır; kural geçmişi sayfada listelenir,
+  bir sürüm kaldırılabilir.
+- **Etkisini Önizle:** kaydetmeden önce mevcut veride toplam puanların, eşiği geçen kişi sayısının ve kişi kişi net
+  puanların nasıl değişeceğini gösterir.
+- Kayıt detayında "Puan listesine yazılan: öneri sahibine +X / lidere +X, her üyeye +Y" satırı; öneri ve kaizen
+  Excel'ine sondan "yazılan puan" sütunları eklendi (görsel sütunları kaymaz). Kılavuz, puan listesi ve kaizen
+  formundaki oran metinleri güncel ayardan gelir.
+- Güvenlik: puan listesi, ödül alanlar ve 5S sayfalarındaki onay pencerelerinde kişi/bölüm adı artık JavaScript
+  dizgisine gömülmüyor (adında tırnak olan bir öneri sahibi, yöneticinin tarayıcısında kod çalıştıramaz).
+- **Veritabanı (yalnız ekleme):** `oneriler.onay_zamani`, `kaizenler.onay_zamani` (ilk onay zamanı — kural seçimi);
+  ayarlar `config` tablosunda (`puan_kurallari`, `odul_ayarlari`). Ayar hiç kaydedilmemişse varsayılanlar geçerlidir,
+  yani güncellemeden sonra puanlar **aynı kalır**.
+- e2e testi: **157/157**.
+
 ## Ekim 2026 — Roller, görev atama, panel ve 5S periyodik kontrol formu
 
 ### Kullanıcıya görünen değişiklikler

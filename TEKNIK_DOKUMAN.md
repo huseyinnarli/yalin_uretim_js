@@ -65,6 +65,7 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | 0 | `servis/guvenlik.js` | `hashPassword`, `checkPassword` (werkzeug pbkdf2/scrypt uyumlu), `adminSifreDogru`, `setAdminPassword`, `sifreleriHashle`, `getSecretKey` |
 | 0 | `servis/yardimci.js` | `uid`, `nextNumber` (atomik sayaç), `safeName`, `allowedFile`, `guvenliYol` (dosya), `trdate`, `ayEtiketi`, `puanfmt`, `gorselKaydet` (imza + sharp), `logoBul` (5 dk önbellek) |
 | 0 | `servis/gunluk.js` | `gunlukEkle`, `loadGunluk`, `gunlukTemizle` |
+| 0 | `servis/ayarlar.js` | `puanKurallari`, `odulAyarlari`, `guncelKural`, `kuralCozucu`, `puanKuralKaydet`, `puanKuralSil`, `odulAyarKaydet` |
 | 1 | `servis/kayitlar.js` | `getRecord`, `updateRecord`, `combinedRecords`, `filtrele`, `sayfala`, `mevcutAylar`, `kayitDuzenleyebilir`, `kaizeneDonusturebilir`, `kaizenKaydetGorsel` |
 | 1 | `servis/bes.js` | bölüm/denetim/aksiyon okuma, `besSTur*`, `besSIsle`, `besSPlanSatirlari`, `besSTrendTablo`, `turIslendi`, `denetimKriterPuanlari`, `saveDenetimFotolar` |
 | 2 | `servis/hesaplar.js` | denetmen/misafir/yönetici okuma, `denetmenBySifre`, `yoneticiBySifre`, `aktifDenetmen`, `oturumYetkileri`, `sifreCakismasi`, `bolumLiderleri`, `denetmenAdaylari` |
@@ -83,6 +84,7 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | `src/sabitler.js` | `DATA_DIR` (env ile taşınabilir), tüm klasör yolları, `ODUL_ESIK=300`, `ODUL_MAP={100,75,50}`, `DURUMLAR`, `KAZANC_BASLIKLARI`, `TR_AYLAR`, `ALAN_MAX=5000`, `nowTr()/bugunIso()/zamanTr()` (Europe/Istanbul) |
 | `src/isim.js` | `adDuzelt` (Türkçe baş harf büyük), `adSoyad`, `adBol` (düzenleme formu için), `isimAnahtar` (büyük/küçük harf, boşluk, noktalama, Türkçe karakter farkını yok sayan karşılaştırma anahtarı), `isimIcerir` ("Ali / Veli" listesinde arama), `uzaklik` (Damerau-Levenshtein — yazım hatası önerileri) |
 | `src/yetkiler.js` | `YETKI_GRUPLARI` (10 ayrıntılı alan, 4 grup), `ESKI_YETKILER` (eski `degerlendirme`/`bes_s`/`tam` → yeni alanlar), `yetkiGenislet(liste)` → `{yetkiler}`, `yetkiFormdan(v)` |
+| `src/puanKurallari.js` | Puan kuralları (saf): varsayılanlar, doğrulama (`kuralDogrula`, `odulDogrula`), sürüm seçimi (`kuralTarihi`, `kuralSec`, `yeniSurumler`), kazanç hesabı (`oneriKazanci`, `kaizenKazanci`, `puanAldi`), `kuralMetni` |
 | `src/kontrol.js` | `KONTROL_FORMU` (10 G + 3 H + 2 A madde, form notu; form kodu gösterilmez), `ayGunSayisi`, `haftaNo`/`haftalar` (Pazartesi başlangıçlı ay haftaları), `ayKaydir`, `ayCoz` |
 | `src/puanlama.js` | `PUAN_TEMEL/ETKI/MALIYET/YAYGIN/EFOR` rubrik tanımları, `PUAN_MAX`, `BESS` (şirket 5S formu: 5 bölüm / 23 soru, soru başına maksimum + kesme kuralı), `BESS_KRITER_MAX`, `bessKriterPuanla(k, bulgu)` (kuraldan puan), `bessKuralMetni(kr)`, `bessBulguTahmin` (eski kayıtta puandan bulgu), `bessBolumToplamlari` (S1–S5 toplamları), `hesaplaPuanlama(form)`, `puanlamaOzet(p)` |
 | `src/db.js` | mysql2 bağlantı havuzu, `CREATE TABLE IF NOT EXISTS` şeması + `EK_KOLONLAR` (sonradan eklenen kolonların tek listesi; `init()` ve `scripts/gecis-kontrol.js` ortak kullanır), `sorgu/tek/calistir/transaction` yardımcıları, JSON kolon yardımcıları (`j`/`js`), satır dönüştürücüler (`oneriRow`, `denetimRow`…), `configGet/Set`, `yedekle()` (tüm tablolar + görseller → ZIP) + `baslatYedekleme()` |
@@ -93,6 +95,7 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | `src/rotalar/oneri.js` | Öneri yeni (herkese açık) / düzenle (kayıt yetkisi veya düzeltmesi atanan denetmen) / Excel |
 | `src/rotalar/kaizen.js` | Kaizen yeni / **öneriden dönüştür** / düzenle / Excel / görsel servisi (girişli) |
 | `src/rotalar/bes_s.js` | 5S: bölümler (liste + trend), plan, denetim (yap/göster/**revize**/sil/Excel/ZIP), aksiyonlar, ödül işleme, geçmiş, görsel servisleri |
+| `src/rotalar/ayarlar.js` | **Puan ve Ödül Ayarları** (yalnız ana yönetici): görüntüle, önizle (`islem=onizle`), kaydet, kural sürümü kaldır |
 | `src/rotalar/kontrol.js` | **Periyodik kontrol formu**: görüntüle (`?tarih=`), doldur, haftalık/aylık imza, Excel (`?ay=` — o aya kadar) |
 | `src/rotalar/admin.js` | Giriş/çıkış, **Yönetim** sayfası, ek yönetici (yalnız ana yönetici) ve denetmen/misafir yönetimi, şifre, durum değişikliği (onay / gerekçeli red / düzeltme ataması), **görev ataması**, puanlama, kayıt silme, trend Excel |
 | `scripts/import-json.js` | Eski JSON tabanlı sürümden veri + görsel aktarımı (kaynağa salt-okunur, tek transaction, hata durumunda tam geri alma) |
@@ -132,9 +135,9 @@ JSON** olarak saklanır; okurken `db.js`'teki satır dönüştürücüler nesney
 
 | Tablo | Anahtar | Önemli kolonlar |
 |---|---|---|
-| `config` | `anahtar` | `admin_password` (hash), `secret_key` (oturum imzası) |
-| `oneriler` | `no` (ÖNFR…) | tarih, sahibi, görev, konu, detay, çözüm, 4 katkı alanı, durum, `form_no`, `puan`, `puanlama` (JSON kırılım), degerlendirme_notu, `red_nedeni`, `revize_*` (düzeltme: not, atanan denetmen id/ad, isteyen, zaman, tamamlandı), `gorev_*` (görev: atanan id/ad, termin, not, atayan, zaman), `kaizen_no` (dönüştürülen kaizen) |
-| `kaizenler` | `no` (ÖSKFR…) | başlangıç/bitiş, konu, bölüm, lider, `uyeler` (JSON), sorumlular, `kazanclar` (JSON), önceki/sonraki + görsel adları, durum, `form_no`, puan, puanlama, `red_nedeni`, `revize_*`, `kaynak_oneri_no` |
+| `config` | `anahtar` | `admin_password` (hash), `secret_key` (oturum imzası), `puan_kurallari` (öneri/kaizen kural sürümleri, JSON), `odul_ayarlari` (eşik + 5S tur ödülleri, JSON) |
+| `oneriler` | `no` (ÖNFR…) | tarih, sahibi, görev, konu, detay, çözüm, 4 katkı alanı, durum, `onay_zamani` (ilk onay — puan kuralı seçimi), `form_no` (eski, gösterilmez), `puan`, `puanlama` (JSON kırılım), degerlendirme_notu, `red_nedeni`, `revize_*` (düzeltme: not, atanan denetmen id/ad, isteyen, zaman, tamamlandı), `gorev_*` (görev: atanan id/ad, termin, not, atayan, zaman), `kaizen_no` (dönüştürülen kaizen) |
+| `kaizenler` | `no` (ÖSKFR…) | başlangıç/bitiş, konu, bölüm, lider, `uyeler` (JSON), sorumlular, `kazanclar` (JSON), önceki/sonraki + görsel adları, durum, `onay_zamani` (ilk onay — puan kuralı seçimi), `form_no` (eski, gösterilmez), puan, puanlama, `red_nedeni`, `revize_*`, `kaynak_oneri_no` |
 | `bolumler` | `id` (hex8) | ad, `sorumlu` ("Ali / Veli" — çoklu lider), `kisiler` (JSON) |
 | `denetimler` | `id` (hex8) | `revize_eden`, `revize_zamani` (denetim revizesi), bolum_id, `tarih` (**tur kimliği**), tur_adi, baslangic/bitis, plan_gun/saat, planlanan/misafir/gerçek denetmen, `puan` (NULL=bekliyor), `puanlar` (JSON kriter→hesaplanan puan), `bulgular` (JSON kriter→bulgu sayısı), `notu`, `aciklamalar` (JSON), `fotolar` (JSON kriter→[dosya]), denetim_tarihi |
 | `aksiyonlar` | `id` (hex8) | denetim_id, tur/bölüm bilgisi, kriter_k/m, aksiyon, sorumlu, atanan_lider, termin, durum (acik/kapali), `kapatma` (JSON: açıklama+kapatan+fotolar+zaman) |
@@ -180,10 +183,23 @@ sonra ilk kayıt) mevcut kayıtların en büyük sırasından otomatik tohumlan�
 - İstemci tarafında aynı kurallar JS ile canlı hesaplanır (tek-seçimli bölümde diğerleri sıfırlanır);
   **sunucu hesabı bağlayıcıdır**.
 
-### Puan durumu (`puanDurumu`)
-Öneri → sahibine %10 · Kaizen → lider %50, üye başına %25 (max 2 üye) · 5S → ödül defterindeki
-her kayıttan kişilere. Net = kazanılan − verilen 300'lük ödüller; `silinen_kisiler` gizlenir,
-net ≤ 0 olan listeden düşer.
+### Puan durumu (`puanDurumu`) ve puan kuralları
+Kurallar `src/puanKurallari.js` (saf) + `src/servis/ayarlar.js` (config'de saklama). Varsayılan: öneri → sahibine
+tablo puanının %10'u · kaizen → lider %50, üye başına %25 (max 2 üye) · 5S → ödül defterindeki her kayıttan kişilere
+(tur işlenirken yazılan puan: varsayılan 100/75/50) · ödül eşiği 300.
+- **Kural sürümleri** (`config.puan_kurallari`, JSON dizi): `{gecerlilik, oneri_mod: "tablo"|"sabit", oneri_oran,
+  oneri_sabit, kaizen_lider_oran, kaizen_uye_oran, kaydeden, zaman}`. Bir kayda `kuralTarihi(r)` gününde geçerli
+  sürüm uygulanır: onaylı kayıtta `onay_zamani` (yoksa `kayit_zamani`, yoksa `tarih`), onaylanmamış kayıtta bugün
+  (ekranda "onaylanınca ne olur" doğru görünsün). "Bundan sonra" kaydı bugünün tarihiyle sürüm ekler (aynı gün
+  sürümünün yerine geçer); "geriye dönük" kaydı geçmişi silip tek sürüm (`2000-01-01`) bırakır.
+- **Sabit mod:** onaylanan öneri sahibine `oneri_sabit` puan; tablo puanı hesaba girmez ve `/degerlendir/puan`
+  bu öneriler için kapalıdır (liste/detayda Puanla düğmesi gizlenir).
+- **Ödül ayarları** (`config.odul_ayarlari`): `{esik, bes:[1.,2.,3.]}` — sürümsüz, hemen geçerli. Ödül verilirken
+  düşülen puan `odul_arsiv.puan`'a yazılır (eşik değişse de aynı kalır; ödül sayısı satır sayısıdır). 5S puanı tur
+  işlenirken `odul_kayitlari.puan`'a yazılır; işlenmiş turun gösterimi defterdeki değeri kullanır.
+- Net = kazanılan − ödüllerde düşülenler; `silinen_kisiler` gizlenir, net ≤ 0 olan listeden düşer.
+- `puanDurumu({ surumler, esik })` verilirse kayıtlı ayar yerine onlar kullanılır — ayar sayfasındaki önizleme bununla
+  "şu an / yeni ayarla" karşılaştırması yapar (`rotalar/ayarlar.js:etkiOzeti`).
 
 ### 5S denetim turu ve dağıtım (`/5s/plan/dagit`)
 - **kendi:** her bölümün planlanan denetmeni kendi ekip lideri/liderleri olur.
@@ -206,7 +222,7 @@ sonra olmalıdır (değilse boşaltılır), aksiyon bölümün **güncel** ekip 
 
 ### Ödül işleme (`besSIsle`)
 Yalnızca tur **tüm bölümlerde** puanlanmışsa çalışır (eksik bölümler mesajda listelenir);
-aynı tur iki kez işlenemez. İlk 3 bölümün lider+üye tam listesi 100/75/50 puanla deftere yazılır.
+aynı tur iki kez işlenemez. İlk 3 bölümün lider+üye tam listesi o günkü 5S ödül ayarıyla (varsayılan 100/75/50) deftere yazılır.
 
 ### Değerlendirme akışı (öneri/kaizen)
 - `POST /durum` (Değerlendirme): **Onaylandı** → öneride isteğe bağlı görev alanları (form no Ekim 2026'dan beri atanmaz;
@@ -363,5 +379,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 136 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 157 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

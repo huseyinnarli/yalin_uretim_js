@@ -123,8 +123,6 @@ legend { font-weight: 700; padding: 0 8px; color: var(--primary); }
     margin-top: 8px; gap: 10px; }
 .yeni-yonetici { border-top: 1px dashed var(--line); padding-top: 14px; }
 
-/* Form numarası */
-
 .form-actions { display: flex; gap: 10px; margin-top: 8px; }
 
 /* List */
@@ -901,3 +899,29 @@ div.hub-box { cursor: default; }
 .degerlendir-kart input[type=text] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
 .demo-serit { background: #fff5e0; border-bottom: 1px solid #f0dca6; color: #6b4e00; padding: 8px 20px; font-size: .85rem; text-align: center; }
 .demo-serit code { background: #fff; border: 1px solid #f0dca6; border-radius: 4px; padding: 0 4px; }
+
+/* Puan ve Ödül Ayarları */
+.ayar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.ayar-kart { margin: 0; padding: 18px 20px; }
+.ayar-kart.genis { grid-column: 1 / -1; }
+.ayar-baslik { margin: 0 0 12px; font-size: 1rem; color: var(--primary-d); }
+.ayar-ikili { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+.ayar-ikili .radio-kart { margin-bottom: 0; }
+.radio-kart .durum-badge { align-self: flex-start; }
+.ayar-kart .field input[type=number], .satir-ici input[type=number] { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+.ayar-kart .field input[type=number] { width: 100%; }
+.ayar-etiket { display: block; font-weight: 600; font-size: .9rem; margin-bottom: 6px; }
+.ayar-uclu { gap: 10px; }
+.ayar-uclu .field.small { flex: 1 1 90px; margin-bottom: 8px; }
+.radio-kart { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer; background: #fff; }
+.radio-kart input[type=radio] { margin-top: 3px; accent-color: var(--primary); }
+.radio-kart > span { display: flex; flex-direction: column; gap: 4px; }
+.radio-kart small { color: var(--muted); font-size: .82rem; }
+.radio-kart.secili { border-color: var(--primary); background: var(--primary-tint); }
+.radio-kart.uyari.secili { border-color: #e0a23a; background: #fff8e8; }
+.satir-ici { font-size: .9rem; }
+.satir-ici input[type=number] { width: 90px; margin: 0 4px; }
+.ayar-hata { margin-bottom: 14px; }
+.onizleme-tablo td, .onizleme-tablo th { text-align: center; }
+.kazanc-not { margin: 10px 0 0; font-size: .9rem; color: var(--primary-d); }
+.kazanc-not small { color: var(--muted); }

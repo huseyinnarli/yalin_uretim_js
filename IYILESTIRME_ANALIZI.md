@@ -12,7 +12,7 @@ Test: `npm test` **136/136**, eski veritabanıyla geçiş doğrulaması **46/46*
 ## 1. Yönetici özeti
 
 Uygulama katmanlı, test edilmiş ve canlıya alınabilir durumdadır. Bu incelemede çekirdek iş mantığı alan
-modüllerine bölündü, 7 güvenlik bulgusu kapatıldı ve bağımlılıklardaki 2 yüksek + 4 orta açık giderildi (§4).
+modüllerine bölündü, §4'teki bulgular (B1–B10) kapatıldı ve bağımlılıklardaki 2 yüksek + 4 orta açık giderildi.
 
 Canlıya almadan önce veya hemen sonra yapılması gerekenler:
 
@@ -78,7 +78,7 @@ bes → **2** hesaplar, kontrolFormu → **3** isimler, aksiyon → **4** puan, 
 **Zayıf yönler (öneriler §5)**
 - İki büyük rota dosyası (`bes_s.js`, `admin.js`).
 - Adlandırma karışık: çoğunluk Türkçe (`puanDurumu`, `kontrolKaydet`), eski kısım İngilizce (`getRecord`, `loadBolumler`, `hashPassword`).
-- 9 şablonda satır içi `<script>` (CSP'de `'unsafe-inline'` zorunlu kalıyor).
+- 10 şablonda satır içi `<script>` (CSP'de `'unsafe-inline'` zorunlu kalıyor).
 - Lint/biçimlendirici ve CI yok; tip denetimi yok.
 - Liste alanları TEXT içinde JSON; şemada yabancı anahtar (FK) yok.
 
@@ -89,7 +89,7 @@ oturumu → ortak şablon değişkenleri + yetki çözümü (her istekte veritab
 reddedilir; böylece CSRF denetimi gövde çözümleme sırası üzerinden atlatılamaz.
 
 ### 2.5 Veri modeli
-19 tablo, InnoDB, `utf8mb4_turkish_ci`. Bu sürümde 3 tablo ve 24 kolon eklendi; hiçbir kolon silinmedi/değişmedi.
+19 tablo, InnoDB, `utf8mb4_turkish_ci`. Bu sürümde 3 tablo ve 26 kolon eklendi; hiçbir kolon silinmedi/değişmedi.
 
 | Karar | Değerlendirme |
 |---|---|
@@ -138,6 +138,7 @@ reddedilir; böylece CSRF denetimi gövde çözümleme sırası üzerinden atlat
 | B7 | `npm audit`: 2 yüksek (sharp/libheif, brace-expansion) + 4 orta (express, body-parser, qs, mysql2) | `npm audit fix` (kırıcı değişiklik yok): sharp 0.35.5, express 4.22.3, mysql2 3.24.5; ayrıca multer 1.x → 2.4.0 (1.x dalının bilinen çok parçalı form DoS düzeltmeleri) |
 | B8 | Ek yöneticiye "tam yetki" ile yönetici yönetimi verilebiliyordu | Kaldırıldı; yalnız ana yönetici |
 | B9 | Üst menü her istekte `static/` klasörünü tarıyordu | 5 dakikalık önbellek |
+| B10 | Puan listesi, ödül alanlar ve 5S sonuç satırlarında kişi/bölüm adı `onsubmit="confirm('…ad…')"` içine yazılıyordu: herkese açık öneri formundan tırnaklı bir isim girilirse, yönetici "Ödül Ver"e bastığında tarayıcısında kod çalışabilirdi (saklı XSS) | Ad `data-onay` özniteliğine taşındı, `confirm(this.dataset.onay)`; test (9 Ekim) |
 
 **Önceki incelemelerde:** R1 açık yönlendirme · R2 yükleme bellek DoS'u · R3 HTTPS/proxy bayrakları · R4 görsel
 işleme · R5 yedek kapsamı · R6 transaction bütünlüğü · R7 hız-limit bellek süpürmesi · R9 otomatik test ·
@@ -174,7 +175,7 @@ mümkün olur, şifrelerin benzersiz olma zorunluluğu da kalkar. ~yarım gün.
 Efor: ~2 saat.
 
 ### 🟡 Ö1 — CSP'de `'unsafe-inline'`
-9 şablonda satır içi script var (takvim davranışı, canlı puan hesabı, sekme geçişi, grafik etkileşimi vb.).
+10 şablonda satır içi script var (takvim davranışı, canlı puan hesabı, sekme geçişi, grafik etkileşimi vb.).
 **Öneri:** `static/js/*.js` dosyalarına taşıyıp `script-src 'self'`. EJS kaçışı ilk savunma hattı olarak sağlam;
 bu, son hattı güçlendirir. Efor: ~yarım gün.
 

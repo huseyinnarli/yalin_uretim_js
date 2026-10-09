@@ -86,7 +86,8 @@
                     <% if (r.revize_atanan_ad) { %><br><small class="bos-not">✏ <%= r.revize_atanan_ad %></small><% } %>
                 <% } else { %><span class="durum-badge bekle"><%= du %></span><% } %>
             </td>
-            <td class="nowrap puan-cell" data-label="Puan"><%= (r.puan === null || r.puan === '' || r.puan === undefined) ? '—' : r.puan %></td>
+            <% const kz = kural_bul(r); const sabit = r.tip == 'oneri' && kz.oneri_mod == 'sabit'; %>
+            <td class="nowrap puan-cell" data-label="Puan"><% if (sabit) { %><span title="Sabit puan kuralı: puanlama tablosu kullanılmaz"><%= du == 'Onaylandı' ? 'sabit +' + puanfmt(kz.oneri_sabit) : '—' %></span><% } else { %><%= (r.puan === null || r.puan === '' || r.puan === undefined) ? '—' : r.puan %><% } %></td>
             <% if (islemVar) { %>
             <td class="nowrap islem-hucre" data-label="İşlem">
                 <% if (yetki('degerlendir') && du != 'Onaylandı') { %>
@@ -99,7 +100,7 @@
                 </form>
                 <a class="btn-mini revize" href="<%= detayUrl %>#degerlendir" title="Red veya düzeltme isteme (gerekçe gerekir)">Red / Revize…</a>
                 <% } %>
-                <% if (yetki('puanla') && du == 'Onaylandı') { %>
+                <% if (yetki('puanla') && du == 'Onaylandı' && !sabit) { %>
                 <a class="btn-mini eval" href="/degerlendir/puan?tip=<%= r.tip %>&no=<%= encodeURIComponent(r.no) %>&geri=<%= encodeURIComponent(tam_yol) %>">★ Puanla</a>
                 <% } %>
                 <% if (yetki('kayit')) { %>

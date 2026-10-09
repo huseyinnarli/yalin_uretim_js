@@ -39,8 +39,9 @@ function formKaydi(req, ekip) {
   };
 }
 
-function formRender(res, kayit, duzenle, geri = "") {
+async function formRender(res, kayit, duzenle, geri = "") {
   res.render("kaizen_form", {
+    kural: await C.guncelKural(), // ekip kutularındaki "puanın %…'i" notları
     title: duzenle ? "Kaizen Düzenle" : "Yeni Kaizen", bugun: duzenle ? "" : S.bugunIso(), kayit,
     kazanc_basliklari: S.KAZANC_BASLIKLARI,
     action_url: duzenle
@@ -64,13 +65,13 @@ module.exports = function register(app) {
   // (öneriye görev atanan denetmen veya değerlendirme/kayıt yetkili yönetici).
   app.get("/kaizen/yeni", sar(async (req, res) => {
     const oneriNo = req.query.oneri || "";
-    if (!oneriNo) return formRender(res, {}, false);
+    if (!oneriNo) return await formRender(res, {}, false);
     const oneri = req.girisli ? await C.getRecord("oneri", oneriNo) : null;
     if (!C.kaizeneDonusturebilir(oneri, req.yetkiler, req.denetmen)) {
       flash(req, "error", "Bu öneri kaizene dönüştürülemez (onaylı değil, zaten dönüştürülmüş ya da görev size atanmamış).");
       return res.redirect(oneri ? "/detay?tip=oneri&no=" + encodeURIComponent(oneriNo) : "/");
     }
-    formRender(res, {
+    await formRender(res, {
       konu: oneri.konu, onceki: oneri.detay, sonraki: oneri.cozum,
       lider: oneri.gorev_atanan_ad || "", kaynak_oneri_no: oneri.no,
     }, false);
@@ -88,7 +89,7 @@ module.exports = function register(app) {
     if (hata) {
       // Form girilen bilgilerle yeniden gösterilir (seçilen fotoğrafların yeniden seçilmesi gerekir)
       res.locals.mesajlar.push(["error", hata + " Fotoğraf seçtiyseniz yeniden seçin."]);
-      return formRender(res, kayit, false);
+      return await formRender(res, kayit, false);
     }
     // Öneriden dönüştürme: yetki ve durum sunucuda yeniden doğrulanır
     let oneri = null;
@@ -135,7 +136,7 @@ module.exports = function register(app) {
       flash(req, "error", "Bu kaydı düzenleme yetkiniz yok.");
       return res.redirect("/detay?tip=kaizen&no=" + encodeURIComponent(rec.no));
     }
-    formRender(res, rec, true, guvenliYol(req.query.geri, ""));
+    await formRender(res, rec, true, guvenliYol(req.query.geri, ""));
   }));
 
   app.post("/kaizen/duzenle", girisRequired, ...dosyaYukleyici(2), sar(async (req, res) => {
@@ -151,7 +152,7 @@ module.exports = function register(app) {
     const hata = ekipHatasi(ekip, req);
     if (hata) {
       res.locals.mesajlar.push(["error", hata]);
-      return formRender(res, { ...eski, ...formKaydi(req, ekip), no }, true, geri);
+      return await formRender(res, { ...eski, ...formKaydi(req, ekip), no }, true, geri);
     }
     S.ensureDirs();
     const sn = C.safeName(no);

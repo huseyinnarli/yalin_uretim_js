@@ -29,7 +29,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 136 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 157 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -93,6 +93,12 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
    `req.anaYonetici`, `req.denetmen`). Rotayı `yetkiGerek(alan)` / `girisRequired` / `anaYoneticiRequired` ile
    kapıla; şablonda `yetki('alan')` ile gizle — HER İKİSİNİ de yap. Eski kayıtlı `degerlendirme`/`bes_s`
    anahtarları okurken açılır (`ESKI_YETKILER`) — veritabanını elle güncellemeye gerek yok.
+8b2. **Puan kuralları ayardır, sabit değildir:** öneri/kaizen oranları, öneri modu (tablo/sabit), ödül eşiği ve 5S
+   tur ödülleri `config`'te (`puan_kurallari` sürümlü, `odul_ayarlari`). Kod içinde 10/50/25/300/100-75-50 YAZMA —
+   `src/puanKurallari.js` (saf hesap) + `C.kuralCozucu()/C.guncelKural()/C.odulAyarlari()` kullan. Kayda onaylandığı
+   günün sürümü uygulanır (`onay_zamani`). Ödülde düşülen puan `odul_arsiv.puan`, 5S puanı `odul_kayitlari.puan`'da
+   saklıdır — ayar değişince geçmiş değişmez. Kullanıcı verisini `onsubmit="confirm('…<%= ad %>…')"` içine koyma;
+   `data-onay="…"` + `confirm(this.dataset.onay)` kullan.
 8c. **İsimler:** kişi girişleri ad + soyad ayrı kutulardır (`web.js:kisiOku`). Kişi karşılaştırmalarında
    ASLA `===` kullanma — `isim.js:isimEsit/isimIcerir` (anahtarla) kullan. Puan listesi `isimCozucu` +
    `isim_eslestirme` ile gruplar; kayıtlardaki isimler değiştirilmez.
@@ -145,6 +151,10 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     open-redirect (`/\`) + dizi `next`, CSRF timingSafeEqual, arşiv geri yükleme kolon denetimi, kılavuzdan
     varsayılan şifre; npm audit fix + multer 2. Yeni `scripts/gecis-kontrol.js`. Eski DB (1d67cea) ile geçiş
     doğrulaması 46/46. e2e 136/136.
+18. **Puan ve Ödül Ayarları** (9 Ekim): `src/puanKurallari.js` + `servis/ayarlar.js` + `rotalar/ayarlar.js`
+    (`/yonetici/puan-ayarlari`, ana yönetici): eşik, 5S tur ödülleri, öneri modu tablo/sabit, öneri/kaizen oranları;
+    bugünden itibaren / geriye dönük; önizleme (`puanDurumu({surumler, esik})`); `onay_zamani` kolonları; onay
+    pencerelerinde data-onay. e2e 157/157.
 
 ## Açık konular
 

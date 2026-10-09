@@ -12,7 +12,7 @@
             <a class="btn-mini eval" href="/5s/denetim/<%= s.denetim_id %>?geri=<%= encodeURIComponent(geri) %>">Formu Gör</a>
             <% if (yetki('bes_revize')) { %>
             <form method="post" action="/5s/denetim/<%= s.denetim_id %>/sil" style="display:inline"
-                  onsubmit="return confirm('“<%= s.ad %>” denetimi silinsin mi?<%= typeof sil_uyari !== 'undefined' ? sil_uyari : '' %>');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                  onsubmit="return confirm(this.dataset.onay)" data-onay="“<%= s.ad %>” denetimi silinsin mi?<%= typeof sil_uyari !== 'undefined' ? sil_uyari : '' %>"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="geri" value="<%= geri %>">
                 <button type="submit" class="btn-mini del">Sil</button>
             </form>

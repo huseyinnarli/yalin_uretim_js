@@ -51,6 +51,7 @@ async function main() {
   require("./src/rotalar/bes_s")(app);
   require("./src/rotalar/kontrol")(app);
   require("./src/rotalar/admin")(app);
+  require("./src/rotalar/ayarlar")(app);
 
   // 404 + hata yakalayıcı
   app.use((req, res) => res.status(404).send("Sayfa bulunamadı."));

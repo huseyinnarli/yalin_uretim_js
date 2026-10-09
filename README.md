@@ -94,16 +94,21 @@ form öneriden doldurulur ve kaizen öneriye bağlanır.
 
 ## 3) Puan Listesi & Ödül Sistemi
 
-| Kaynak | Dağıtım |
+| Kaynak | Dağıtım (varsayılan — ana yönetici değiştirebilir) |
 |---|---|
-| **Öneri** | sahibine, önerinin puanının **%10**'u |
+| **Öneri** | sahibine, önerinin tablo puanının **%10**'u — veya **sabit puan modunda** onaylanınca sabit puan (ör. 10), puanlama tablosu kullanılmaz |
 | **Kaizen** | **lider %50**, her üye **%25** (ekip en fazla 3 kişi) |
 | **5S** | turda 1./2./3. bölümün **tüm ekibine 100 / 75 / 50** |
 
 - Sütunlar: Öneri · Kaizen · 5S · Kazanılan · **Net** (net = kazanılan − verilen ödüller).
 - Aynı kişinin farklı yazılışları (**ALİ YILMAZ / ali yilmaz / Ali Yılmaz**) otomatik **tek kişi** sayılır;
   yazım hataları **🔗 İsim Birleştirme** sayfasından elle birleştirilir. Kayıtlardaki isimler değişmez.
-- Net puanı **300**'e ulaşan kişiye **🎁 Ödül Ver** → 300 düşülür, **Ödül Alanlar** listesine geçer.
+- Net puanı **ödül eşiğine** (varsayılan 300) ulaşan kişiye **🎁 Ödül Ver** → eşik kadar puan düşülür, **Ödül Alanlar**
+  listesine geçer. Düşülen puan ödül kaydında saklanır; eşik sonradan değişse de değişmez.
+- **🏆 Puan ve Ödül Ayarları** (Yönetim › yalnız ana yönetici): ödül eşiği, 5S tur puanları, öneri değerlendirme modu
+  (puanlama tablosu / onaylanınca sabit puan), öneri ve kaizen oranları. Öneri/kaizen kuralı **bugünden itibaren
+  onaylananlara** ya da **geriye dönük tüm kayıtlara** uygulanır; her kayda onaylandığı günün kuralı uygulanır.
+  Kaydetmeden önce **Etkisini Önizle** mevcut veride kimin puanının nasıl değişeceğini ve eşiği geçen kişi sayısını gösterir.
 
 ---
 

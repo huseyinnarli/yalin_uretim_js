@@ -15,10 +15,10 @@
 
 <div class="kural-kutu">
     <strong>Puan dağıtımı:</strong>
-    Öneri → sahibi puanın <b>%10</b>'u ·
-    Kaizen → lider <b>%50</b>, her üye <b>%25</b> ·
-    5S → 1./2./3. bölüm = 100/75/50.
-    <br><strong>Ödül:</strong> Net puan <b><%= esik %></b>'e ulaşan kişiye yönetici ödül verir; <%= esik %> puan düşülür.
+    <%= kural_metni %> ·
+    5S → 1./2./3. bölüm = <%= odul.bes.map(puanfmt).join('/') %>.
+    <br><strong>Ödül:</strong> Net puanı <b><%= puanfmt(esik) %></b> puana ulaşan kişiye yönetici ödül verir; <%= puanfmt(esik) %> puan düşülür.
+    <em>Kural değişikliklerinde her kayda onaylandığı günün kuralı uygulanır.</em>
 </div>
 
 <% if (siralama.length) { const sutun = yetki('odul') ? 8 : 7; %>
@@ -52,15 +52,15 @@
             <td data-label="İşlem" class="nowrap">
                 <% if (k.net >= esik) { %>
                 <form method="post" action="/odul-ver" style="display:inline"
-                      onsubmit="return confirm('<%= k.ad %> ödül aldı olarak işaretlenecek ve net puanından <%= esik %> düşülecek. Devam?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                      onsubmit="return confirm(this.dataset.onay)" data-onay="<%= k.ad %> ödül aldı olarak işaretlenecek ve net puanından <%= puanfmt(esik) %> düşülecek. Devam?"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                     <input type="hidden" name="ad" value="<%= k.ad %>">
-                    <button type="submit" class="btn-mini onay">🎁 Ödül Ver (−<%= esik %>)</button>
+                    <button type="submit" class="btn-mini onay">🎁 Ödül Ver (−<%= puanfmt(esik) %>)</button>
                 </form>
                 <% } else { %>
                 <span class="kalan-not"><%= puanfmt(esik - k.net) %> puan kaldı</span>
                 <% } %>
                 <form method="post" action="/puan/sil" style="display:inline"
-                      onsubmit="return confirm('“<%= k.ad %>” puan listesinden kaldırılacak. Devam?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                      onsubmit="return confirm(this.dataset.onay)" data-onay="“<%= k.ad %>” puan listesinden kaldırılacak. Devam?"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                     <input type="hidden" name="ad" value="<%= k.ad %>">
                     <button type="submit" class="btn-mini del">Sil</button>
                 </form>

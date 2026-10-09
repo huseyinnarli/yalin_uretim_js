@@ -1,19 +1,18 @@
 // Panel istatistikleri: dönem tablosu (öneri/kaizen ayrı) + son 12 ay gelen / puan alan trendi.
+// "Puan alan": tablo puanı verilmiş onaylı kayıt; sabit puan kuralındaki öneride onaylanmış olması yeter.
 const S = require("../sabitler");
+const PK = require("../puanKurallari");
 const { combinedRecords } = require("./kayitlar");
+const { puanKurallari } = require("./ayarlar");
 
-function puanVar(r) {
-  return r.puan !== null && r.puan !== undefined && r.puan !== "";
-}
-
-function sayDurum(records) {
+function sayDurum(records, puanAldi) {
   const d = { toplam: 0, onay: 0, puanli: 0, red: 0, bekle: 0, revize: 0 };
   for (const r of records) {
     d.toplam += 1;
     const du = r.durum || S.VARSAYILAN_DURUM;
     if (du === "Onaylandı") {
       d.onay += 1;
-      if (puanVar(r)) d.puanli += 1;
+      if (puanAldi(r)) d.puanli += 1;
     } else if (du === "Reddedildi") d.red += 1;
     else if (du === "Düzeltme İsteniyor") d.revize += 1;
     else d.bekle += 1;
@@ -25,6 +24,9 @@ const _KISA_AY = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl
 
 async function dashboardIstatistik() {
   const recs = await combinedRecords();
+  const surumler = await puanKurallari();
+  const bugun = S.bugunIso();
+  const puanAldi = (r) => PK.puanAldi(r, PK.kuralSec(surumler, PK.kuralTarihi(r, bugun)), r.tip);
   const now = S.nowTr();
   const p = (n) => String(n).padStart(2, "0");
   const buAy = `${now.getFullYear()}-${p(now.getMonth() + 1)}`;
@@ -34,8 +36,8 @@ async function dashboardIstatistik() {
 
   const donem = (k, ad, f) => {
     const rs = recs.filter(f);
-    return { k, ad, oneri: sayDurum(rs.filter((r) => r.tip === "oneri")),
-      kaizen: sayDurum(rs.filter((r) => r.tip === "kaizen")), toplam: sayDurum(rs) };
+    return { k, ad, oneri: sayDurum(rs.filter((r) => r.tip === "oneri"), puanAldi),
+      kaizen: sayDurum(rs.filter((r) => r.tip === "kaizen"), puanAldi), toplam: sayDurum(rs, puanAldi) };
   };
   const donemler = [
     donem("ay", "Bu Ay", (r) => r.sort_date.startsWith(buAy)),
@@ -50,7 +52,7 @@ async function dashboardIstatistik() {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const ay = `${d.getFullYear()}-${p(d.getMonth() + 1)}`;
     const rs = recs.filter((r) => r.sort_date.startsWith(ay));
-    const puanli = (tip) => rs.filter((r) => r.tip === tip && r.durum === "Onaylandı" && puanVar(r)).length;
+    const puanli = (tip) => rs.filter((r) => r.tip === tip && puanAldi(r)).length;
     trend.push({
       ay, etiket: `${_KISA_AY[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`,
       gelen_oneri: rs.filter((r) => r.tip === "oneri").length,

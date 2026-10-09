@@ -220,6 +220,7 @@ Bir modül yalnızca kendinden **alttaki** katmanlara dayanır; bu kural bölme 
 | `oneriler`, `kaizenler` | `red_nedeni`, `revize_notu`, `revize_atanan_id`, `revize_atanan_ad`, `revize_isteyen`, `revize_zamani`, `revize_tamamlandi` | Red gerekçesi, düzeltme ataması |
 | `oneriler` | `gorev_atanan_id`, `gorev_atanan_ad`, `gorev_termin`, `gorev_notu`, `gorev_atayan`, `gorev_zamani`, `kaizen_no` | Uygulama görevi, dönüştürülen kaizen |
 | `kaizenler` | `kaynak_oneri_no` | Kaizenin doğduğu öneri |
+| `oneriler`, `kaizenler` | `onay_zamani` | İlk onay zamanı — kayda hangi puan kuralının uygulanacağı (9 Ekim) |
 | `denetimler` | `revize_eden`, `revize_zamani` | Denetim revizesi izi |
 | yeni | `isim_eslestirme` | Elle isim birleştirme |
 | yeni | `kontrol_kayitlari`, `kontrol_onaylari` | Periyodik kontrol formu işaretleri ve imzaları |
@@ -290,3 +291,32 @@ tüm rota dosyaları, 18 şablon, `static/style.css`, `scripts/e2e-test.js`, `pa
 Güvenlik ve mimari açısından önerilen sonraki adımlar (öncelik sırasıyla) [IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md)
 §5'te. Kısaca: deponun gizli yapılması ve varsayılan şifrenin doğrulanması, giriş modelinin hızlandırılması
 (şifre taraması), çıkışın POST'a alınması, satır içi script'lerin dosyaya taşınıp CSP'nin sıkılaştırılması, CI.
+
+---
+
+## Ek — 9 Ekim 2026: Puan ve Ödül Ayarları
+
+**İstek:** Öneri, kaizen ve 5S puan karşılıklarını ve ödül eşiğini değiştirebilmek; önerinin puanlama tablosuyla mı
+yoksa onaylanınca sabit puanla mı (ör. 10 puan) değerlendirileceğine ana yöneticinin karar verebilmesi.
+
+**Yapılan:**
+
+| Parça | Ne |
+|---|---|
+| `src/puanKurallari.js` (yeni, saf) | Varsayılanlar, doğrulama, kural sürümü seçimi (onay günü), kazanç hesabı, açıklama metni |
+| `src/servis/ayarlar.js` (yeni, katman 0) | Kural sürümlerini ve ödül ayarlarını `config` tablosunda okur/yazar |
+| `src/rotalar/ayarlar.js` + `views/puan_ayarlari.ejs` (yeni) | Ana yönetici sayfası: eşik, 5S puanları, öneri modu, oranlar, uygulama kapsamı, **etki önizlemesi**, kural geçmişi |
+| `servis/puan.js`, `servis/panel.js`, `servis/bes.js` | Sabit değerler yerine ayar; işlenmiş 5S turu ve verilmiş ödül kayıttaki değeriyle |
+| `rotalar/admin.js` | İlk onayda `onay_zamani`; sabit kuraldaki öneri tabloyla puanlanamaz |
+| Liste, detay, puan listesi, kılavuz, kaizen formu, Excel | Sabit puan gösterimi, "puan listesine yazılan" satırı, oran metinleri ayardan, Excel'de yazılan puan sütunları |
+| Güvenlik (B10) | Onay pencerelerinde kullanıcı verisi JS dizgisinden `data-onay` özniteliğine |
+
+**Tasarım kararı — neden "geçerlilik tarihli" kural:** Ödüller paraya dönüştüğü için oran değişikliğinin geçmişte
+kazanılmış puanları sessizce değiştirmemesi gerekir. Bu yüzden her kayda onaylandığı günün kuralı uygulanır;
+istenirse "geriye dönük" seçeneğiyle tüm kayıtlar yeniden hesaplanır. Ödülde düşülen puan ve işlenmiş 5S turunun
+puanı zaten kayıtlarda saklandığı için eşik ve 5S değişikliği geçmişi etkilemez. Ayar hiç kaydedilmezse varsayılanlar
+önceki sabit değerlerle aynıdır — güncelleme puanları değiştirmez.
+
+**Test:** 21 yeni uçtan uca kontrol (yetki, önizlemenin kaydetmemesi, doğrulama, bugünden itibaren / geriye dönük,
+sabit puan ve puanlama engeli, eşik ve ödül düşümü, 5S defteri, sürüm kaldırma, onay penceresi XSS) → **157/157**.
+

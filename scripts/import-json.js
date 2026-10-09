@@ -164,7 +164,7 @@ async function main() {
     await calistir("DELETE FROM odul_arsiv", [], conn);
     for (const r of arsiv) {
       await calistir("INSERT INTO odul_arsiv(ad, puan, tarih, zaman) VALUES(?,?,?,?)",
-        [r.ad || "", r.puan || S.ODUL_ESIK, r.tarih || "", r.zaman || ""], conn);
+        [r.ad || "", r.puan || require("../src/puanKurallari").VARSAYILAN_ODUL.esik, r.tarih || "", r.zaman || ""], conn);
     }
     log("Ödül arşivi", arsiv.length);
 

@@ -14,7 +14,7 @@
        puanlar <strong>personel ödül sistemine</strong> dönüşür.</p>
     <p class="blok-alt-not">Genel akış: <strong>Çalışan öneri/kaizen girer → Yönetici onaylar ve puanlar</strong> ·
        <strong>5S: bölümler denetlenir → ilk 3 bölüm ödül alır</strong> → tüm puanlar
-       <strong>Puan Listesi</strong>'nde toplanır → net puanı <strong><%= esik %></strong>'e ulaşana ödül verilir.</p>
+       <strong>Puan Listesi</strong>'nde toplanır → net puanı <strong><%= puanfmt(esik) %></strong> puana ulaşana ödül verilir.</p>
     <p class="blok-alt-not">Anasayfada üç kutu vardır: <strong>🏆 Puan Listesi</strong> ·
        <strong>💡🔧 Öneri &amp; Kaizen</strong> · <strong>🧹 5S</strong>.</p>
 
@@ -146,14 +146,16 @@
 
     <h2 class="bolum-baslik">🏆 Puan Listesi &amp; Ödül</h2>
     <ul>
-        <li>Puanlar şu şekilde dağılır: <strong>Öneri</strong> → sahibine puanın <strong>%10</strong>'u ·
-            <strong>Kaizen</strong> → lider <strong>%50</strong>, her üye <strong>%25</strong> ·
-            <strong>5S</strong> → turda ilk 3 bölümün ekibine <strong>100/75/50</strong>.</li>
+        <li>Puanlar şu şekilde dağılır (bugünkü ayar): <strong><%= kural_metni %></strong> ·
+            <strong>5S</strong> → turda ilk 3 bölümün ekibine <strong><%= odul.bes.map(puanfmt).join('/') %></strong>.
+            Bu değerleri ve önerinin puanlama tablosuyla mı yoksa onaylanınca sabit puanla mı değerlendirileceğini
+            <strong>ana yönetici</strong> Yönetim › 🏆 Puan ve Ödül Ayarları'ndan değiştirir; her kayda onaylandığı günün
+            kuralı uygulanır.</li>
         <li>Kişi satırına tıklayınca puanının hangi kayıtlardan geldiği açılır.</li>
         <li>Aynı kişinin farklı yazılışları (ALİ YILMAZ / ali yilmaz) otomatik <strong>tek kişi</strong> sayılır. Yazım
             hataları <strong>🔗 İsim Birleştirme</strong> sayfasından elle birleştirilir (kayıtlar değişmez, geri ayrılabilir).</li>
-        <li>Net puanı <strong><%= esik %></strong>'e ulaşan kişiye yönetici <strong>🎁 Ödül Ver</strong> der;
-            <%= esik %> puan düşülür ve kişi <strong>Ödül Alanlar</strong> listesine geçer. Ödül kaydı silinirse düşülen
+        <li>Net puanı <strong><%= puanfmt(esik) %></strong> puana ulaşan kişiye yönetici <strong>🎁 Ödül Ver</strong> der;
+            <%= puanfmt(esik) %> puan düşülür ve kişi <strong>Ödül Alanlar</strong> listesine geçer. Ödül kaydı silinirse düşülen
             puan geri döner.</li>
     </ul>
 

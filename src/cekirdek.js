@@ -6,6 +6,7 @@
 //   0  guvenlik      şifre hash/doğrulama, ana yönetici şifresi, oturum imza anahtarı
 //      yardimci      numara/kimlik üretimi, tarih-puan biçimi, güvenli dosya yolu, görsel işleme, logo
 //      gunluk        işlem günlüğü
+//      ayarlar       puan kuralı sürümleri + ödül ayarları (config; hesap kuralları src/puanKurallari.js)
 //   1  kayitlar      öneri/kaizen okuma-yazma, liste filtresi + sayfalama, düzenleme izni, kaizen görseli
 //      bes           5S bölüm/denetim/tur/ödül defteri/trend, denetim fotoğrafları
 //   2  hesaplar      denetmen + misafir + ek yönetici hesapları, oturum yetkileri, şifre çakışması
@@ -16,7 +17,7 @@
 //      gorevler      düzeltme/görev atamaları, Görevlerim, menü rozeti
 //      panel         panel istatistikleri + 12 ay trendi
 const MODULLER = [
-  "guvenlik", "yardimci", "gunluk",
+  "guvenlik", "yardimci", "gunluk", "ayarlar",
   "kayitlar", "bes",
   "hesaplar", "kontrolFormu",
   "isimler", "aksiyon",

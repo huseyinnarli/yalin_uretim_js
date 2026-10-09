@@ -31,7 +31,7 @@
             <% if (yetki('odul')) { %>
             <td data-label="İşlem" class="nowrap">
                 <form method="post" action="/odul-alanlar/sil" style="display:inline"
-                      onsubmit="return confirm('<%= r.ad %> ödül kaydı silinecek — <%= r.puan %> puan net puanına GERİ eklenir. Devam?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+                      onsubmit="return confirm(this.dataset.onay)" data-onay="<%= r.ad %> ödül kaydı silinecek — <%= r.puan %> puan net puanına GERİ eklenir. Devam?"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                     <input type="hidden" name="ad" value="<%= r.ad %>">
                     <input type="hidden" name="zaman" value="<%= r.zaman %>">
                     <button type="submit" class="btn-mini del">Sil</button>

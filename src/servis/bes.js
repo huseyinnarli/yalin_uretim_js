@@ -6,6 +6,7 @@ const P = require("../puanlama");
 const I = require("../isim");
 const { sorgu, tek, calistir, transaction, js, bolumRow, denetimRow, aksiyonRow } = require("../db");
 const { uid, allowedFile, gorselKaydet } = require("./yardimci");
+const { odulAyarlari } = require("./ayarlar");
 
 async function loadBolumler() {
   return (await sorgu("SELECT * FROM bolumler ORDER BY ad")).map(bolumRow);
@@ -117,18 +118,22 @@ async function aksiyonSayilari() {
   return say;
 }
 
-// Bir turdaki bölümlerin skor sıralaması + alacakları ödül (önizleme).
-// ctx verilirse (denetimler/bolumlar/aksiyonSay) tekrar sorgu atılmaz.
+// Bir turdaki bölümlerin skor sıralaması + ödülü. İşlenmiş turda deftere yazılmış puan, işlenmemiş turda
+// bugünkü 5S ödül ayarı (önizleme) gösterilir. ctx verilirse (denetimler/bolumlar/aksiyonSay) tekrar sorgu atılmaz.
 async function besSTurSiralama(tarih, ctx = null) {
   const denetimler = ctx ? ctx.denetimler : await loadDenetimler();
   const bolumlar = ctx ? ctx.bolumlar : await bolumMap();
   const aks = ctx ? ctx.aksiyonSay : await aksiyonSayilari();
+  const besOdul = (await odulAyarlari()).bes;
+  const islenmis = new Map((await sorgu("SELECT bolum_id, puan FROM odul_kayitlari WHERE tarih = ?", [tarih]))
+    .map((r) => [r.bolum_id, Number(r.puan) || 0]));
+  const odulPuani = (d, i) => (islenmis.size ? islenmis.get(d.bolum_id) || 0 : besOdul[i] || 0);
   const ds = denetimler.filter((d) => d.tarih === tarih && d.puan !== null);
   ds.sort((a, b) => b.puan - a.puan);
   return ds.map((d, i) => {
     const b = bolumlar[d.bolum_id];
     const ak = aks[d.id] || { toplam: 0, acik: 0 };
-    return { sira: i + 1, ad: b ? b.ad : "?", skor: d.puan, odul: S.ODUL_MAP[i] || 0,
+    return { sira: i + 1, ad: b ? b.ad : "?", skor: d.puan, odul: odulPuani(d, i),
       denetim_id: d.id, bolum_id: d.bolum_id, tarih: denetimTarihi(d),
       aksiyon: ak.toplam, aksiyon_acik: ak.acik };
   });
@@ -152,8 +157,8 @@ async function besSTurEksikler(tarih, ctx = null) {
   return eksik;
 }
 
-// Bir turun ödüllerini kalıcı deftere işler (ilk 3 bölüm ekibine 100/75/50).
-// Tamamı tek transaction'dadır.
+// Bir turun ödüllerini kalıcı deftere işler (ilk 3 bölüm ekibine o günkü 5S ödül ayarı, varsayılan 100/75/50).
+// Yazılan puan defterde saklanır; ayar sonradan değişse de işlenmiş tur etkilenmez. Tamamı tek transaction'dadır.
 async function besSIsle(tarih) {
   if ((await odulIslenenler()).includes(tarih)) return [false, "Bu tur zaten işlenmiş."];
   const denetimler = await loadDenetimler();
@@ -166,6 +171,7 @@ async function besSIsle(tarih) {
   turdaki.sort((a, b) => b.puan - a.puan);
   const turAdi = await besSTurAdi(tarih);
   const bolumlar = await bolumMap();
+  const besOdul = (await odulAyarlari()).bes;
   const now = S.zamanTr();
   await transaction(async (conn) => {
     for (let sira = 0; sira < Math.min(3, turdaki.length); sira++) {
@@ -175,7 +181,7 @@ async function besSIsle(tarih) {
       await calistir(
         `INSERT INTO odul_kayitlari(tarih, tur_adi, bolum_id, bolum_ad, sira, puan, kisiler, islenme_zamani)
          VALUES(?,?,?,?,?,?,?,?)`,
-        [tarih, turAdi, b.id, b.ad, sira + 1, S.ODUL_MAP[sira], js(kisiler), now], conn);
+        [tarih, turAdi, b.id, b.ad, sira + 1, besOdul[sira], js(kisiler), now], conn);
     }
     await calistir("INSERT INTO odul_islenen(tarih) VALUES(?)", [tarih], conn);
   });

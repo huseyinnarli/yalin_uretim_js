@@ -95,6 +95,7 @@ module.exports = function register(app) {
       denetmen_secenekleri: await C.denetmenAdaylari(),
       misafirler: await C.loadMisafirler(),
       plan_araligi: planAraligi,
+      bes_odul: (await C.odulAyarlari()).bes,
     });
   }));
 

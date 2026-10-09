@@ -655,6 +655,95 @@ async function main() {
     html = await getText("/5s");
     ok("bölümler listesinde bu ay kontrol sütunu", html.includes("Bu Ay Kontrol") && html.includes("1/" + kGun + " gün"));
 
+    // --- Puan ve Ödül Ayarları (yalnız ana yönetici) ---
+    const AYAR = "/yonetici/puan-ayarlari";
+    const varsayilanForm = { esik: "300", bes1: "100", bes2: "75", bes3: "50", oneri_mod: "tablo", oneri_oran: "10",
+      oneri_sabit: "10", kaizen_lider_oran: "50", kaizen_uye_oran: "25", uygulama: "ileri" };
+    const ayarKaydet = async (degisen, islem = "kaydet") =>
+      post(AYAR, { csrf_token: csrf, ...varsayilanForm, ...degisen, islem });
+    // Kişinin puan listesindeki öneri ve net puanı (yoksa 0)
+    const kisiPuani = async (ad) => {
+      const h = await getText("/puan-durumu");
+      const i = h.indexOf(`</button>\n                ${ad}\n`);
+      if (i < 0) return { oneri: 0, net: 0 };
+      const parca = h.slice(i, i + 1500);
+      const sayi = (etiket) => parseFloat(((parca.match(new RegExp(`data-label="${etiket}">([^<]*)<`)) || [])[1] || "0").replace(",", "."));
+      return { oneri: sayi("Öneri"), net: sayi("Net") };
+    };
+    csrf = await girisYap("deniz123");
+    r = await get(AYAR);
+    ok("denetmen puan ayarlarını açamaz", r.status === 302 && !konum(r).startsWith(AYAR));
+    csrf = await girisYap("planci12");
+    r = await get(AYAR);
+    ok("ek yönetici puan ayarlarını açamaz", konum(r) === "/");
+    csrf = await girisYap("admin123");
+    html = await getText(AYAR);
+    ok("ana yönetici puan ayarları sayfası", html.includes("Puan ve Ödül Ayarları") && html.includes("tablo × %10"));
+    // Bilinen veri: eski (onay tarihi olmayan) onaylı + puanlı öneri
+    await db.query(`INSERT INTO oneriler(\`no\`, tarih, sahibi, konu, durum, puan, kayit_zamani)
+      VALUES('ÖNFR2601-90', '2026-01-05', 'Kural Test', 'Kural', 'Onaylandı', 100, '05.01.2026 10:00')`);
+    let kp = await kisiPuani("Kural Test");
+    ok("varsayılan kural: 100 puanlık öneriye %10 = 10", kp.oneri === 10, JSON.stringify(kp));
+    // Önizleme kaydetmez
+    html = await (await ayarKaydet({ oneri_oran: "20", uygulama: "geri" }, "onizle")).text();
+    const [[ayarSay]] = await db.query("SELECT COUNT(*) AS n FROM config WHERE anahtar = 'puan_kurallari'");
+    ok("önizleme etkiyi gösterir ama kaydetmez", html.includes("Önizleme") && html.includes("Kural Test") && ayarSay.n === 0);
+    // Geçersiz değer reddedilir
+    html = await (await ayarKaydet({ esik: "0" })).text();
+    ok("geçersiz eşik reddedildi", html.includes("Ödül eşiği") && html.includes("ayar-hata"));
+    // Bugünden itibaren: öneri onaylanınca sabit 15 puan
+    r = await ayarKaydet({ oneri_mod: "sabit", oneri_sabit: "15", uygulama: "ileri" });
+    ok("sabit puan kuralı kaydedildi", konum(r) === AYAR);
+    kp = await kisiPuani("Kural Test");
+    ok("ileriye dönük: eski onaylı öneri eski kuralla (10)", kp.oneri === 10, JSON.stringify(kp));
+    await post("/oneri/yeni", { csrf_token: csrf, tarih: trBugun, sahibi_ad: "Sabit", sahibi_soyad: "Test",
+      gorevi: "Operatör", konu: "Sabit puan denemesi", detay: "d", cozum: "c" });
+    const [[sabitNo]] = await db.query("SELECT `no` FROM oneriler WHERE sahibi = 'Sabit Test'");
+    html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(sabitNo.no)}`);
+    ok("onay kartında sabit puan bilgisi", html.includes("Onaylanınca öneri sahibine") && html.includes("15 puan"));
+    await post("/durum", { csrf_token: csrf, tip: "oneri", no: sabitNo.no, durum: "Onaylandı" });
+    const [[sabitKayit]] = await db.query("SELECT onay_zamani, puan FROM oneriler WHERE `no` = ?", [sabitNo.no]);
+    ok("onay zamanı kaydedildi", Boolean(sabitKayit.onay_zamani));
+    kp = await kisiPuani("Sabit Test");
+    ok("sabit kural: onaylanan öneri sahibine 15 puan (puanlamasız)", kp.oneri === 15 && sabitKayit.puan === null, JSON.stringify(kp));
+    r = await get(`/degerlendir/puan?tip=oneri&no=${encodeURIComponent(sabitNo.no)}`);
+    ok("sabit kuraldaki öneri puanlama tablosuyla puanlanamaz", konum(r).startsWith("/detay"));
+    html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(sabitNo.no)}`);
+    ok("detayda sabit puan ve yazılan puan", html.includes("Sabit puan: 15") && html.includes("+15") && !html.includes("★ Puanla"));
+    html = await getText("/liste?q=Sabit");
+    ok("listede 'sabit +15', Puanla düğmesi yok", html.includes("sabit +15") && !html.includes(`no=${encodeURIComponent(sabitNo.no)}&geri`));
+    // Geriye dönük: tüm kayıtlara tablo × %20
+    r = await ayarKaydet({ oneri_mod: "tablo", oneri_oran: "20", uygulama: "geri" });
+    const [[kuralJson]] = await db.query("SELECT deger FROM config WHERE anahtar = 'puan_kurallari'");
+    kp = await kisiPuani("Kural Test");
+    const kpSabit = await kisiPuani("Sabit Test");
+    ok("geriye dönük: eski öneri yeni oranla (20), tek sürüm kaldı", kp.oneri === 20 && JSON.parse(kuralJson.deger).length === 1, JSON.stringify(kp));
+    ok("geriye dönük tablo kuralında puanlanmamış öneri puan almaz", kpSabit.oneri === 0);
+    // Ödül eşiği: düşülen puan ödül kaydında saklanır
+    await ayarKaydet({ oneri_oran: "20", uygulama: "geri", esik: "15" });
+    html = await getText("/puan-durumu");
+    ok("eşik değişti: Ödül Ver (−15)", html.includes("Ödül Ver (−15)"));
+    await post("/odul-ver", { csrf_token: csrf, ad: "Kural Test" });
+    const [[odulKayit]] = await db.query("SELECT puan FROM odul_arsiv WHERE ad = 'Kural Test'");
+    await ayarKaydet({ oneri_oran: "20", uygulama: "geri", esik: "300" });
+    kp = await kisiPuani("Kural Test");
+    ok("ödülde düşülen 15 saklandı; eşik 300'e dönünce net 5", Number(odulKayit.puan) === 15 && kp.net === 5, JSON.stringify(kp));
+    // 5S: işlenmiş turun puanı değişmez
+    await ayarKaydet({ oneri_oran: "20", uygulama: "geri", bes1: "60", bes2: "40", bes3: "20" });
+    const [[odulAyar]] = await db.query("SELECT deger FROM config WHERE anahtar = 'odul_ayarlari'");
+    const [[besDefter]] = await db.query("SELECT MAX(puan) AS m FROM odul_kayitlari");
+    ok("5S ödülleri kaydedildi, işlenmiş tur defteri aynı (100)", JSON.parse(odulAyar.deger).bes.join("/") === "60/40/20" && Number(besDefter.m) === 100);
+    // Sürüm kaldırma
+    await ayarKaydet({ oneri_mod: "sabit", oneri_sabit: "5", bes1: "60", bes2: "40", bes3: "20" });
+    await post(AYAR + "/surum-sil", { csrf_token: csrf, gecerlilik: trBugun });
+    const [[kuralSon]] = await db.query("SELECT deger FROM config WHERE anahtar = 'puan_kurallari'");
+    ok("bugünkü sürüm kaldırıldı", JSON.parse(kuralSon.deger).length === 1);
+    // Kullanıcı verisi onay penceresinde JS'e gömülmez (tırnaklı isim)
+    await db.query(`INSERT INTO oneriler(\`no\`, tarih, sahibi, konu, durum, puan, kayit_zamani)
+      VALUES('ÖNFR2601-91', '2026-01-06', 'O''Brien Test', 'Tırnak', 'Onaylandı', 100, '06.01.2026 10:00')`);
+    html = await getText("/puan-durumu");
+    ok("onay pencerelerinde isim JS dizgisine gömülmüyor", !html.includes("confirm('") && /data-onay="[^"]*O&#39;Brien Test/i.test(html));
+
     await db.end();
   } finally {
     srv.kill();

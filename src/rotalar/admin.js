@@ -31,6 +31,12 @@ function yapanAd(req) {
   return req.anaYonetici ? "Ana Yönetici" : ((req.yetkiBilgi && req.yetkiBilgi.ad) || "Yönetici");
 }
 
+// Sabit puan kuralındaki öneri puanlama tablosuyla puanlanmaz (ana yönetici › Puan ve Ödül Ayarları)
+const SABIT_UYARI = "Bu öneri sabit puan kuralına tabi — puanlama tablosu kullanılmaz; onaylanınca sahibine sabit puan yazılır.";
+async function sabitPuanliOneri(tip, rec) {
+  return tip === "oneri" && (await C.kuralCozucu())(rec).oneri_mod === "sabit";
+}
+
 // Oturumu tamamen temizler (rol geçişlerinde eski roldan iz kalmasın)
 function oturumuTemizle(session) {
   delete session.admin;
@@ -357,6 +363,8 @@ module.exports = function register(app) {
       });
       ek = ` · düzeltme ${d.ad} kişisine atandı`;
     } else if (durum === "Onaylandı") {
+      // İlk onay zamanı: kayda o günün puan kuralı uygulanır (src/puanKurallari.js)
+      if (!mevcut.onay_zamani) alanlar.onay_zamani = S.zamanTr();
       // Öneride isteğe bağlı: onayla birlikte uygulama görevi ata
       if (tip === "oneri" && req.body.gorev_denetmen) {
         const g = await C.denetmenById(req.body.gorev_denetmen);
@@ -413,6 +421,10 @@ module.exports = function register(app) {
       flash(req, "error", "Puanlamadan önce kaydı onaylayın.");
       return res.redirect(detayUrl);
     }
+    if (await sabitPuanliOneri(tip, rec)) {
+      flash(req, "error", SABIT_UYARI);
+      return res.redirect(detayUrl);
+    }
     res.render("degerlendir_puan", {
       title: `Puanla · ${rec.no}`, r: rec, tip, geri, detay_url: detayUrl,
       puan_temel: P.PUAN_TEMEL, puan_etki: P.PUAN_ETKI, puan_maliyet: P.PUAN_MALIYET,
@@ -430,6 +442,10 @@ module.exports = function register(app) {
     if (!rec) return res.status(404).send("Kayıt bulunamadı.");
     if ((rec.durum || S.VARSAYILAN_DURUM) !== "Onaylandı") {
       flash(req, "error", "Puanlamadan önce kaydı onaylayın.");
+      return res.redirect(detayUrl);
+    }
+    if (await sabitPuanliOneri(tip, rec)) {
+      flash(req, "error", SABIT_UYARI);
       return res.redirect(detayUrl);
     }
     const { puanlama, toplam } = P.hesaplaPuanlama(req.body);
