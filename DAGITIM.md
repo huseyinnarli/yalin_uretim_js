@@ -206,6 +206,7 @@ kanıtlanınca yedektir.
 
 > Sürüme özel notlar (eklenen kolonlar/tablolar, canlıya alma sonrası yapılacaklar): **[DEGISIKLIKLER.md](DEGISIKLIKLER.md)**.
 > Eski sürümün veritabanıyla Ekim 2026 sürümüne geçiş (ön kontrol, prova, geri dönüş): **[VERITABANI_GECIS.md](VERITABANI_GECIS.md)**.
+> Canlıdaki eski sitenin üzerine kurulum için adım adım rehber ve tuzaklar: **[GUNCELLEME_REHBERI.md](GUNCELLEME_REHBERI.md)**.
 
 ```bash
 cd /home/yalinapp/app

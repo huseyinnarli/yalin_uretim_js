@@ -208,6 +208,22 @@ ping + sürüm) — izleme için. Efor: ~yarım gün.
 İsim kişinin tek kimliği; yazım farkları anahtarla çözülüyor ama **aynı ad-soyadlı iki çalışan ayrılamaz**.
 Ödüller paraya döndüğü için orta vadede formlara isteğe bağlı sicil no alanı ve puanın sicil bazlı toplanması önerilir.
 
+### Devreye alma incelemesinde eklenenler (2 Kasım 2026 — ayrıntı: [GUNCELLEME_REHBERI.md](GUNCELLEME_REHBERI.md) §4, §6)
+Aynı incelemede kapatılanlar: statik dosyaların sürümsüz 1 yıllık önbelleği (`?v=` eklendi), ön kontrolde veritabanı
+yetkisi (CREATE/ALTER) denetimi, açılışta yetki hatasının ayrı mesajı.
+- **🟠 Ö14 — Excel'de kişi adları ham:** öneri/kaizen Excel'i isimleri kayıttaki gibi yazar; kişi bazlı sayım (pivot)
+  bölünür. **Öneri:** `isimCozucu` ile "Kişi (birleştirilmiş)" sütunu + kişi başına öneri/kaizen sayısı veren
+  "Kişi Özeti" sayfası. ~2 saat.
+- **🟡 Ö15 — `npm test` koruması:** test, `YALIN_E2E_DB` ile verilen veritabanının tablolarını koşulsuz siler.
+  **Öneri:** ad canlı veritabanı adıyla aynıysa veya `test`/`e2e` içermiyorsa başlamasın. ~15 dk.
+- **🟡 Ö16 — Yedek:** ZIP'ten geri yükleme aracı yok; her ZIP tüm fotoğrafları içerir (15 × arşiv boyutu); her
+  açılışta yedek alınır, sık yeniden başlatmada eski yedekler döner. **Öneri:** geri yükleme betiği, fotoğraflar
+  için artımlı kopya, açılış yedeğine asgari aralık. ~yarım gün.
+- **🟡 Ö17 — Bellekte yükleme:** `multer.memoryStorage`, denetimde 69 dosyaya kadar. **Öneri:** disk depolama
+  veya toplam boyut sınırı.
+- **🟡 Ö18 — IP'ye bağlı hız sınırları:** fabrika tek IP'den çıkıyorsa 8 hatalı şifre herkesi 10 dk kilitler.
+  **Öneri:** giriş kilidini IP + hesap birlikte tutmak (Ö10-b ile doğal olarak gelir).
+
 ### ⚪ Ö8 — Küçük kalemler
 - exceljs → uuid orta uyarısı: exceljs yeni sürüm çıkınca güncelleyin; `npm audit fix --force` **çalıştırmayın**
   (exceljs'i 3.4'e düşürür).
@@ -229,4 +245,6 @@ ping + sürüm) — izleme için. Efor: ~yarım gün.
 | 5 | Ö1 inline script → dosya + CSP | ~yarım gün | Orta vade |
 | 6 | Ö13 rota dosyalarının bölünmesi, lint, birim testleri | 1–2 gün | Fırsat buldukça |
 | 7 | Ö10-b kullanıcı seçimli giriş · Ö11 sicil no | ~1 gün | Hesap/kişi sayısı arttıkça |
+| 7b | Ö14 Excel'de birleştirilmiş isim + kişi özeti · Ö15 test koruması | ~2,5 saat | Kişi bazlı rapor alınmaya başlanmadan önce |
+| 7c | Ö16 yedek geri yükleme/artımlı foto · Ö17 disk depolama · Ö18 hesap bazlı kilit | değişken | Fotoğraf arşivi büyüdükçe |
 | 8 | Ö4 FK · Ö2 Excel worker · Ö3 log + sağlık ucu | değişken | İhtiyaç oldukça |

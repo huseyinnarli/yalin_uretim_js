@@ -110,7 +110,7 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 ```
 İstek gelir
   └─ guvenlikBasliklari      → CSP, nosniff, X-Frame-Options DENY, Referrer-Policy
-  └─ /static                 → express.static (maxAge 365 gün)
+  └─ /static                 → express.static (maxAge 365 gün; şablonlar adrese ?v=<içerik özeti> ekler — web.js:statikSurum)
   └─ express.urlencoded      → form gövdesi (1 MB sınır)
   └─ cookie-session          → imzalı çerez çözülür (12 saat, HttpOnly, SameSite=Lax)
   └─ ortakLocals             → yetki çözümü (req.yetkiler, req.denetmen), şablon değişkenleri, flash, CSRF
@@ -379,5 +379,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 157 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 159 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

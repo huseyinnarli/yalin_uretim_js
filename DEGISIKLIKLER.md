@@ -1,5 +1,20 @@
 # Sürüm Notları
 
+## 2 Kasım 2026 — Devreye alma hazırlığı
+
+Kullanıcıya görünen işlev değişmedi; canlıdaki eski sitenin üzerine güvenli kurulum için:
+
+- **[GUNCELLEME_REHBERI.md](GUNCELLEME_REHBERI.md):** güncellemeyi yapacak kişi için adım adım rehber. İçeriği: sunucu
+  bilgisi toplama, yedek, ön kontrol, prova, üç geçiş yolu, duman testi, geri dönüş, 15 tuzak ve kod incelemesi bulguları.
+- **Tarayıcı önbelleği:** `/static` dosyaları (style.css, takvim, flatpickr, logo) 1 yıl önbelleklenirken adresleri
+  sabitti. Güncellemeden sonra telefonlar eski stili kullanacaktı. Artık adreslerde içerik özeti var (`style.css?v=…`);
+  dosya değişince tarayıcı yenisini kendiliğinden indirir.
+- **Ön kontrol (`npm run gecis-kontrol`):** veritabanı kullanıcısının yetkilerini de denetler. Açılışta CREATE ve,
+  eklenecek kolon varsa, ALTER gerekir; eksikse uygulama açılmaz. Rapor eksik yetkiyi ve `GRANT` komutunu verir, çıkış kodu 2 olur.
+- **Açılış hatası:** yetki yetersizliğinde "bağlantı ayarlarını kontrol edin" yerine ne yapılacağını söyleyen ayrı mesaj.
+- Eski sürümün (`1d67cea`) veritabanıyla geçiş ve geri dönüş güncel kodla yeniden doğrulandı (46/46). e2e testi: **159/159**.
+- Veritabanı: değişiklik yok.
+
 ## 9 Ekim 2026 — Puan ve Ödül Ayarları
 
 **Ana yönetici** artık puan ve ödül kurallarını kod değiştirmeden ayarlayabilir: Yönetim › **🏆 Puan ve Ödül Ayarları**.

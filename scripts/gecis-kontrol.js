@@ -38,6 +38,40 @@ function semaKolonlari(ddl) {
   return { tablo, kolonlar };
 }
 
+// MySQL veritabanı adı kalıbı (GRANT ... ON `kalip`.*): "_" tek karakter, "%" herhangi dizi, "\_" / "\%" düz karakter
+function adKalibiEslesir(kalip, ad) {
+  let re = "";
+  for (let i = 0; i < kalip.length; i++) {
+    const ch = kalip[i];
+    if (ch === "\\" && i + 1 < kalip.length) { re += kalip[++i].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); continue; }
+    re += ch === "%" ? ".*" : ch === "_" ? "." : ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+  return new RegExp(`^${re}$`, "i").test(ad);
+}
+
+// Bağlı kullanıcının bu veritabanında geçerli ayrıcalıkları (SHOW GRANTS; *.* ve veritabanı düzeyi).
+// Rol ataması gibi çözülemeyen bir durumda ve yetki yetmiyorsa null döner (rapor elle doğrulamayı önerir).
+async function dbYetkileri(q, veritabani) {
+  let satirlar;
+  try { satirlar = (await q("SHOW GRANTS")).map((r) => String(Object.values(r)[0])); } catch { return null; }
+  const yetki = new Set();
+  let rolVar = false;
+  for (const s of satirlar) {
+    const m = /^GRANT (.+?) ON (\S+) TO /i.exec(s);
+    if (!m) { if (/^GRANT /i.test(s)) rolVar = true; continue; }
+    const hedef = m[2].replace(/`/g, "");
+    const dbKalip = hedef.slice(0, hedef.lastIndexOf("."));
+    if (!/\.\*$/.test(hedef) || !(dbKalip === "*" || adKalibiEslesir(dbKalip, veritabani))) continue;
+    // "SELECT, INSERT, UPDATE (kolon)" — parantez içindeki kolon listelerini at, virgülle böl
+    for (const y of m[1].replace(/\([^)]*\)/g, "").split(",").map((x) => x.trim().toUpperCase())) {
+      if (y === "ALL" || y === "ALL PRIVILEGES") ["SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER"].forEach((a) => yetki.add(a));
+      else yetki.add(y);
+    }
+  }
+  const tam = ["SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER"].every((y) => yetki.has(y));
+  return rolVar && !tam ? null : yetki;
+}
+
 async function main() {
   const ayar = baglantiAyarlari();
   const c = await mysql.createConnection({ ...ayar, charset: "utf8mb4" });
@@ -90,6 +124,23 @@ async function main() {
     uyarilar.push(`Şemada otomatik eklenmeyecek eksik kolon var (${eksik.join(", ")}). Geliştiriciye bildirin; ` +
       `bu kolonlar src/db.js içindeki EK_KOLONLAR listesine eklenmeden canlıya almayın.`);
   }
+  // Veritabanı kullanıcısının yetkileri: uygulama her açılışta CREATE TABLE IF NOT EXISTS çalıştırır (tablo varken bile
+  // CREATE yetkisi ister); eklenecek kolon varsa ALTER gerekir. Biri eksikse uygulama AÇILMAZ ("command denied").
+  const gerekli = ["SELECT", "INSERT", "UPDATE", "DELETE", "CREATE"].concat(eklenecek.length ? ["ALTER"] : []);
+  const yetki = await dbYetkileri(q, ayar.database);
+  if (!yetki) {
+    yaz(`- Veritabanı kullanıcısının yetkileri otomatik çözülemedi (rol ataması olabilir). Gerekli: ${gerekli.join(", ")}.`);
+    notlar.push(`Veritabanı kullanıcısında ${gerekli.join(", ")} yetkileri olduğunu SHOW GRANTS ile elle doğrulayın.`);
+  } else {
+    const eksikYetki = gerekli.filter((y) => !yetki.has(y));
+    yaz(`- Veritabanı kullanıcısının yetkileri: gerekli ${gerekli.join(", ")} → ` +
+      (eksikYetki.length ? `⚠ **eksik: ${eksikYetki.join(", ")}**` : "tamam"));
+    if (eksikYetki.length) {
+      uyarilar.push(`Veritabanı kullanıcısında ${eksikYetki.join(", ")} yetkisi yok — uygulama açılışta "command denied" ` +
+        `hatasıyla durur. Verin: GRANT ${eksikYetki.join(", ")} ON \`${ayar.database}\`.* TO '${ayar.user}'@'<host>';`);
+    }
+  }
+  yaz();
   if (!/mariadb/i.test(surum) && !/^8\./.test(surum)) {
     notlar.push(`Sunucu sürümü ${surum}: MySQL 8 / MariaDB 10.6+ önerilir.`);
   }

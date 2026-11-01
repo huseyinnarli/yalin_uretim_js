@@ -133,6 +133,10 @@ async function main() {
     let html = await getText("/yonetici/giris");
     let csrf = csrfFrom(html);
     ok("giriş sayfası + csrf", Boolean(csrf));
+    // Güncellemeden sonra tarayıcı eski CSS/JS'i 1 yıllık önbellekten kullanmasın: adresler içerik özetiyle sürümlü
+    const sv = (html.match(/\/static\/style\.css\?v=([0-9a-f]{10})"/) || [])[1];
+    ok("statik dosya adresleri sürümlü (?v=)", Boolean(sv) && html.includes(`/static/takvim.js?v=${sv}"`));
+    ok("sürümlü statik dosya sunuluyor", (await fetch(`${BASE}/static/style.css?v=${sv}`)).status === 200);
 
     await post("/yonetici/giris", { csrf_token: csrf, sifre: "yanlis-sifre" });
     html = await getText("/yonetici/giris");

@@ -2,6 +2,8 @@
 // güvenli dönüş adresi, ortak şablon değişkenleri + yetki çözümü, CSRF, güvenlik başlıkları, hız limiti,
 // dosya yükleme, yetki middleware'leri, Excel/ZIP indirme yanıtları.
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const multer = require("multer");
 const archiver = require("archiver");
 const S = require("./sabitler");
@@ -184,6 +186,23 @@ function dosyaYukleyici(maxDosya) {
   return [yukle, csrfKontrol];
 }
 
+// --- Statik dosya sürümü ---
+// /static yanıtları tarayıcıda 1 yıl önbellekte kalır (server.js maxAge). Şablonlar adresin sonuna klasör
+// içeriğinin özetini ekler (/static/style.css?v=…): dosya değişince adres değişir, tarayıcı yenisini indirir.
+// Özet açılışta bir kez hesaplanır; güncellemede sunucu zaten yeniden başlatılır.
+function statikSurum(dizin = S.STATIC_DIR) {
+  const ozet = crypto.createHash("sha1");
+  const gez = (d) => {
+    for (const ad of fs.readdirSync(d).sort()) {
+      const yol = path.join(d, ad);
+      if (fs.statSync(yol).isDirectory()) gez(yol);
+      else ozet.update(ad).update(fs.readFileSync(yol));
+    }
+  };
+  try { gez(dizin); } catch { /* klasör okunamazsa yine de bir değer döner */ }
+  return ozet.digest("hex").slice(0, 10);
+}
+
 // --- Güvenlik başlıkları (https açıksa HSTS de eklenir) ---
 const _site = S.siteKonfig();
 function guvenlikBasliklari(req, res, next) {
@@ -257,6 +276,6 @@ function zipGonder(res, ad, ekleyici) {
 
 module.exports = {
   sar, flash, xlsxGonder, zipGonder, hizLimitAsildi, alan, adSoyadOku, kisiOku, guvenliYol, ortakLocals, csrfDogrula, dosyaYukleyici,
-  guvenlikBasliklari, adminRequired, girisRequired, anaYoneticiRequired,
+  guvenlikBasliklari, statikSurum, adminRequired, girisRequired, anaYoneticiRequired,
   yetkiGerek, denetciRequired, YETKILER, TUM_YETKILER,
 };

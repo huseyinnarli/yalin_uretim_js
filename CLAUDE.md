@@ -19,9 +19,10 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 |---|---|
 | [README.md](README.md) | Uygulama tanıtımı, modüller, roller, kurulum, yapılandırma |
 | [TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md) | Mimari, istek yaşam döngüsü, veri modeli, iş kuralları/algoritmalar |
-| [IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md) | Mimari ve güvenlik raporu: güvenlik durumu, kapatılan bulgular, açık öneriler (Ö1–Ö13) |
+| [IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md) | Mimari ve güvenlik raporu: güvenlik durumu, kapatılan bulgular, açık öneriler (Ö1–Ö18) |
 | [GELISTIRME_RAPORU.md](GELISTIRME_RAPORU.md) | Ekim 2026 sürümünde ne eklendi/değişti/kaldırıldı, kullanılan araçlar, dosya envanteri |
 | [VERITABANI_GECIS.md](VERITABANI_GECIS.md) | Canlı (eski düzen) veritabanıyla geçiş: otomatik eklemeler, tek kutulu isimler, adım adım canlıya alma, geri dönüş |
+| [GUNCELLEME_REHBERI.md](GUNCELLEME_REHBERI.md) | **Canlı siteyi güncelleyecek kişi için** adım adım rehber: bilgi toplama, yedek, ön kontrol, geçiş yolları, duman testi, geri dönüş, tuzaklar (T1–T15), kod incelemesi bulguları |
 | [DAGITIM.md](DAGITIM.md) | Sunucuda devreye alma: gereksinimler, Windows/Linux kurulum, HTTPS, yedek |
 | [DEGISIKLIKLER.md](DEGISIKLIKLER.md) | Sürüm notları: kullanıcıya görünen değişiklikler, DB migrasyonları, canlıya alma adımları |
 
@@ -29,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 157 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 159 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -155,9 +156,16 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     (`/yonetici/puan-ayarlari`, ana yönetici): eşik, 5S tur ödülleri, öneri modu tablo/sabit, öneri/kaizen oranları;
     bugünden itibaren / geriye dönük; önizleme (`puanDurumu({surumler, esik})`); `onay_zamani` kolonları; onay
     pencerelerinde data-onay. e2e 157/157.
+19. **Devreye alma incelemesi** (2 Kasım): `GUNCELLEME_REHBERI.md`; statik dosyalara `?v=<içerik özeti>`
+    (`web.js:statikSurum` → `app.locals.sv`; eski sürüm style.css'i 1 yıl önbelleklettiği için güncellemede şart);
+    `gecis-kontrol` veritabanı kullanıcısının CREATE/ALTER yetkisini SHOW GRANTS ile denetler (eksikse uygulama açılmaz);
+    açılışta yetki hatası ayrı mesaj. Eski DB (1d67cea) ile geçiş 46/46 + geri dönüş yeniden doğrulandı. e2e 159/159.
+    Yeni statik dosya eklerken şablonda `?v=<%= sv %>` kullan.
 
 ## Açık konular
 
+- GUNCELLEME_REHBERI.md §6 (2 Kasım): Ö14 öneri/kaizen Excel'inde isimler ham (kişi bazlı sayım bölünür) ·
+  Ö15 `npm test` koruması · Ö16 ZIP yedek geri yükleme aracı/artımlı foto · Ö17 bellekte yükleme · Ö18 IP'ye bağlı limitler.
 - IYILESTIRME_ANALIZI.md §5: 🔴 Ö9 depo public + varsayılan şifre, 🟠 Ö10 giriş şifre taraması (pbkdf2Sync),
   🟠 Ö12 oturum (GET çıkış, şifre değişince oturum düşmüyor), Ö1 CSP inline JS (9 şablon), Ö5 CI, Ö13 bes_s/admin
   rota bölünmesi + lint + birim test, Ö4 FK, Ö2 Excel worker, Ö3 log + `/saglik`, Ö11 sicil no.

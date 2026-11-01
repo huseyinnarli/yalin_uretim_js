@@ -18,6 +18,7 @@ async function main() {
   const app = express();
   app.set("view engine", "ejs");
   app.set("views", path.join(__dirname, "views"));
+  app.locals.sv = web.statikSurum(); // /static adreslerine ?v= (güncellemeden sonra eski CSS/JS önbellekten gelmesin)
 
   // Dağıtım bayrakları (data/config.json veya YALIN_HTTPS / YALIN_PROXY):
   // proxy → gerçek istemci IP'si (hız limiti / giriş kilidi doğru çalışsın),
@@ -68,8 +69,14 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error("Başlatma hatası — MySQL bağlantı ayarlarını kontrol edin " +
-    "(YALIN_DB_* ortam değişkenleri veya data/db-config.json):");
+  if (/command denied/i.test(e.message || "")) {
+    // Bağlantı kuruldu ama şema kurulumu/ekleme için yetki yok (açılışta CREATE + ALTER gerekir)
+    console.error("Başlatma hatası — veritabanı kullanıcısının yetkisi yetersiz. Uygulama açılışta eksik tablo/kolonları " +
+      "ekler; kullanıcıya SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER verin (bkz. GUNCELLEME_REHBERI.md):");
+  } else {
+    console.error("Başlatma hatası — MySQL bağlantı ayarlarını kontrol edin " +
+      "(YALIN_DB_* ortam değişkenleri veya data/db-config.json):");
+  }
   console.error(e.message);
   process.exit(1);
 });

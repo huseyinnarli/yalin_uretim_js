@@ -3,6 +3,9 @@
 **Soru:** lean.oztasglobal.net'te eski sürümün (`1d67cea`) kullandığı, isimlerin tek kutudan yazıldığı bir veritabanı
 var. Yeni sürümü bu veritabanını bozmadan nasıl devreye alırım?
 
+> Güncellemeyi yapacak kişi için adım adım rehber (sunucu bilgisi toplama, geçiş yolları, duman testi, tuzaklar):
+> **[GUNCELLEME_REHBERI.md](GUNCELLEME_REHBERI.md)**. Bu belge veritabanı tarafının ayrıntısıdır.
+
 **Kısa cevap:** Mevcut veritabanı **olduğu gibi** kullanılır. Dışa aktarma, dönüştürme veya elle SQL gerekmez.
 Yeni sürüm ilk açılışta yalnızca **3 boş tablo ve 26 boş kolon ekler**; var olan hiçbir satır, kolon ya da isim
 değişmez, silinmez, yeniden adlandırılmaz. İsimler veritabanında yine tek alanda durur; ad/soyad ayrımı yalnız
@@ -129,6 +132,7 @@ git clone https://github.com/huseyinnarli/yalin_uretim_js.git C:\Gecici\yalin_ye
 $env:YALIN_DATA_DIR = "C:\Uygulamalar\yalin\data"; npm run -s gecis-kontrol | Out-File -Encoding utf8 on_kontrol.md
 ```
 Rapor şunları gösterir: oluşturulacak tablolar, eklenecek kolonlar, **otomatik eklenemeyecek eksik kolon (olmamalı)**,
+**veritabanı kullanıcısının CREATE/ALTER yetkisi** (eksikse uygulama açılmaz; rapor GRANT komutunu verir),
 kayıt sayıları, durumlara göre öneri/kaizen, otomatik birleşecek isimler, yazım hatası adayları, tek/çok kelimeli
 isimler, ek yöneticilerin eski → yeni yetkileri, denetmen hesabı olmayan bölüm liderleri, varsayılan şifre uyarısı.
 Çıkış kodu `2` ise "Sonuç" bölümündeki maddeler canlıya almadan önce çözülmelidir.

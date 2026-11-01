@@ -272,7 +272,9 @@ Mevcut MySQL veritabanı olduğu gibi kullanılır; uygulama ilk açılışta ya
 npm run gecis-kontrol > on_kontrol.md
 ```
 
-Adım adım yedek, prova, güncelleme ve geri dönüş: **[VERITABANI_GECIS.md](VERITABANI_GECIS.md)**.
+Güncellemeyi yapacak kişi için adım adım rehber (bilgi toplama, yedek, ön kontrol, geçiş, duman testi, geri dönüş,
+tuzaklar): **[GUNCELLEME_REHBERI.md](GUNCELLEME_REHBERI.md)**. Veritabanı geçişinin teknik ayrıntısı:
+**[VERITABANI_GECIS.md](VERITABANI_GECIS.md)**.
 
 ---
 
@@ -293,5 +295,6 @@ Ayrıntılar için: **[DEGISIKLIKLER.md](DEGISIKLIKLER.md)** (sürüm notları v
 **[TEKNIK_DOKUMAN.md](TEKNIK_DOKUMAN.md)** (mimari ve iç işleyiş) ·
 **[IYILESTIRME_ANALIZI.md](IYILESTIRME_ANALIZI.md)** (mimari ve güvenlik raporu, iyileştirme önerileri) ·
 **[GELISTIRME_RAPORU.md](GELISTIRME_RAPORU.md)** (Ekim 2026 sürümünde yapılanlar) ·
+**[GUNCELLEME_REHBERI.md](GUNCELLEME_REHBERI.md)** (canlı siteyi güncelleyecek kişi için adım adım rehber) ·
 **[VERITABANI_GECIS.md](VERITABANI_GECIS.md)** (canlı veritabanıyla geçiş) ·
 **[DAGITIM.md](DAGITIM.md)** (sunucuda devreye alma: sunucu özellikleri, kurulum, HTTPS, yedekleme).

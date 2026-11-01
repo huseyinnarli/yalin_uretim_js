@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= typeof title !== 'undefined' && title ? title : marka_adi %></title>
-    <link rel="stylesheet" href="/static/vendor/flatpickr/flatpickr.min.css">
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/vendor/flatpickr/flatpickr.min.css?v=<%= sv %>">
+    <link rel="stylesheet" href="/static/style.css?v=<%= sv %>">
 </head>
 <body>
     <header class="topbar">
         <a class="brand" href="/">
-            <% if (marka_logo) { %><img class="brand-logo" src="/static/<%= marka_logo %>" alt="<%= marka_adi %>"><% } else { %>🏭<% } %>
+            <% if (marka_logo) { %><img class="brand-logo" src="/static/<%= marka_logo %>?v=<%= sv %>" alt="<%= marka_adi %>"><% } else { %>🏭<% } %>
             <span><%= marka_adi %></span>
         </a>
         <nav>
