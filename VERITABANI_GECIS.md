@@ -167,7 +167,8 @@ nssm start YalinUretim
 
 ### Adım 6 — Canlı sonrası yapılacaklar
 1. Ana yönetici şifresi varsayılansa **hemen değiştirin** (Yönetim › Şifre Değiştir).
-2. Yönetim › Yöneticiler: ek yöneticilerin yetkilerini gözden geçirip **bir kez kaydedin**.
+2. Yönetim › Yöneticiler: ek yöneticilerin yetkilerini gözden geçirip **bir kez kaydedin** — geri dönüş süresi (ör. 1 hafta)
+   dolunca. Eski anahtarlar okunurken zaten çevrilir; kaydedilen yeni anahtarları eski sürüm tanımaz (§5).
 3. Yönetim › Denetmenler: görev/düzeltme atanacak kişilere ve hesabı olmayan bölüm liderlerine **denetmen hesabı** açın.
 4. 🔗 İsim Birleştirme: önerilen benzer yazılışları inceleyin; aynı kişiyse birleştirin.
 5. Puan Durumu: birleşen isimler nedeniyle ödül eşiğini yeni geçen kişileri kontrol edin (§2.3).
@@ -180,7 +181,7 @@ nssm start YalinUretim
 
 | Durum | Yapılacak | Veri kaybı |
 |---|---|---|
-| Yeni sürümde sorun çıktı, eskiye dönülecek | `git checkout 1d67cea` (veya eski klasör) → `npm ci` → servisi yeniden başlat | **Yok.** Eklenen tablo/kolonlar eski kodu bozmaz (denendi, §6). Yeni sürümde girilen red gerekçesi, görev, kontrol formu vb. veritabanında kalır, eski sürümde görünmez; tekrar yeni sürüme geçince yerindedir. |
+| Yeni sürümde sorun çıktı, eskiye dönülecek | `git checkout 1d67cea` (veya eski klasör) → `npm ci` → servisi yeniden başlat | **Yok.** Eklenen tablo/kolonlar eski kodu bozmaz (denendi, §6). Yeni sürümde girilen red gerekçesi, görev, kontrol formu vb. veritabanında kalır, eski sürümde görünmez; tekrar yeni sürüme geçince yerindedir. Yeni sürümde **kaydedilmiş** ek yönetici yetkilerini eski sürüm tanımaz (yalnız `odul`, `kayit`); o yöneticilere yetkileri eski panelden yeniden verilir. İsim birleştirmeleri ve puan ayarı değişiklikleri eski sürümde işlemez. |
 | Veritabanı gerçekten bozuldu (beklenmez) | Adım 1'deki dump'ı geri yükleyin | Güncellemeden sonra girilen veriler |
 
 ---

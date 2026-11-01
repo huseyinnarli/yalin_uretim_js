@@ -282,7 +282,8 @@ async function main() {
       const acilan = Y.yetkiGenislet(kayitli).yetkiler.map((k) => ad[k]);
       yaz(`  - **${y.ad}** — kayıtlı: \`${kayitli.join(", ") || "—"}\` → yeni sürümde: ${acilan.join(", ") || "yetki yok"}`);
     }
-    if (liste.length) notlar.push("Ek yöneticilerin yetkilerini Yönetim › Yöneticiler'de gözden geçirip bir kez kaydedin.");
+    if (liste.length) notlar.push("Ek yöneticilerin yetkilerini Yönetim › Yöneticiler'de gözden geçirip bir kez kaydedin — geri dönüş süresi " +
+      "dolunca (eski anahtarlar okunurken zaten çevrilir; kaydedilen yeni anahtarları eski sürüm tanımaz).");
   }
   if (canli.bolumler && canli.denetmenler) {
     const denetmen = (await q("SELECT ad FROM denetmenler")).map((r) => r.ad);

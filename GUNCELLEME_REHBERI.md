@@ -19,9 +19,9 @@ fotoğraflar korunur, kullanıcıların oturumu düşmez, sorun çıkarsa dakika
 - **Kod:** yaklaşık 80 dosya değişti. Uygulama aynı: Node.js + Express + MySQL. Başlatma komutu (`node server.js`) ve port düzeni aynı.
 - **Veritabanı:** aynı veritabanı kullanılır. Yeni sürüm ilk açılışta **3 boş tablo ve 26 boş kolon ekler**. Var olan
   hiçbir satır, kolon veya isim değişmez ya da silinmez.
-- **Bağımlılıklar:** `multer` 1.4 → 2.4 (güvenlik güncellemesi). Bu yüzden `node_modules` **mutlaka yeniden kurulur**.
-  Node.js **20.9 veya üstü** gerekir. Eski sürüm de aynı `sharp` sürümünü kullandığından canlıdaki Node büyük
-  olasılıkla zaten uygundur.
+- **Bağımlılıklar:** `multer` 1.4 → 2.4 (güvenlik güncellemesi). `sharp`, `mysql2` ve `express` küçük sürüm aldı. Bu
+  yüzden `node_modules` **mutlaka yeniden kurulur**. Node.js **20.9 veya üstü** gerekir. Eski sürümdeki `sharp` 0.35
+  de aynı şartı aradığından canlıdaki Node büyük olasılıkla zaten uygundur.
 
 **Yedi kural**
 1. **`data/` klasörüne dokunmayın.** Fotoğraflar, veritabanı bağlantı ayarı (`db-config.json`), site ayarları
@@ -37,7 +37,9 @@ fotoğraflar korunur, kullanıcıların oturumu düşmez, sorun çıkarsa dakika
 
 ## 1. Başlamadan önce: sunucuyu tanıyın
 
-Aşağıdaki boşlukları doldurun. Rehberdeki `<UYGULAMA>`, `<VERI>`, `<DB>`, `<DBKULLANICI>` yer tutucuları bunlardır.
+Aşağıdaki boşlukları doldurun. Rehberdeki `<UYGULAMA>`, `<VERI>`, `<YEDEK>`, `<DB>`, `<DBKULLANICI>` yer tutucuları bunlardır.
+
+> Komutları **satır satır** çalıştırın; bir satır hata verirse sonrakine geçmeyin.
 
 | Soru | Nasıl bakılır | Beklenen / not |
 |---|---|---|
@@ -51,8 +53,9 @@ Aşağıdaki boşlukları doldurun. Rehberdeki `<UYGULAMA>`, `<VERI>`, `<DB>`, `
 | Node sürümü | `node -v` | **v20.9.0 veya üstü** |
 | Servis nasıl yönetiliyor? | `systemctl status yalin`, `pm2 ls`, `nssm status YalinUretim` veya panel | Yeniden başlatma komutunu not edin |
 | Önde ters vekil (proxy) var mı? | nginx / Apache / IIS / Caddy / Cloudflare yapılandırması | Varsa `<VERI>/config.json`'daki `https` ve `proxy` ayarları ve yükleme sınırı önemlidir (§4, T3–T4) |
-| Site ayarları | `<VERI>/config.json` (yoksa hepsi kapalıdır) | `{"https": true, "proxy": true, "yedek_dir": "..."}`. **Olduğu gibi kalmalı** |
-| Disk boş alanı | `df -h` / Explorer | Yedek + `node_modules` (~150 MB) + dump için yer olmalı |
+| Site ayarları | `<VERI>/config.json` ve servis ortamındaki `YALIN_HTTPS`, `YALIN_PROXY`, `YALIN_YEDEK_DIR`, `YALIN_YEDEK_GORSELLER` (ortam değişkeni dosyadan önce gelir; ikisi de yoksa `https`/`proxy` kapalıdır) | ör. `{"https": true, "proxy": true, "yedek_dir": "..."}`. **Olduğu gibi kalmalı** |
+| Yedek klasörü (`<YEDEK>`) | Uygulama klasörünün **dışında** bir yer seçin | ör. `/root/yalin_yedek`, `D:\YalinYedek` |
+| Disk boş alanı | `df -h` / Explorer | Dump + `<VERI>` kopyası (`_yedek_otomatik` içindeki ZIP'lerle birlikte büyük olabilir) + `node_modules` (~150 MB) |
 | İnternet erişimi | `npm ping` | `npm ci`, registry.npmjs.org'a erişmelidir (`sharp` işletim sistemine özel paket indirir) |
 
 ---
@@ -65,14 +68,18 @@ Güncellemeden hemen önce alın. Uygulama çalışırken alınabilir.
 
 ```bash
 # Linux
-mysqldump -u <DBKULLANICI> -p --single-transaction --routines --default-character-set=utf8mb4 <DB> > yedek_oncesi_$(date +%F).sql
-cp -a <VERI> <VERI>_yedek_$(date +%F)
+mkdir -p <YEDEK>
+mysqldump -u <DBKULLANICI> -p --single-transaction --routines --no-tablespaces --default-character-set=utf8mb4 <DB> > <YEDEK>/yedek_oncesi.sql
+cp -a <VERI> <YEDEK>/veri_kopyasi
 ```
 ```powershell
 # Windows (mysqldump.exe, MySQL kurulumunun bin klasöründedir)
-mysqldump.exe -u <DBKULLANICI> -p --single-transaction --routines --default-character-set=utf8mb4 <DB> --result-file=yedek_oncesi.sql
-Copy-Item <VERI> <VERI>_yedek -Recurse
+New-Item -ItemType Directory -Force <YEDEK>
+mysqldump.exe -u <DBKULLANICI> -p --single-transaction --routines --no-tablespaces --default-character-set=utf8mb4 <DB> --result-file=<YEDEK>\yedek_oncesi.sql
+Copy-Item <VERI> <YEDEK>\veri_kopyasi -Recurse
 ```
+Kopyayı uygulama klasörünün **dışına** alın: veri klasörü kodun içindeyse, içeriye alınan kopya Adım 5'te eski kodla
+birlikte taşınır. Yer darsa otomatik yedek ZIP'lerini kopyalamayın: `rsync -a --exclude _yedek_otomatik <VERI>/ <YEDEK>/veri_kopyasi/`.
 
 Karşılaştırma için şunu da yapın: **Puan Durumu › Excel** indirin. Güncellemeden sonra toplamlar aynı olmalıdır.
 
@@ -97,41 +104,54 @@ YALIN_DATA_DIR=<VERI> npm run -s gecis-kontrol > on_kontrol.md ; echo "çıkış
 ```
 ```powershell
 cd <UYGULAMA>_yeni
-$env:YALIN_DATA_DIR = "<VERI>"; npm run -s gecis-kontrol | Out-File -Encoding utf8 on_kontrol.md; "çıkış kodu: $LASTEXITCODE"
+$env:YALIN_DATA_DIR = "<VERI>"
+cmd /c "npm run -s gecis-kontrol > on_kontrol.md"
+"çıkış kodu: $LASTEXITCODE"
 ```
+(Windows'ta çıktıyı `cmd /c` ile yazdırın. PowerShell'in `| Out-File` aktarımı Türkçe karakterleri bozar.)
 (Bağlantı ayarı ortam değişkenleriyle veriliyorsa aynı `YALIN_DB_*` değişkenlerini de verin.)
 
 | Çıkış kodu | Anlamı |
 |---|---|
 | `0` | Engel yok |
 | `2` | `on_kontrol.md` › **Sonuç** bölümündeki maddeler çözülmeden geçmeyin. Olası nedenler: varsayılan yönetici şifresi, eksik veritabanı yetkisi, otomatik eklenemeyecek kolon |
-| `1` | Bağlanılamadı. Bağlantı ayarını kontrol edin |
+| `1` | Bağlanılamadı ya da beklenmeyen bir hata oluştu. Ekrandaki mesajı okuyun; çoğunlukla bağlantı ayarıdır |
 
 Raporda bakılacaklar:
 - **Oluşturulacak tablo: 3**, **eklenecek kolon: 26**, **otomatik EKLENMEYECEK kolon: 0**. Sıfır değilse durun, geliştiriciye bildirin.
 - **Veritabanı kullanıcısının yetkileri → tamam.** "Eksik" yazıyorsa raporun önerdiği `GRANT` komutunu bir MySQL
   yöneticisine çalıştırtın (§4, T2).
-- **Varsayılan şifre uyarısı:** ana yönetici şifresini **eski sitede şimdi değiştirin** (Yönetim › Şifre Değiştir) ve ön
-  kontrolü tekrar çalıştırın.
+- **Varsayılan şifre uyarısı:** ana yönetici şifresini **eski sitede şimdi değiştirin** (Yönetici Paneli'ndeki şifre
+  değiştirme bölümü) ve ön kontrolü tekrar çalıştırın.
 - Otomatik birleşecek isimler ve benzer yazılışlar bilgi amaçlıdır; güncellemeyi engellemez (§5).
 
 ### Adım 4 — Kopya veritabanında prova (önerilir)
 
 Canlının bir kopyası üzerinde yeni sürümü ayrı bir portta açıp gezin. Canlıya hiçbir şey yazılmaz.
 
+**1) Kopya veritabanı ve kopya veri klasörü**
 ```bash
-mysql -u root -p -e "CREATE DATABASE yalin_prova CHARACTER SET utf8mb4 COLLATE utf8mb4_turkish_ci; GRANT ALL ON yalin_prova.* TO '<DBKULLANICI>'@'localhost';"
-mysql -u <DBKULLANICI> -p yalin_prova < yedek_oncesi_*.sql
+mysql -u root -p -e "CREATE DATABASE yalin_prova CHARACTER SET utf8mb4 COLLATE utf8mb4_turkish_ci; GRANT ALL ON yalin_prova.* TO '<DBKULLANICI>'@'<host>';"
+mysql -u <DBKULLANICI> -p yalin_prova -e "source <YEDEK>/yedek_oncesi.sql"
 rsync -a --exclude _yedek_otomatik <VERI>/ /tmp/yalin_prova_veri/
-cd <UYGULAMA>_yeni && YALIN_DATA_DIR=/tmp/yalin_prova_veri YALIN_DB_DATABASE=yalin_prova PORT=5099 node server.js
+```
+`<host>`, `SHOW GRANTS` çıktısında kullanıcının yanında yazan değerdir (`localhost`, `%`, `127.0.0.1`...). Windows'ta da
+`source` kullanın, yolu `/` ile yazın: `-e "source D:/YalinYedek/yedek_oncesi.sql"`.
+
+**2) Sunucuyu başlatmadan ÖNCE** kopya klasördeki `config.json`'u açın (varsa) ve iki satırı silin. Ayar yalnız açılışta
+okunur ve prova sunucusu açılır açılmaz yedek alır:
+- `"https"` satırı: prova doğrudan porttan (`http://`) yapılır; bu ayar açık kalırsa provada formlar çalışmaz (§4, T3).
+- `"yedek_dir"` satırı: kalırsa prova yedeğini canlının yedek klasörüne yazar ve oradaki en eski yedeği siler.
+
+Servis ortamında `YALIN_HTTPS` / `YALIN_YEDEK_DIR` tanımlıysa prova komutunda bunları boşaltın: `YALIN_HTTPS=0 YALIN_YEDEK_DIR= ...`.
+
+**3) Prova sunucusu**
+```bash
+cd <UYGULAMA>_yeni
+YALIN_DATA_DIR=/tmp/yalin_prova_veri YALIN_DB_DATABASE=yalin_prova PORT=5099 node server.js
 ```
 Tarayıcıda `http://<sunucu>:5099`. Eski şifrelerle girin, §2 Adım 7'deki listeyi gezin. Bitince `Ctrl+C` ile durdurun,
 `yalin_prova` veritabanını ve kopya klasörü silin.
-
-> Kopya klasördeki `config.json`'u açın ve iki satırı silin:
-> - `"https"` satırı: prova doğrudan porttan (`http://`) yapıldığı için bu ayar açık kalırsa provada formlar çalışmaz (§4, T3).
-> - `"yedek_dir"` satırı: prova sunucusu açılışta yedek alır; bu ayar kalırsa yedeği canlının yedek klasörüne yazar ve
->   oradaki en eski yedeği siler.
 
 ### Adım 5 — Geçiş (kısa kesinti)
 
@@ -199,8 +219,11 @@ Formlar ilk gerçek kayıtla takip edilir.
 ### Adım 8 — Güncelleme sonrası yönetim işleri (ana yönetici)
 
 1. Ana yönetici şifresi hâlâ varsayılansa **hemen değiştirin**.
-2. Yönetim › Yöneticiler: ek yöneticilerin yetkilerini gözden geçirip **her birini bir kez kaydedin**. Eski yetki
-   anahtarları okunurken otomatik çevrilir; kaydedince yeni biçimde yazılır.
+2. Yönetim › Yöneticiler: ek yöneticilerin yetkilerini gözden geçirip **her birini bir kez kaydedin** — ama **bunu geri
+   dönüş süresi (1 hafta) dolunca yapın.**
+   - Eski yetki anahtarları okunurken zaten otomatik çevrilir; beklemek hiçbir şey kaybettirmez.
+   - Kaydedince yetkiler yeni biçimde yazılır. Bu biçimi eski sürüm tanımaz: geri dönülürse o yöneticiler
+     değerlendirme ve 5S yetkilerini kaybeder (§3).
 3. Yönetim › Denetmenler: görev/düzeltme atanacak kişilere ve hesabı olmayan bölüm liderlerine hesap açın. Ön kontrol
    raporu bu bölüm liderlerinin listesini verir.
 4. 🔗 İsim Birleştirme: önerilen benzer yazılışları inceleyin (§5).
@@ -217,10 +240,18 @@ Formlar ilk gerçek kayıtla takip edilir.
 
 | Durum | Yapılacak | Veri kaybı |
 |---|---|---|
-| Yeni sürümde sorun var, eskiye dönülecek (Yol A) | Servisi durdurun, `data/` klasörünü (koddaysa) eski klasöre geri taşıyın, klasör adlarını geri çevirin, servisi başlatın | **Yok.** Eklenen tablo/kolonlar eski kodu bozmaz (denendi). Yeni sürümde girilen red gerekçesi, görev, kontrol formu gibi bilgiler veritabanında kalır; eski sürümde görünmez, yeniye dönünce yerindedir |
+| Yeni sürümde sorun var, eskiye dönülecek (Yol A) | Servisi durdurun. Veri klasörü koddaysa `data/` klasörünü `<UYGULAMA>`'dan `<UYGULAMA>_eski_<tarih>`'e geri taşıyın. Klasör adlarını geri çevirin, servisi başlatın | **Yok.** Eklenen tablo/kolonlar eski kodu bozmaz (denendi). Aşağıdaki nota bakın |
 | Yol B ile güncellendiyse | `git checkout 1d67cea && npm ci`, servisi yeniden başlatın | Yok |
-| Veritabanı gerçekten bozuldu (beklenmez) | Adım 1'deki dump'ı geri yükleyin: `mysql -u <DBKULLANICI> -p <DB> < yedek_oncesi_*.sql` | Güncellemeden sonra girilen kayıtlar |
-| Fotoğraflar kayboldu (ör. `data/` silindi) | Adım 1'deki `<VERI>_yedek_*` kopyasını geri koyun | Güncellemeden sonra yüklenen fotoğraflar |
+| Veritabanı gerçekten bozuldu (beklenmez) | Adım 1'deki dump'ı geri yükleyin: `mysql -u <DBKULLANICI> -p <DB> -e "source <YEDEK>/yedek_oncesi.sql"` | Güncellemeden sonra girilen kayıtlar |
+| Fotoğraflar kayboldu (ör. `data/` silindi) | `<YEDEK>/veri_kopyasi` klasörünü `<VERI>` yerine geri koyun | Güncellemeden sonra yüklenen fotoğraflar |
+
+**Geri dönünce silinmeyen ama eski sürümde görünmeyen veya işlemeyen şeyler.** Hepsi veritabanında kalır; yeni
+sürüme tekrar geçince yerindedir:
+- Red gerekçeleri, düzeltme ve görev atamaları, periyodik kontrol formu kayıtları.
+- İsim birleştirmeleri. Eski sürümde puan listesi yine yazılışlara göre bölünür.
+- Puan ve Ödül Ayarları'nda yapılan değişiklikler. Eski sürüm sabit kurallarla hesaplar (öneri %10, kaizen %50/%25, eşik 300).
+- Yeni sürümde **kaydedilmiş** ek yönetici yetkileri. Eski sürüm yalnız `odul` ve `kayit` anahtarlarını tanır; o
+  yöneticilere eski Yönetici Paneli'nden yetkilerini yeniden verin. Adım 8.2'yi bir hafta bekletmenin nedeni budur.
 
 ---
 
@@ -251,6 +282,7 @@ Formlar ilk gerçek kayıtla takip edilir.
 - Bu iki durumda olur:
   - Ters vekil `X-Forwarded-Proto: https` başlığını göndermiyorsa, ya da `"proxy": true` değilse.
   - Site doğrudan `http://<ip>:5000` üzerinden açılıyorsa.
+- Ayarlar `config.json` yerine servis ortamında `YALIN_HTTPS=1` / `YALIN_PROXY=1` olarak da verilmiş olabilir; ikisine de bakın.
 - Çözüm:
   - Vekilde başlığı ekleyin. nginx: `proxy_set_header X-Forwarded-Proto $scheme;` ve
     `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`. IIS/ARR'de sunucu değişkeni olarak eklenir.
@@ -295,7 +327,8 @@ Formlar ilk gerçek kayıtla takip edilir.
 - Sınırları:
   - Güncelleme sırasında servisi 15 kez yeniden başlatırsanız güncelleme öncesi ZIP'ler silinir.
   - ZIP'ten geri yükleyen hazır bir araç **yoktur**; içindeki `veritabani.json` elle işlenmelidir.
-  - Her ZIP bütün fotoğrafları içerir. 2 GB fotoğraf arşivi için 15 × 2 GB disk gerekir.
+  - Varsayılan olarak her ZIP bütün fotoğrafları içerir. 2 GB fotoğraf arşivi için 15 × 2 GB disk gerekir
+    (`config.json` › `"yedek_gorseller": false` ile fotoğraflar yedek dışı bırakılabilir).
 - Bu yüzden geri dönüşün esası Adım 1'deki `mysqldump` + `data/` kopyasıdır. Kalıcı düzen için günlük mysqldump
   kurun ([DAGITIM.md](DAGITIM.md) §7).
 
@@ -412,27 +445,45 @@ yöneticiler, denetmenler, ödül defteri ve form numaraları bulunuyordu.
 
 ## Ek A — Komut özeti
 
+Her satırı **tek tek** çalıştırın ve çıktısına bakın; hata veren satırdan sonra devam etmeyin. Yer tutucular §1'dedir.
+
 ```bash
 # --- Linux (systemd) ---
-mysqldump -u <DBKULLANICI> -p --single-transaction --routines --default-character-set=utf8mb4 <DB> > yedek_oncesi_$(date +%F).sql
-cp -a <VERI> <VERI>_yedek_$(date +%F)
-git clone https://github.com/huseyinnarli/yalin_uretim_js.git <UYGULAMA>_yeni && cd <UYGULAMA>_yeni && npm ci
-YALIN_DATA_DIR=<VERI> npm run -s gecis-kontrol > on_kontrol.md ; echo $?      # 0 olmalı
+mkdir -p <YEDEK>
+mysqldump -u <DBKULLANICI> -p --single-transaction --routines --no-tablespaces --default-character-set=utf8mb4 <DB> > <YEDEK>/yedek_oncesi.sql
+cp -a <VERI> <YEDEK>/veri_kopyasi
+git clone https://github.com/huseyinnarli/yalin_uretim_js.git <UYGULAMA>_yeni
+cd <UYGULAMA>_yeni
+npm ci
+YALIN_DATA_DIR=<VERI> npm run -s gecis-kontrol > on_kontrol.md ; echo "çıkış kodu: $?"     # 0 olmalı
+cd /
 sudo systemctl stop yalin
-mv <UYGULAMA>/data <UYGULAMA>_yeni/data            # yalnız veri klasörü kodun içindeyse
-mv <UYGULAMA> <UYGULAMA>_eski_$(date +%F) && mv <UYGULAMA>_yeni <UYGULAMA>
-sudo systemctl start yalin && journalctl -u yalin -n 30
-cd <UYGULAMA> && YALIN_DATA_DIR=<VERI> npm run -s gecis-kontrol | grep -E "Oluşturulacak|Eklenecek"   # 0 / 0
+ls <UYGULAMA>_yeni/data                                   # "No such file" demeli
+mv <UYGULAMA>/data <UYGULAMA>_yeni/data                    # yalnız veri klasörü kodun içindeyse
+mv <UYGULAMA> <UYGULAMA>_eski_$(date +%F)
+mv <UYGULAMA>_yeni <UYGULAMA>
+sudo systemctl start yalin
+journalctl -u yalin -n 30                                  # "çalışıyor" satırı
+cd <UYGULAMA>
+YALIN_DATA_DIR=<VERI> npm run -s gecis-kontrol | grep -E "Oluşturulacak|Eklenecek"         # 0 / 0
 ```
 
 ```powershell
 # --- Windows (NSSM) ---
-mysqldump.exe -u <DBKULLANICI> -p --single-transaction --routines --default-character-set=utf8mb4 <DB> --result-file=yedek_oncesi.sql
-Copy-Item <VERI> <VERI>_yedek -Recurse
-git clone https://github.com/huseyinnarli/yalin_uretim_js.git <UYGULAMA>_yeni; cd <UYGULAMA>_yeni; npm ci
-$env:YALIN_DATA_DIR = "<VERI>"; npm run -s gecis-kontrol | Out-File -Encoding utf8 on_kontrol.md; $LASTEXITCODE
+New-Item -ItemType Directory -Force <YEDEK>
+mysqldump.exe -u <DBKULLANICI> -p --single-transaction --routines --no-tablespaces --default-character-set=utf8mb4 <DB> --result-file=<YEDEK>\yedek_oncesi.sql
+Copy-Item <VERI> <YEDEK>\veri_kopyasi -Recurse
+git clone https://github.com/huseyinnarli/yalin_uretim_js.git <UYGULAMA>_yeni
+Set-Location <UYGULAMA>_yeni
+npm ci
+$env:YALIN_DATA_DIR = "<VERI>"
+cmd /c "npm run -s gecis-kontrol > on_kontrol.md"
+"çıkış kodu: $LASTEXITCODE"                                # 0 olmalı
+Set-Location C:\                                           # taşınacak klasörlerin dışına çıkın
 nssm stop YalinUretim
-Move-Item <UYGULAMA>\data <UYGULAMA>_yeni\data      # yalnız veri klasörü kodun içindeyse
-Move-Item <UYGULAMA> <UYGULAMA>_eski; Move-Item <UYGULAMA>_yeni <UYGULAMA>
+Test-Path <UYGULAMA>_yeni\data                             # False olmalı
+Move-Item <UYGULAMA>\data <UYGULAMA>_yeni\data             # yalnız veri klasörü kodun içindeyse
+Move-Item <UYGULAMA> <UYGULAMA>_eski
+Move-Item <UYGULAMA>_yeni <UYGULAMA>
 nssm start YalinUretim
 ```
