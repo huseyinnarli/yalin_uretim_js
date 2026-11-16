@@ -32,16 +32,21 @@
             <label>Kaizen Konusu *</label>
             <input type="text" name="konu" required value="<%= kayit.konu || '' %>" placeholder="Örn. Montaj hattı setup süresinin kısaltılması">
         </div>
-        <%- include('partials/bolum_secimi', { secili: kayit.bolum, mevcut: bolum_mevcut, etiket: 'Yapıldığı Bölüm' }) %>
+        <%- include('partials/liste_secimi', { alan_adi: 'bolum', etiket: 'Yapıldığı Bölüm', secenekler: bolum_secenekleri,
+              secili: kayit.bolum, mevcut: mevcut.bolum, zorunlu: true, bos_yazi: '— Bölüm seçin —',
+              serbest: { zorunlu: false, placeholder: 'Örn. Montaj Hattı 2' } }) %>
     </div>
 
     <fieldset class="ekip">
         <legend>Ekip (en fazla 3 kişi) — ad ve soyadı ayrı kutulara yazın</legend>
-        <% const uy = kayit.uyeler || [];
+        <% const uy = kayit.uyeler || [], ug = kayit.uye_gorevleri || [], mug = mevcut.uye_gorevleri || [];
            const kisiler = [
-             { onek: 'lider', etiket: 'Kaizen Lideri *', not: 'puanın %' + puanfmt(kural.kaizen_lider_oran), v: adBol(kayit.lider || ''), zorunlu: true },
-             { onek: 'uye1', etiket: 'Üye 2', not: 'puanın %' + puanfmt(kural.kaizen_uye_oran), v: adBol(uy[0] || ''), zorunlu: false },
-             { onek: 'uye2', etiket: 'Üye 3', not: 'puanın %' + puanfmt(kural.kaizen_uye_oran), v: adBol(uy[1] || ''), zorunlu: false },
+             { onek: 'lider', etiket: 'Kaizen Lideri *', not: 'puanın %' + puanfmt(kural.kaizen_lider_oran), v: adBol(kayit.lider || ''), zorunlu: true,
+               gorev: kayit.lider_gorevi, mevcut_gorev: mevcut.lider_gorevi },
+             { onek: 'uye1', etiket: 'Üye 2', not: 'puanın %' + puanfmt(kural.kaizen_uye_oran), v: adBol(uy[0] || ''), zorunlu: false,
+               gorev: ug[0], mevcut_gorev: mug[0] },
+             { onek: 'uye2', etiket: 'Üye 3', not: 'puanın %' + puanfmt(kural.kaizen_uye_oran), v: adBol(uy[1] || ''), zorunlu: false,
+               gorev: ug[1], mevcut_gorev: mug[1] },
            ]; %>
         <% for (const k of kisiler) { %>
         <div class="row ekip-satir">
@@ -55,6 +60,10 @@
                 <input type="text" name="<%= k.onek %>_soyad" value="<%= k.v.soyad %>" <%= k.zorunlu ? 'required' : '' %>
                        placeholder="<%= k.zorunlu ? 'Örn. Yılmaz' : 'Opsiyonel' %>">
             </div>
+            <%# Görev listesi tanımlıysa her kişinin görevi seçilir (üyede, üye yazıldıysa zorunlu — sunucu denetler) %>
+            <%- include('partials/liste_secimi', { alan_adi: k.onek + '_gorevi', etiket: 'Görevi', secenekler: gorev_secenekleri,
+                  secili: k.gorev, mevcut: k.mevcut_gorev, zorunlu: k.zorunlu,
+                  bos_yazi: k.zorunlu ? '— Görev seçin —' : '— Üye yazıldıysa seçin —' }) %>
         </div>
         <% } %>
     </fieldset>

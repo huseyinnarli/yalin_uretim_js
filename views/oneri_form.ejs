@@ -21,11 +21,12 @@
             <label>Soyad *</label>
             <input type="text" name="sahibi_soyad" required value="<%= sahip.soyad %>" placeholder="Örn. Yılmaz">
         </div>
-        <div class="field">
-            <label>Görevi *</label>
-            <input type="text" name="gorevi" required value="<%= kayit.gorevi || '' %>" placeholder="Örn. Üretim Operatörü">
-        </div>
-        <%- include('partials/bolum_secimi', { secili: kayit.bolum, mevcut: bolum_mevcut, etiket: 'Bölüm' }) %>
+        <%- include('partials/liste_secimi', { alan_adi: 'gorevi', etiket: 'Görevi', secenekler: gorev_secenekleri,
+              secili: kayit.gorevi, mevcut: mevcut.gorevi, zorunlu: true, bos_yazi: '— Görev seçin —',
+              serbest: { zorunlu: true, placeholder: 'Örn. Üretim Operatörü' } }) %>
+        <%- include('partials/liste_secimi', { alan_adi: 'bolum', etiket: 'Bölüm', secenekler: bolum_secenekleri,
+              secili: kayit.bolum, mevcut: mevcut.bolum, zorunlu: true, bos_yazi: '— Bölüm seçin —',
+              serbest: { zorunlu: false, placeholder: 'Örn. Montaj Hattı 2' } }) %>
         <div class="field small">
             <label>Tarih *</label>
             <input type="date" name="tarih" value="<%= kayit.tarih || bugun %>" required>

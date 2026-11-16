@@ -1,9 +1,10 @@
 <%- include('partials/header') %>
 <div class="ayar-sayfa">
 <div class="list-head">
-    <h1 class="page-title">🏭 Bölümler</h1>
+    <h1 class="page-title">🏭 Bölümler ve Görevler</h1>
     <div class="list-actions">
         <a class="btn ghost" href="/yonetici">← Yönetim</a>
+        <a class="btn ghost" href="#gorevler">🧑‍🔧 Görev tanımları</a>
         <a class="btn ghost" href="/5s#bolumler">🧹 5S</a>
     </div>
 </div>
@@ -34,7 +35,7 @@
     <h3 class="ayar-baslik">📋 Liste — <%= bolumler.length %> bölüm, <%= bolumler.filter((b) => b.bes_dahil).length %> tanesi 5S'te</h3>
     <div class="table-wrap">
     <table class="data-table mini-tablo bolum-yonetim">
-        <thead><tr><th>Bölüm adı</th><th class="orta">5S'e dahil</th><th>Ekip lideri</th>
+        <thead><tr><th>Bölüm adı</th><th class="orta">5S'e dahil</th><th>Ekip lideri</th><th>Personel</th>
             <th class="sayi">Öneri</th><th class="sayi">Kaizen</th><th class="sayi">5S denetimi</th><th></th></tr></thead>
         <tbody>
         <% for (const b of bolumler) { const k = kullanim[b.id] || { oneri: 0, kaizen: 0, denetim: 0 }; %>
@@ -44,6 +45,8 @@
                 <td data-label="5S'e dahil" class="orta">
                     <input type="checkbox" name="bes_<%= b.id %>" value="1" <%= b.bes_dahil ? 'checked' : '' %> aria-label="<%= b.ad %> 5S'e dahil"></td>
                 <td data-label="Ekip lideri"><%= b.sorumlu || '—' %></td>
+                <td data-label="Personel" class="nowrap"><a class="btn-mini edit" href="/yonetici/bolumler/<%= b.id %>"
+                    title="Ekip lideri ve personeli düzenle">👥 <%= (b.kisiler || []).length %> kişi</a></td>
                 <td data-label="Öneri" class="sayi"><%= k.oneri %></td>
                 <td data-label="Kaizen" class="sayi"><%= k.kaizen %></td>
                 <td data-label="5S denetimi" class="sayi"><%= k.denetim %></td>
@@ -59,7 +62,7 @@
     <div class="ayar-butonlar"><button type="submit" class="btn primary">💾 Değişiklikleri kaydet</button></div>
     <p class="bolum-not">Ad değişikliği eski öneri/kaizen kayıtlarındaki bölüm adını değiştirmez; öneri ve kaizen sayıları adı
         eşleşen kayıtları gösterir. Bir bölümü 5S'ten çıkarmak için silmeyin, <strong>5S'e dahil</strong> işaretini kaldırın:
-        geçmiş denetimleri korunur. Ekip lideri ve personel 5S detay sayfasından girilir.</p>
+        geçmiş denetimleri korunur. Ekip lideri ve personel <strong>👥</strong> düğmesiyle açılan bölüm sayfasından girilir.</p>
 </form>
 
 <% for (const b of bolumler) { const k = kullanim[b.id] || { denetim: 0 }; %>
@@ -73,6 +76,68 @@
 <% } %>
 <% } else { %>
 <div class="empty">Henüz bölüm yok. Yukarıdan ekleyin. Liste tanımlanana kadar öneri ve kaizen formları serbest metin bölüm alanı gösterir.</div>
+<% } %>
+
+<!-- ===== GÖREV TANIMLARI ===== -->
+<h2 class="bolum-baslik" id="gorevler">🧑‍🔧 Görev tanımları</h2>
+<p class="subtitle">Öneri formundaki <strong>Görevi</strong> ve kaizen ekibindeki her kişinin görevi bu listeden seçilir
+    (tüm bölümler için ortak). Liste boşken öneri formunda görev serbest yazılır, kaizende görev sorulmaz.</p>
+
+<form method="post" action="/yonetici/gorevler/ekle" class="form-card ayar-form" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <h3 class="ayar-baslik">➕ Görev ekle</h3>
+    <div class="bolum-ekle">
+        <textarea name="adlar" rows="3" required aria-label="Eklenecek görev adları"
+                  placeholder="Her satıra bir görev&#10;Örn. Üretim Operatörü&#10;Ekip Lideri"></textarea>
+        <div class="bolum-ekle-yan"><button type="submit" class="btn primary">Ekle</button></div>
+    </div>
+</form>
+
+<% if (gorev.disarida.length) { %>
+<form method="post" action="/yonetici/gorevler/ekle" class="form-card ayar-form gorev-oneri">
+    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <h3 class="ayar-baslik">💡 Kayıtlarda geçen ama listede olmayan görevler (<%= gorev.disarida.length %>)</h3>
+    <p class="bolum-not">Eski kayıtlarda serbest yazılmış görevler, en sık kullanılandan. Listeye almak istediklerinizi
+        işaretleyip ekleyin; yazım hatalı olanları işaretlemeyin (kayıtlar değişmez).</p>
+    <div class="gorev-oneri-liste">
+        <% for (const g of gorev.disarida.slice(0, 60)) { %>
+        <label class="kutu-secim"><input type="checkbox" name="adlar" value="<%= g.ad %>"> <%= g.ad %> <small>(<%= g.n %>)</small></label>
+        <% } %>
+    </div>
+    <div class="ayar-butonlar"><button type="submit" class="btn primary">İşaretlenenleri listeye ekle</button></div>
+</form>
+<% } %>
+
+<% if (gorev.liste.length) { %>
+<form method="post" action="/yonetici/gorevler/kaydet" class="form-card ayar-form" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <h3 class="ayar-baslik">📋 Liste — <%= gorev.liste.length %> görev</h3>
+    <div class="table-wrap">
+    <table class="data-table mini-tablo bolum-yonetim">
+        <thead><tr><th>Görev adı</th><th class="sayi" title="Bu görevin geçtiği öneri sahibi ve kaizen ekip üyesi sayısı">Kullanım</th><th></th></tr></thead>
+        <tbody>
+        <% for (const [i, g] of gorev.liste.entries()) { %>
+            <tr>
+                <td data-label="Görev adı"><input type="hidden" name="eski" value="<%= g.ad %>">
+                    <input type="text" name="yeni" value="<%= g.ad %>" maxlength="<%= ad_uzunluk %>" required aria-label="Görev adı"></td>
+                <td data-label="Kullanım" class="sayi"><%= g.n %></td>
+                <td data-label=""><button type="submit" class="btn-mini del" form="gorev-sil-<%= i %>">Sil</button></td>
+            </tr>
+        <% } %>
+        </tbody>
+    </table>
+    </div>
+    <div class="ayar-butonlar"><button type="submit" class="btn primary">💾 Görev adlarını kaydet</button></div>
+    <p class="bolum-not">Ad değişikliği ya da silme eski kayıtlardaki görevi değiştirmez; düzenlenirken eski görev
+        "(eski kayıt — listede yok)" olarak seçili kalır.</p>
+</form>
+<% for (const [i, g] of gorev.liste.entries()) { %>
+<form id="gorev-sil-<%= i %>" method="post" action="/yonetici/gorevler/sil" hidden onsubmit="return confirm(this.dataset.onay)"
+      data-onay="“<%= g.ad %>” görev listesinden silinsin mi? Kayıtlardaki görevler değişmez.">
+    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <input type="hidden" name="ad" value="<%= g.ad %>">
+</form>
+<% } %>
 <% } %>
 </div>
 <%- include('partials/footer') %>

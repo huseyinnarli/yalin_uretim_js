@@ -7,6 +7,7 @@
 //      yardimci      numara/kimlik üretimi, tarih-puan biçimi, güvenli dosya yolu, görsel işleme, logo
 //      gunluk        işlem günlüğü
 //      ayarlar       puan kuralı sürümleri + ödül ayarları (config; hesap kuralları src/puanKurallari.js)
+//      gorevTanimlari görev tanımları listesi (öneri/kaizen açılır listesi; config), seçim doğrulama
 //   1  kayitlar      öneri/kaizen okuma-yazma, liste filtresi + sayfalama, düzenleme izni, kaizen görseli
 //      bolumler      ortak bölüm listesi (öneri/kaizen açılır listesi + 5S'e dahil bayrağı), seçim doğrulama
 //   2  bes           5S denetim/tur/ödül defteri/trend, denetim fotoğrafları, bölüm silme
@@ -18,7 +19,7 @@
 //      gorevler      düzeltme/görev atamaları, Görevlerim, menü rozeti
 //      panel         panel istatistikleri + 12 ay trendi
 const MODULLER = [
-  "guvenlik", "yardimci", "gunluk", "ayarlar",
+  "guvenlik", "yardimci", "gunluk", "ayarlar", "gorevTanimlari",
   "kayitlar", "bolumler",
   "bes", "hesaplar", "kontrolFormu",
   "isimler", "aksiyon",

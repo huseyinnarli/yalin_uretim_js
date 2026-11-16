@@ -975,6 +975,12 @@ div.hub-box { cursor: default; }
 .bolum-yonetim .sayi { text-align: right; }
 .bolum-yonetim td.sayi { color: var(--muted); }
 .bolum-not { color: var(--muted); font-size: .85rem; margin: 12px 0 0; line-height: 1.5; }
+.gorev-oneri-liste { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
+.gorev-oneri-liste .kutu-secim { font-weight: 500; }
+.gorev-oneri-liste small { color: var(--muted); }
+.personel-liste { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px 18px; }
+.personel-liste li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.personel-liste form { margin: 0; }
 .yonetim-kutu.bolum-yonlendir { display: flex; flex-direction: row; gap: 14px; align-items: center; flex-wrap: wrap; text-align: left; justify-content: flex-start; }
 .yonetim-kutu.bolum-yonlendir small { color: var(--muted); flex: 1; min-width: 240px; }
 @media (max-width: 640px) {

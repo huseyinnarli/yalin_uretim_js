@@ -8,15 +8,40 @@ const {
   sar, flash, xlsxGonder, yetkiGerek, girisRequired, alan, kisiOku, guvenliYol, hizLimitAsildi, dosyaYukleyici,
 } = require("../web");
 
-// Ekip: lider + en fazla 2 üye, her biri ayrı ad/soyad kutularından
+// Ekip: lider + en fazla 2 üye, her biri ayrı ad/soyad kutularından ve (görev listesi tanımlıysa) görevi ile
 function ekipOku(req) {
   const lider = kisiOku(req, "lider");
   const u = [kisiOku(req, "uye1"), kisiOku(req, "uye2")];
-  const uyeler = u.map((x) => x.tam).filter(Boolean).slice(0, 2);
+  const ug = [alan(req, "uye1_gorevi"), alan(req, "uye2_gorevi")];
+  // Boş üye kutuları atlanır; görevler üyelerle aynı sırada kalır
+  const dolu = u.map((x, i) => ({ ad: x.tam, gorev: ug[i] })).filter((x) => x.ad).slice(0, 2);
+  const uyeler = dolu.map((x) => x.ad);
   const sorumlular = lider.tam ? [lider.tam, ...uyeler].join(", ") : uyeler.join(", ");
   // Üye kutularından yalnızca biri (ad ya da soyad) doldurulduysa eksik sayılır
   const uyeEksik = u.some((x) => (x.ad || x.soyad) && x.eksik);
-  return { lider: lider.tam, liderEksik: lider.eksik, uyeler, sorumlular, uyeEksik };
+  return { lider: lider.tam, liderEksik: lider.eksik, liderGorevi: alan(req, "lider_gorevi"),
+    uyeler, uyeGorevleri: dolu.map((x) => x.gorev), sorumlular, uyeEksik };
+}
+
+// Ekip görevlerini görev tanımları listesine göre doğrular; ekip.liderGorevi/uyeGorevleri listedeki yazılışa çevrilir.
+// Liste boşken formda görev alanı yoktur: düzenlemede kayıttaki görevler korunur. mevcut: kaydın veritabanındaki hâli.
+async function ekipGorevleriDogrula(ekip, mevcut = {}) {
+  const liste = await C.gorevTanimlari();
+  const mevcutUye = mevcut.uye_gorevleri || [];
+  if (!liste.length) {
+    ekip.liderGorevi = mevcut.lider_gorevi || "";
+    ekip.uyeGorevleri = ekip.uyeler.map((_, i) => mevcutUye[i] || "");
+    return null;
+  }
+  const lg = C.gorevSecimi(ekip.liderGorevi, liste, mevcut.lider_gorevi, { bosHata: "Kaizen liderinin görevini seçin." });
+  ekip.liderGorevi = lg.gorev;
+  if (lg.hata) return lg.hata;
+  for (let i = 0; i < ekip.uyeler.length; i++) {
+    const ug = C.gorevSecimi(ekip.uyeGorevleri[i], liste, mevcutUye[i], { bosHata: `${ekip.uyeler[i]} için görev seçin.` });
+    ekip.uyeGorevleri[i] = ug.gorev;
+    if (ug.hata) return ug.hata;
+  }
+  return null;
 }
 
 function kazanclarOku(req) {
@@ -34,16 +59,17 @@ function formKaydi(req, ekip) {
   return {
     baslangic: alan(req, "baslangic"), bitis: alan(req, "bitis"), konu: alan(req, "konu"),
     bolum: alan(req, "bolum"), lider: ekip.lider, uyeler: ekip.uyeler,
+    lider_gorevi: ekip.liderGorevi, uye_gorevleri: ekip.uyeGorevleri,
     kazanclar: kazanclarOku(req), onceki: alan(req, "onceki"), sonraki: alan(req, "sonraki"),
     kaynak_oneri_no: alan(req, "kaynak_oneri"),
   };
 }
 
-// bolumMevcut: düzenlemede kaydın veritabanındaki bölümü (listeden kalkmış olsa da seçenek olarak kalır)
-async function formRender(res, kayit, duzenle, geri = "", bolumMevcut = "") {
+// mevcut: düzenlemede kaydın veritabanındaki hâli (listeden kalkmış eski bölüm/görevler seçenek olarak kalır)
+async function formRender(res, kayit, duzenle, geri = "", mevcut = {}) {
   res.render("kaizen_form", {
     kural: await C.guncelKural(), // ekip kutularındaki "puanın %…'i" notları
-    bolum_secenekleri: await C.bolumAdlari(), bolum_mevcut: bolumMevcut,
+    bolum_secenekleri: await C.bolumAdlari(), gorev_secenekleri: await C.gorevTanimlari(), mevcut,
     title: duzenle ? "Kaizen Düzenle" : "Yeni Kaizen", bugun: duzenle ? "" : S.bugunIso(), kayit,
     kazanc_basliklari: S.KAZANC_BASLIKLARI,
     action_url: duzenle
@@ -86,10 +112,10 @@ module.exports = function register(app) {
     }
     S.ensureDirs();
     const ekip = ekipOku(req);
+    const secim = C.bolumSecimi(alan(req, "bolum"), await C.bolumAdlari());
+    const hata = ekipHatasi(ekip, req) || secim.hata || await ekipGorevleriDogrula(ekip);
     const kayit = formKaydi(req, ekip);
-    const secim = C.bolumSecimi(kayit.bolum, await C.bolumAdlari());
-    kayit.bolum = secim.bolum;
-    const hata = ekipHatasi(ekip, req) || secim.hata;
+    kayit.bolum = secim.bolum || kayit.bolum;
     if (hata) {
       // Form girilen bilgilerle yeniden gösterilir (seçilen fotoğrafların yeniden seçilmesi gerekir)
       res.locals.mesajlar.push(["error", hata + " Fotoğraf seçtiyseniz yeniden seçin."]);
@@ -111,11 +137,12 @@ module.exports = function register(app) {
     const now = S.zamanTr();
     await transaction(async (conn) => {
       await calistir(
-        `INSERT INTO kaizenler(\`no\`, baslangic, bitis, konu, bolum, lider, uyeler,
+        `INSERT INTO kaizenler(\`no\`, baslangic, bitis, konu, bolum, lider, lider_gorevi, uyeler, uye_gorevleri,
           sorumlular, kazanclar, onceki, sonraki, onceki_gorsel, sonraki_gorsel,
           durum, puan, puanlama, kayit_zamani, kaynak_oneri_no)
-         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?,?)`,
-        [no, kayit.baslangic, kayit.bitis, kayit.konu, kayit.bolum, ekip.lider, js(ekip.uyeler),
+         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?,?)`,
+        [no, kayit.baslangic, kayit.bitis, kayit.konu, kayit.bolum, ekip.lider, ekip.liderGorevi,
+          js(ekip.uyeler), js(ekip.uyeGorevleri),
           ekip.sorumlular, js(kayit.kazanclar), kayit.onceki, kayit.sonraki, gorselOnceki, gorselSonraki,
           S.VARSAYILAN_DURUM, now, oneri ? oneri.no : null], conn);
       if (oneri) {
@@ -140,7 +167,7 @@ module.exports = function register(app) {
       flash(req, "error", "Bu kaydı düzenleme yetkiniz yok.");
       return res.redirect("/detay?tip=kaizen&no=" + encodeURIComponent(rec.no));
     }
-    await formRender(res, rec, true, guvenliYol(req.query.geri, ""), rec.bolum);
+    await formRender(res, rec, true, guvenliYol(req.query.geri, ""), rec);
   }));
 
   app.post("/kaizen/duzenle", girisRequired, ...dosyaYukleyici(2), sar(async (req, res) => {
@@ -154,10 +181,10 @@ module.exports = function register(app) {
     const geri = guvenliYol(req.query.geri, "");
     const ekip = ekipOku(req);
     const secim = C.bolumSecimi(alan(req, "bolum"), await C.bolumAdlari(), eski.bolum);
-    const hata = ekipHatasi(ekip, req) || secim.hata;
+    const hata = ekipHatasi(ekip, req) || secim.hata || await ekipGorevleriDogrula(ekip, eski);
     if (hata) {
       res.locals.mesajlar.push(["error", hata]);
-      return await formRender(res, { ...eski, ...formKaydi(req, ekip), no }, true, geri, eski.bolum);
+      return await formRender(res, { ...eski, ...formKaydi(req, ekip), no }, true, geri, eski);
     }
     S.ensureDirs();
     const sn = C.safeName(no);
@@ -166,7 +193,8 @@ module.exports = function register(app) {
     const alanlar = {
       baslangic: alan(req, "baslangic"), bitis: alan(req, "bitis"),
       konu: alan(req, "konu"), bolum: secim.bolum,
-      lider: ekip.lider, uyeler: js(ekip.uyeler), sorumlular: ekip.sorumlular,
+      lider: ekip.lider, lider_gorevi: ekip.liderGorevi, uyeler: js(ekip.uyeler),
+      uye_gorevleri: js(ekip.uyeGorevleri), sorumlular: ekip.sorumlular,
       kazanclar: js(kazanclarOku(req)),
       onceki: alan(req, "onceki"), sonraki: alan(req, "sonraki"),
       // Yeni görsel yüklenmediyse mevcudu koru

@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 181 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 203 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -107,7 +107,12 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
    (`servis/bolumler.js`, sayfa `/yonetici/bolumler`, yetki `bes_plan`). 5S'in "şimdiki" listeleri (tur planı, 5S tablosu,
    günlük kontrol formları) `C.besBolumleri()` (yalnız `bes_dahil`) kullanır; ad çözümü/geçmiş için `bolumMap()` (hepsi).
    Yeni bir 5S listesi yazarken `loadBolumler()` değil `besBolumleri()` kullan. Formdan gelen bölüm `C.bolumSecimi(girilen,
-   await C.bolumAdlari(), mevcut)` ile doğrulanır; kayıt bölümü ADIYLA saklar. Form alanı `partials/bolum_secimi.ejs`.
+   await C.bolumAdlari(), mevcut)` ile doğrulanır; kayıt bölümü ADIYLA saklar. Personel (`kisiler`) ve ekip lideri için
+   `C.bolumKisiEkle/bolumKisiSil/bolumLiderKaydet` kullan (5S ve Bölümler sayfası ortak).
+8c3. **Görev tanımları** tek ortak listedir (`config.gorev_tanimlari`, `servis/gorevTanimlari.js`): öneri `gorevi`, kaizen
+   `lider_gorevi` + `uye_gorevleri` (JSON, `uyeler` ile AYNI SIRADA) `C.gorevSecimi(...)` ile doğrulanır. Liste boşken öneride
+   serbest metin, kaizende görev alanı yoktur. Bölüm ve görev alanları aynı şablonla çizilir: `partials/liste_secimi.ejs`
+   (`alan_adi, etiket, secenekler, secili, mevcut, zorunlu, bos_yazi, serbest`); saf doğrulama `src/liste.js`.
 8d. **Dosya yükleme sırası:** yetki/giriş middleware'i `...dosyaYukleyici(N)`'den ÖNCE gelir (girişsiz istek
    belleğe dosya alamasın). Dönüş adresleri (`geri`, `don`) daima `web.js:guvenliYol` ile doğrulanır.
 9. Numara üretimi (`ÖNFR2607-01`) `sayaclar` tablosunda **atomik sayaçtır** — elle SELECT
@@ -171,6 +176,11 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     öneri/kaizen formunda zorunlu açılır liste; 5S yalnız 5S'e dahil bölümler; 5S sekmesindeki ekle/sil Bölümler'e taşındı
     (eski uçlar duruyor); gecis-kontrol §6 bölüm listesi; `flash(req, "uyari", …)` (sarı, günlüğe yazılmaz).
     Eski DB ile geçiş + geri dönüş denendi. e2e 181/181.
+21. **Bölüm personeli + görev tanımları** (16 Kasım, devam): "Bölümler ve Görevler" sayfası; bölüm sayfası
+    `/yonetici/bolumler/:bid` (ekip lideri + toplu personel); görev tanımları (`/yonetici/gorevler/*`, config); öneri
+    görevi ve kaizen ekip görevleri açılır listeden (`kaizenler.lider_gorevi`, `uye_gorevleri` → 30 kolon); `src/liste.js`,
+    `servis/gorevTanimlari.js` (katman 0), `partials/liste_secimi.ejs` (`bolum_secimi.ejs` kaldırıldı). Eski DB ile geçiş +
+    geri dönüş denendi. e2e 203/203.
 
 ## Açık konular
 

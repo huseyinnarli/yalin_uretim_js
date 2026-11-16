@@ -5,19 +5,14 @@
 //   eski kurulumdaki bölümler 5S'e dahil kalır. 5S dışı bölüm yalnız öneri/kaizen formlarında seçilir.
 // - Öneri/kaizen kayıtları bölümü ADIYLA saklar (eski serbest metin kayıtlar ve Excel ile uyumlu). Bölümün adı
 //   sonradan değişirse eski kayıtlardaki ad değişmez.
-const { sorgu, tek, calistir, transaction, bolumRow } = require("../db");
+const I = require("../isim");
+const L = require("../liste");
+const { sorgu, tek, calistir, transaction, js, bolumRow } = require("../db");
 const { uid } = require("./yardimci");
 
-const BOLUM_AD_UZUNLUK = 80;
-
-function bolumAdTemizle(ad) {
-  return String(ad == null ? "" : ad).replace(/\s+/g, " ").trim().slice(0, BOLUM_AD_UZUNLUK);
-}
-
-// Karşılaştırma anahtarı: büyük/küçük harf (Türkçe kurallarıyla) ve fazla boşluk farkı yok sayılır
-function bolumAnahtar(ad) {
-  return bolumAdTemizle(ad).toLocaleLowerCase("tr");
-}
+const BOLUM_AD_UZUNLUK = L.AD_UZUNLUK;
+const bolumAdTemizle = L.adTemizle;
+const bolumAnahtar = L.anahtar;
 
 async function loadBolumler() {
   return (await sorgu("SELECT * FROM bolumler ORDER BY ad")).map(bolumRow);
@@ -50,29 +45,61 @@ async function bolumAdlari() {
 // - Düzenlemede kaydın mevcut bölümü listeden kalkmış olsa da korunabilir.
 // Döner: { bolum, hata } — bolum listedeki yazılışıyla
 function bolumSecimi(girilen, adlar, mevcut = "") {
-  const ad = bolumAdTemizle(girilen);
-  if (!adlar.length) return { bolum: ad, hata: null };
-  if (!ad) return { bolum: "", hata: "Bölüm seçin." };
-  const bulunan = adlar.find((a) => bolumAnahtar(a) === bolumAnahtar(ad));
-  if (bulunan) return { bolum: bulunan, hata: null };
-  if (mevcut && bolumAnahtar(mevcut) === bolumAnahtar(ad)) return { bolum: mevcut, hata: null };
-  return { bolum: "", hata: "Bölümü listeden seçin." };
+  const { deger, hata } = L.secimDogrula(girilen, adlar, mevcut,
+    { bosHata: "Bölüm seçin.", disariHata: "Bölümü listeden seçin." });
+  return { bolum: deger, hata };
 }
 
 // Toplu ekleme (her öğe bir ad). Listede zaten olanlar ve tekrarlar atlanır.
 async function bolumEkle(adlar, { besDahil = true, sorumlu = "" } = {}) {
-  const var_ = new Set((await loadBolumler()).map((b) => bolumAnahtar(b.ad)));
-  const eklenen = [], atlanan = [];
-  for (const ham of adlar) {
-    const ad = bolumAdTemizle(ham);
-    if (!ad) continue;
-    if (var_.has(bolumAnahtar(ad))) { atlanan.push(ad); continue; }
-    var_.add(bolumAnahtar(ad));
+  const { eklenecek, atlanan } = L.yeniAdlar(adlar, (await loadBolumler()).map((b) => b.ad));
+  for (const ad of eklenecek) {
     await calistir("INSERT INTO bolumler(id, ad, sorumlu, kisiler, bes_dahil) VALUES(?,?,?,'[]',?)",
       [uid(), ad, sorumlu || "", besDahil ? 1 : 0]);
-    eklenen.push(ad);
   }
-  return { eklenen, atlanan };
+  return { eklenen: eklenecek, atlanan };
+}
+
+// --- Bölüm personeli ve ekip liderleri (5S ödül dağıtımı ve isim birleştirme bu listeyi kullanır) ---
+
+// Toplu personel ekleme: her öğe "Ad Soyad" (son kelime soyad). Tek kelimelik satır hatalı sayılır;
+// bu bölümde zaten olan atlanır; başka bölümde de kayıtlı olan eklenir ama bildirilir.
+// Döner: { eklenen, atlanan, hatali, baskaBolumde: [{ ad, bolum }] }
+async function bolumKisiEkle(bid, satirlar) {
+  const b = await bolumById(bid);
+  if (!b) return null;
+  const digerleri = (await loadBolumler()).filter((x) => x.id !== bid);
+  const eklenen = [], atlanan = [], hatali = [], baskaBolumde = [];
+  for (const ham of satirlar) {
+    const satir = String(ham || "").trim();
+    if (!satir) continue;
+    const { ad, soyad } = I.adBol(satir);
+    if (!ad || !soyad) { hatali.push(satir); continue; }
+    const tam = I.adSoyad(ad, soyad);
+    if (b.kisiler.some((x) => I.isimEsit(x, tam))) { atlanan.push(tam); continue; }
+    b.kisiler.push(tam);
+    eklenen.push(tam);
+    const diger = digerleri.find((x) => (x.kisiler || []).some((k) => I.isimEsit(k, tam)));
+    if (diger) baskaBolumde.push({ ad: tam, bolum: diger.ad });
+  }
+  if (eklenen.length) await calistir("UPDATE bolumler SET kisiler = ? WHERE id = ?", [js(b.kisiler), b.id]);
+  return { eklenen, atlanan, hatali, baskaBolumde };
+}
+
+async function bolumKisiSil(bid, ad) {
+  const b = await bolumById(bid);
+  if (!b) return false;
+  const kalan = b.kisiler.filter((k) => k !== ad);
+  if (kalan.length === b.kisiler.length) return false;
+  await calistir("UPDATE bolumler SET kisiler = ? WHERE id = ?", [js(kalan), b.id]);
+  return true;
+}
+
+// Ekip liderleri "Ali Yılmaz / Veli Demir" biçiminde saklanır (en fazla 2)
+async function bolumLiderKaydet(bid, liderler) {
+  const sorumlu = liderler.filter(Boolean).slice(0, 2).join(" / ");
+  await calistir("UPDATE bolumler SET sorumlu = ? WHERE id = ?", [sorumlu, bid]);
+  return sorumlu;
 }
 
 // Bölümler sayfasının tek "Kaydet"i: satirlar = [{ id, ad, bes_dahil }]. Yalnız gönderilen id'ler güncellenir.
@@ -140,4 +167,5 @@ module.exports = {
   BOLUM_AD_UZUNLUK, bolumAdTemizle, bolumAnahtar,
   loadBolumler, bolumById, bolumMap, besBolumleri, bolumAdlari, bolumSecimi,
   bolumEkle, bolumleriGuncelle, bolumKullanim,
+  bolumKisiEkle, bolumKisiSil, bolumLiderKaydet,
 };

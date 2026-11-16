@@ -298,10 +298,11 @@ async function main() {
   }
   yaz();
 
-  // ---------------------------------------------------------------- 6. Bölüm listesi
-  // Yeni sürümde 5S bölümleri öneri/kaizen formlarının açılır listesi olur (Yönetim › Bölümler); hepsi 5S'e dahil kalır.
+  // ---------------------------------------------------------------- 6. Bölüm ve görev listeleri
+  // Yeni sürümde 5S bölümleri öneri/kaizen formlarının açılır listesi olur (Yönetim › Bölümler ve Görevler); hepsi 5S'e
+  // dahil kalır. Görev tanımları listesi boş başlar (formlar o zamana kadar eski davranışla çalışır).
   if (canli.bolumler) {
-    yaz(`## 6. Bölüm listesi (öneri/kaizen açılır listesi + 5S)`);
+    yaz(`## 6. Bölüm ve görev listeleri (öneri/kaizen açılır listeleri + 5S)`);
     yaz();
     const adlar = (await q("SELECT ad FROM bolumler ORDER BY ad")).map((r) => r.ad);
     yaz(`- Mevcut ${adlar.length} bölüm yeni sürümde öneri ve kaizen formlarında açılır liste olur ve 5S'e dahil kalır.` +
@@ -321,6 +322,13 @@ async function main() {
       yaz(`- Kaizenlerde serbest yazılmış ve listede olmayan bölüm adı: ${disari.length}` +
         (disari.length ? ` (${disari.slice(0, 15).join(", ")}${disari.length > 15 ? "…" : ""}) — kayıtlar değişmez; ` +
           "düzenlenirken eski ad korunur, istenirse listeden seçilir." : ""));
+    }
+    if (canli.oneriler) {
+      const gorevler = await q(
+        "SELECT gorevi, COUNT(*) AS n FROM oneriler WHERE gorevi IS NOT NULL AND gorevi <> '' GROUP BY gorevi ORDER BY n DESC");
+      yaz(`- Önerilerde serbest yazılmış görev: ${gorevler.length} farklı yazılış` +
+        (gorevler.length ? ` (en sık: ${gorevler.slice(0, 12).map((r) => `${r.gorevi} ${r.n}`).join(", ")})` : "") +
+        ". Görev tanımları listesi boş başlar; Bölümler ve Görevler sayfası bu yazılışları listeye eklemek için önerir.");
     }
     yaz();
   }

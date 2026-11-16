@@ -847,6 +847,104 @@ async function main() {
     html = await getText(BOL);
     ok("geçmişli bölümün silme onayında denetim sayısı uyarısı", /data-onay="[^"]*Kaynakhane[^"]*denetim ve fotoğrafları da KALICI/.test(html));
 
+    // --- Bölüm personeli (toplu ekleme) + ekip lideri: Yönetim › Bölümler › bölüm sayfası ---
+    csrf = await girisYap("planci12");
+    bol = await bolumleriOku();
+    const montajId = bol.Montaj.id, satinId = bol["Satın Alma"].id;
+    const kisileriOku = async (id) => JSON.parse((await db.query("SELECT kisiler FROM bolumler WHERE id = ?", [id]))[0][0].kisiler);
+    html = await getText(`${BOL}/${satinId}`);
+    ok("bölüm personel sayfası açılır", html.includes("👥 Satın Alma") && html.includes('name="kisiler"'));
+    await post(`${BOL}/${montajId}/personel`, { csrf_token: csrf, kisiler: "Deniz Kaya" });
+    await post(`${BOL}/${satinId}/personel`, { csrf_token: csrf,
+      kisiler: "ahmet  YILMAZ\r\nAyşe Nur Çelik\r\nTekkelime\r\nahmet yılmaz\r\ndeniz kaya\r\n" });
+    html = await getText(`${BOL}/${satinId}`);
+    ok("toplu personel: ad/soyad düzeltildi, tekrar ve tek kelime eklenmedi",
+      (await kisileriOku(satinId)).join("|") === "Ahmet Yılmaz|Ayşe Nur Çelik|Deniz Kaya");
+    ok("toplu personel mesajları (tek kelime, zaten var, başka bölümde)",
+      html.includes("eklenmedi: Tekkelime") && html.includes("Zaten bu bölümde: Ahmet Yılmaz") && html.includes("Deniz Kaya (Montaj)"));
+    await post(`${BOL}/${satinId}/lider`, { csrf_token: csrf, lider1_ad: "ayşe nur", lider1_soyad: "çelik", lider2_ad: "", lider2_soyad: "" });
+    const [[satinL]] = await db.query("SELECT sorumlu FROM bolumler WHERE id = ?", [satinId]);
+    ok("ekip lideri bölüm sayfasından kaydedildi", satinL.sorumlu === "Ayşe Nur Çelik", satinL.sorumlu);
+    await post(`${BOL}/${satinId}/personel/sil`, { csrf_token: csrf, ad: "Deniz Kaya" });
+    ok("personel bölümden çıkarıldı", !(await kisileriOku(satinId)).includes("Deniz Kaya"));
+    html = await getText(BOL);
+    ok("bölüm listesinde personel sayısı ve bağlantısı", html.includes(`href="/yonetici/bolumler/${satinId}"`) && html.includes("👥 2 kişi"));
+    csrf = await girisYap("kisitli123");
+    await post(`${BOL}/${satinId}/personel`, { csrf_token: csrf, kisiler: "Yetkisiz Kişi" });
+    ok("yetkisiz kullanıcı personel ekleyemez", !(await kisileriOku(satinId)).includes("Yetkisiz Kişi"));
+
+    // --- Görev tanımları: ortak liste; öneri ve kaizen ekibinde açılır liste ---
+    const gorevListe = async () => {
+      const [[r0]] = await db.query("SELECT deger FROM config WHERE anahtar = 'gorev_tanimlari'");
+      return r0 ? JSON.parse(r0.deger) : [];
+    };
+    csrf = await girisYap("planci12");
+    html = await getText(BOL);
+    ok("kayıtlarda geçen görevler listeye eklenmek üzere önerilir",
+      html.includes("Kayıtlarda geçen ama listede olmayan") && html.includes('name="adlar" value="Operatör"'));
+    await post("/yonetici/gorevler/ekle", { csrf_token: csrf, adlar: "Operatör" }); // öneri kutusundan
+    await post("/yonetici/gorevler/ekle", { csrf_token: csrf, adlar: "Ekip Lideri\nusta\nOPERATÖR\n<i>x</i>" });
+    let gl = await gorevListe();
+    ok("görev tanımları eklendi (mükerrer atlandı)", gl.length === 4 && gl.includes("Operatör") && gl.includes("usta") && gl.includes("Ekip Lideri"), gl.join("|"));
+    html = await getText(BOL);
+    ok("görev adı sayfada kaçışlı", html.includes("&lt;i&gt;x&lt;/i&gt;") && !html.includes("<i>x</i>"));
+    const gorevFormu = (degis) => {
+      const f = new URLSearchParams({ csrf_token: csrf });
+      for (const g of gl) { f.append("eski", g); f.append("yeni", degis[g] || g); }
+      return f;
+    };
+    await post("/yonetici/gorevler/kaydet", gorevFormu({ "Ekip Lideri": "operatör" }));
+    html = await getText(BOL);
+    ok("görevde çakışan ad reddedildi", html.includes("Aynı adla iki görev olamaz") && (await gorevListe()).includes("Ekip Lideri"));
+    await post("/yonetici/gorevler/kaydet", gorevFormu({ usta: "Usta" }));
+    await post("/yonetici/gorevler/sil", { csrf_token: csrf, ad: "<i>x</i>" });
+    gl = await gorevListe();
+    ok("görev adı değişti, görev silindi", gl.join("|") === "Ekip Lideri|Operatör|Usta", gl.join("|"));
+    // Öneri formu: görev açılır listeden, zorunlu
+    await get("/yonetici/cikis");
+    html = await getText("/oneri/yeni");
+    const anonG = csrfFrom(html);
+    ok("öneri formunda görev açılır listesi", html.includes('<select id="gorevi" name="gorevi" required>') && html.includes('<option value="Usta"'));
+    html = await (await post("/oneri/yeni", { csrf_token: anonG, bolum: "Montaj", gorevi: "Uydurma Görev", tarih: bugun,
+      sahibi_ad: "Gorev", sahibi_soyad: "Disi", konu: "g", detay: "d" })).text();
+    ok("listede olmayan görev reddedildi", html.includes('flash error">Görevi listeden seçin.'));
+    await post("/oneri/yeni", { csrf_token: anonG, bolum: "Montaj", gorevi: "usta", tarih: bugun,
+      sahibi_ad: "Gorev", sahibi_soyad: "Ici", konu: "g", detay: "d" });
+    const [[gIci]] = await db.query("SELECT gorevi FROM oneriler WHERE sahibi = 'Gorev Ici'");
+    ok("öneri görevi listedeki yazılışıyla kaydedildi", gIci && gIci.gorevi === "Usta");
+    // Kaizen: lider ve her üye için görev
+    html = await getText("/kaizen/yeni");
+    ok("kaizen formunda lider ve üye görev listeleri",
+      html.includes('<select id="lider_gorevi" name="lider_gorevi" required>') && html.includes('<select id="uye1_gorevi" name="uye1_gorevi">'));
+    const kzForm = { csrf_token: anonG, baslangic: bugun, konu: "Görevli kaizen", bolum: "Montaj", lider_ad: "Kai",
+      lider_soyad: "Lider", lider_gorevi: "Ekip Lideri", uye1_ad: "Üye", uye1_soyad: "Bir", uye1_gorevi: "",
+      uye2_ad: "", uye2_soyad: "", uye2_gorevi: "", onceki: "o", sonraki: "s" };
+    html = await (await postMultipart("/kaizen/yeni", kzForm)).text();
+    ok("kaizende üye yazıldıysa görevi zorunlu", html.includes('flash error">Üye Bir için görev seçin.'));
+    html = await (await postMultipart("/kaizen/yeni", { ...kzForm, lider_gorevi: "" })).text();
+    ok("kaizende lider görevi zorunlu", html.includes('flash error">Kaizen liderinin görevini seçin.'));
+    await postMultipart("/kaizen/yeni", { ...kzForm, uye1_gorevi: "operatör" });
+    const [[gkz]] = await db.query("SELECT `no`, lider_gorevi, uye_gorevleri FROM kaizenler WHERE konu = 'Görevli kaizen'");
+    ok("kaizen ekip görevleri kaydedildi", gkz && gkz.lider_gorevi === "Ekip Lideri" && gkz.uye_gorevleri === '["Operatör"]',
+      JSON.stringify(gkz));
+    csrf = await girisYap("admin123");
+    await post("/yonetici/gorevler/sil", { csrf_token: csrf, ad: "Ekip Lideri" });
+    html = await getText(`/kaizen/duzenle?no=${encodeURIComponent(gkz.no)}`);
+    ok("listeden silinen görev düzenlemede eski kayıt olarak seçili",
+      html.includes('<option value="Ekip Lideri" selected>Ekip Lideri (eski kayıt — listede yok)</option>'));
+    html = await getText(`/detay?tip=kaizen&no=${encodeURIComponent(gkz.no)}`);
+    ok("kaizen detayında görevler", html.includes("Kai Lider (Ekip Lideri)") && html.includes("Üye Bir (Operatör)"));
+    r = await get("/kaizen/excel");
+    const wbK = new ExcelJSm.Workbook();
+    await wbK.xlsx.load(Buffer.from(await r.arrayBuffer()));
+    const wsK = wbK.worksheets[0];
+    const bK = wsK.getRow(1).values.slice(1);
+    let kzSatir = null;
+    wsK.eachRow((row) => { if (row.getCell(1).value === gkz.no) kzSatir = row; });
+    ok("kaizen Excel'inde son sütunlar Lider Görevi / Üye Görevleri",
+      bK.slice(-2).join("|") === "Lider Görevi|Üye Görevleri" && kzSatir
+      && kzSatir.getCell(bK.length - 1).value === "Ekip Lideri" && kzSatir.getCell(bK.length).value === "Üye Bir: Operatör");
+
     await db.end();
   } finally {
     srv.kill();

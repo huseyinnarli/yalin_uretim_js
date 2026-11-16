@@ -1,9 +1,11 @@
-// Yönetim › Bölümler — öneri/kaizen formlarındaki açılır liste ile 5S'in ORTAK bölüm listesi.
-// Yetki: bes_plan ("Bölüm listesi & 5S denetim planı"); ana yönetici her zaman. İş kuralları: servis/bolumler.js.
+// Yönetim › Bölümler ve Görevler — öneri/kaizen formlarındaki açılır listeler ile 5S'in ORTAK verisi:
+// bölüm listesi (5S'e dahil), bölüm personeli + ekip liderleri, görev tanımları.
+// Yetki: bes_plan; ana yönetici her zaman. İş kuralları: servis/bolumler.js, servis/gorevTanimlari.js.
 const C = require("../cekirdek");
-const { sar, flash, yetkiGerek } = require("../web");
+const { sar, flash, yetkiGerek, kisiOku } = require("../web");
 
 const SAYFA = "/yonetici/bolumler";
+const GOREVLER = SAYFA + "#gorevler";
 
 function dizi(v) {
   if (v === undefined || v === null) return [];
@@ -17,7 +19,7 @@ module.exports = function register(app) {
     const sayac = new Map();
     for (const b of bolumler) sayac.set(C.bolumAnahtar(b.ad), (sayac.get(C.bolumAnahtar(b.ad)) || 0) + 1);
     res.render("bolumler", {
-      title: "Bölümler", bolumler, kullanim: await C.bolumKullanim(),
+      title: "Bölümler ve Görevler", bolumler, kullanim: await C.bolumKullanim(), gorev: await C.gorevOzeti(),
       ciftler: [...new Set(bolumler.filter((b) => sayac.get(C.bolumAnahtar(b.ad)) > 1).map((b) => b.ad))],
       ad_uzunluk: C.BOLUM_AD_UZUNLUK,
     });
@@ -48,6 +50,77 @@ module.exports = function register(app) {
         "gerekirse 5S › Denetim Planı'ndan silin.");
     }
     res.redirect(SAYFA);
+  }));
+
+  // --- Bölüm sayfası: ekip liderleri + personel (toplu ekleme) ---
+  app.get(SAYFA + "/:bid", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    const bolum = await C.bolumById(req.params.bid);
+    if (!bolum) return res.status(404).send("Bölüm bulunamadı.");
+    const liderler = C.bolumLiderleri(bolum);
+    res.render("bolum_personel", {
+      title: `${bolum.ad} · Personel`, b: bolum, lider1: liderler[0] || "", lider2: liderler[1] || "",
+      kisiler: [...bolum.kisiler].sort((x, y) => x.localeCompare(y, "tr")),
+    });
+  }));
+
+  app.post(SAYFA + "/:bid/personel", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    const yol = SAYFA + "/" + encodeURIComponent(req.params.bid);
+    const r = await C.bolumKisiEkle(req.params.bid, String((req.body || {}).kisiler || "").split(/\r?\n/));
+    if (!r) return res.status(404).send("Bölüm bulunamadı.");
+    if (r.eklenen.length) flash(req, "success", `${r.eklenen.length} kişi eklendi: ${r.eklenen.join(", ")}`);
+    if (r.atlanan.length) flash(req, "uyari", `Zaten bu bölümde: ${r.atlanan.join(", ")}`);
+    if (r.hatali.length) flash(req, "error", `Ad ve soyad birlikte yazılmalı, eklenmedi: ${r.hatali.join(", ")}`);
+    if (r.baskaBolumde.length) {
+      flash(req, "uyari", "Başka bölümde de kayıtlı (gerekirse oradan çıkarın): " +
+        r.baskaBolumde.map((x) => `${x.ad} (${x.bolum})`).join(", "));
+    }
+    if (!r.eklenen.length && !r.atlanan.length && !r.hatali.length) flash(req, "error", "Eklenecek kişiyi yazın (her satıra Ad Soyad).");
+    res.redirect(yol);
+  }));
+
+  app.post(SAYFA + "/:bid/personel/sil", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    const ad = String((req.body || {}).ad || "");
+    if (await C.bolumKisiSil(req.params.bid, ad)) flash(req, "success", `${ad} bölümden çıkarıldı.`);
+    res.redirect(SAYFA + "/" + encodeURIComponent(req.params.bid));
+  }));
+
+  app.post(SAYFA + "/:bid/lider", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    const bolum = await C.bolumById(req.params.bid);
+    if (!bolum) return res.status(404).send("Bölüm bulunamadı.");
+    const l = [kisiOku(req, "lider1"), kisiOku(req, "lider2")];
+    if (l.some((x) => (x.ad || x.soyad) && x.eksik)) {
+      flash(req, "error", "Ekip liderinin adını ve soyadını birlikte yazın.");
+    } else {
+      const sorumlu = await C.bolumLiderKaydet(bolum.id, l.map((x) => x.tam));
+      flash(req, "success", `${bolum.ad} ekip lideri: ${sorumlu || "—"}`);
+    }
+    res.redirect(SAYFA + "/" + encodeURIComponent(bolum.id));
+  }));
+
+  // --- Görev tanımları (öneri "Görevi" + kaizen ekip görevleri) ---
+  app.post("/yonetici/gorevler/ekle", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    // Metin kutusu (her satıra bir görev) ya da "kayıtlarda geçen" önerilerinden işaretlenenler
+    const adlar = dizi((req.body || {}).adlar).flatMap((v) => String(v).split(/\r?\n/));
+    const { eklenen, atlanan } = await C.gorevEkle(adlar);
+    if (eklenen.length) flash(req, "success", `${eklenen.length} görev tanımı eklendi: ${eklenen.join(", ")}`);
+    if (atlanan.length) flash(req, "uyari", `Listede zaten olduğu için eklenmedi: ${atlanan.join(", ")}`);
+    if (!eklenen.length && !atlanan.length) flash(req, "error", "Eklenecek görev adını yazın (her satıra bir ad).");
+    res.redirect(GOREVLER);
+  }));
+
+  app.post("/yonetici/gorevler/kaydet", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    const eski = dizi((req.body || {}).eski), yeni = dizi((req.body || {}).yeni);
+    const { degisiklikler, hata } = await C.gorevleriGuncelle(eski.map((e, i) => ({ eski: e, yeni: yeni[i] })));
+    if (hata) flash(req, "error", hata);
+    else if (!degisiklikler.length) flash(req, "uyari", "Değişiklik yok.");
+    else flash(req, "success", `Görev tanımları kaydedildi: ${degisiklikler.join("; ")}`);
+    res.redirect(GOREVLER);
+  }));
+
+  app.post("/yonetici/gorevler/sil", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    const ad = String((req.body || {}).ad || "");
+    if (await C.gorevSil(ad)) flash(req, "success", `Görev tanımı silindi: ${ad}`);
+    res.redirect(GOREVLER);
   }));
 
   app.post(SAYFA + "/sil", yetkiGerek("bes_plan"), sar(async (req, res) => {

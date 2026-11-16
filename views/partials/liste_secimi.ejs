@@ -1,0 +1,27 @@
+<%# Yönetilen listeden açılır seçim (bölüm, görev tanımı). Değişkenler:
+    alan_adi (form alanı ve id), etiket, secenekler, secili (formdaki değer), mevcut (düzenlemede kaydın veritabanındaki
+    değeri — listeden kalkmışsa da seçenek olarak kalır), zorunlu, bos_yazi,
+    serbest: liste boşken gösterilecek serbest metin kutusu ({ zorunlu, placeholder }); verilmezse alan hiç çıkmaz.
+    Sunucu doğrulaması: src/liste.js:secimDogrula %>
+<% const _anah = (x) => String(x || '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('tr');
+   const _sec = _anah(secili), _mev = String(mevcut || '').replace(/\s+/g, ' ').trim();
+   const _serbest = typeof serbest !== 'undefined' ? serbest : null; %>
+<% if (secenekler.length || _serbest) { %>
+<div class="field liste-alan">
+    <label for="<%= alan_adi %>"><%= etiket %><%= (secenekler.length ? zorunlu : _serbest.zorunlu) ? ' *' : '' %></label>
+    <% if (secenekler.length) { %>
+    <select id="<%= alan_adi %>" name="<%= alan_adi %>"<%= zorunlu ? ' required' : '' %>>
+        <option value=""><%= bos_yazi %></option>
+        <% for (const a of secenekler) { %>
+        <option value="<%= a %>" <%= _anah(a) === _sec ? 'selected' : '' %>><%= a %></option>
+        <% } %>
+        <% if (_mev && !secenekler.some((a) => _anah(a) === _anah(_mev))) { %>
+        <option value="<%= _mev %>" <%= _anah(_mev) === _sec ? 'selected' : '' %>><%= _mev %> (eski kayıt — listede yok)</option>
+        <% } %>
+    </select>
+    <% } else { %>
+    <input type="text" id="<%= alan_adi %>" name="<%= alan_adi %>" value="<%= secili || '' %>"
+           placeholder="<%= _serbest.placeholder || '' %>"<%= _serbest.zorunlu ? ' required' : '' %>>
+    <% } %>
+</div>
+<% } %>

@@ -395,25 +395,19 @@ module.exports = function register(app) {
     });
   }));
 
+  // Personel ve ekip lideri (iş kuralları servis/bolumler.js; toplu ekleme Yönetim › Bölümler › bölüm sayfasında)
   app.post("/5s/bolum/:bid/kisi/ekle", yetkiGerek("bes_plan"), sar(async (req, res) => {
-    const b = await C.bolumById(req.params.bid);
     const k = kisiOku(req, "kisi");
-    const ad = k.tam;
-    if (b && k.eksik) flash(req, "error", "Kişinin adını ve soyadını yazın.");
-    else if (b && b.kisiler.some((x) => I.isimEsit(x, ad))) flash(req, "error", `${ad} zaten bu bölümde.`);
-    else if (b && ad) {
-      b.kisiler.push(ad);
-      await calistir("UPDATE bolumler SET kisiler = ? WHERE id = ?", [js(b.kisiler), b.id]);
+    if (k.eksik) flash(req, "error", "Kişinin adını ve soyadını yazın.");
+    else if (k.tam) {
+      const r = await C.bolumKisiEkle(req.params.bid, [k.tam]);
+      if (r && r.atlanan.length) flash(req, "error", `${k.tam} zaten bu bölümde.`);
     }
     res.redirect("/5s/bolum/" + req.params.bid);
   }));
 
   app.post("/5s/bolum/:bid/kisi/sil", yetkiGerek("bes_plan"), sar(async (req, res) => {
-    const b = await C.bolumById(req.params.bid);
-    if (b) {
-      const kalan = b.kisiler.filter((k) => k !== (req.body.ad || ""));
-      await calistir("UPDATE bolumler SET kisiler = ? WHERE id = ?", [js(kalan), b.id]);
-    }
+    await C.bolumKisiSil(req.params.bid, req.body.ad || "");
     res.redirect("/5s/bolum/" + req.params.bid);
   }));
 
@@ -421,8 +415,7 @@ module.exports = function register(app) {
   app.post("/5s/bolum/:bid/lider", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const l1 = kisiOku(req, "lider1").tam;
     const l2 = kisiOku(req, "lider2").tam;
-    const yeni = (l1 || l2) ? [l1, l2].filter(Boolean).join(" / ") : kisiOku(req, "sorumlu").tam;
-    await calistir("UPDATE bolumler SET sorumlu = ? WHERE id = ?", [yeni, req.params.bid]);
+    await C.bolumLiderKaydet(req.params.bid, (l1 || l2) ? [l1, l2] : [kisiOku(req, "sorumlu").tam]);
     flash(req, "success", "Ekip lideri güncellendi.");
     res.redirect("/5s/bolum/" + req.params.bid);
   }));

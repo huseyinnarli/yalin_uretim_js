@@ -1,5 +1,24 @@
 # Sürüm Notları
 
+## 16 Kasım 2026 (devam) — Bölüm personeli ve görev tanımları
+
+- Sayfa adı **Yönetim › 🏭 Bölümler ve Görevler** (yetki adı: Bölüm/görev listeleri & denetim planı).
+- **Bölüm personeli:** listede her bölümün yanında **👥 N kişi** düğmesi → bölüm sayfası (`/yonetici/bolumler/:id`):
+  ekip lideri (en fazla 2, ad/soyad ayrı) ve personel. Personel **toplu eklenir**: her satıra "Ad Soyad" (Excel'den
+  sütun yapıştırılabilir; son kelime soyad, harfler düzeltilir). Tek kelimelik satır eklenmez; bu bölümde olan atlanır;
+  başka bölümde de kayıtlı olan eklenir ve bildirilir. 5S bölüm sayfasındaki tek tek ekleme de duruyor.
+- **Görev tanımları:** tüm bölümler için tek liste (toplu ekleme, ad değiştirme, silme, kullanım sayısı). Kayıtlarda
+  serbest yazılmış görevler "listede olmayan görevler" kutusunda en sıktan listelenir; işaretlenip listeye eklenir.
+- **Öneri formunda görev açılır listeden** seçilir ve zorunludur. **Kaizen formunda ekipteki her kişinin görevi** (lider
+  zorunlu, üye yazıldıysa zorunlu) listeden seçilir. Liste boşken eski davranış: öneride serbest metin, kaizende görev yok.
+  Düzenlemede listeden kalkmış eski görev "(eski kayıt — listede yok)" olarak seçili kalır.
+- Kaizen detayında kişilerin görevleri parantez içinde; kaizen Excel'inin sonunda **Lider Görevi** ve **Üye Görevleri**.
+- `npm run gecis-kontrol`: §6 önerilerdeki görev yazılışlarını (en sık) listeler.
+- **Veritabanı (yalnız ekleme):** `kaizenler.lider_gorevi`, `kaizenler.uye_gorevleri`; görev listesi `config.gorev_tanimlari`.
+  Eski sürüm genişletilmiş veritabanında çalışmaya devam eder (denendi).
+- Kod: ortak saf liste yardımcıları `src/liste.js`; `servis/gorevTanimlari.js`; form alanı `partials/liste_secimi.ejs`
+  (bölüm ve görev için tek şablon). e2e testi: **203/203** (22 yeni kontrol).
+
 ## 16 Kasım 2026 — Ortak bölüm listesi
 
 - **Yönetim › 🏭 Bölümler** (yetki: Bölüm listesi & denetim planı): öneri/kaizen formları ile 5S'in **tek** bölüm listesi.

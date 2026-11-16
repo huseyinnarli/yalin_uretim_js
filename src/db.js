@@ -233,6 +233,9 @@ const EK_KOLONLAR = [
   // Kasım 2026: ortak bölüm listesi — bölüm 5S'e dahil mi (eski bölümler dahil kalır); öneride bölüm (açılır liste)
   ["bolumler", "bes_dahil", "TINYINT(1) NOT NULL DEFAULT 1"],
   ["oneriler", "bolum", "TEXT"],
+  // Kaizen ekibinin görevleri (görev tanımları listesinden): lider + üyeler (uyeler ile aynı sırada JSON dizi)
+  ["kaizenler", "lider_gorevi", "TEXT"],
+  ["kaizenler", "uye_gorevleri", "TEXT"],
 ];
 
 // Şemanın tek tek CREATE TABLE IF NOT EXISTS komutları
@@ -272,8 +275,8 @@ function oneriRow(r) {
 }
 function kaizenRow(r) {
   if (!r) return null;
-  return { ...r, tip: "kaizen", uyeler: j(r.uyeler, []), kazanclar: j(r.kazanclar, []),
-    puanlama: j(r.puanlama, null) };
+  return { ...r, tip: "kaizen", uyeler: j(r.uyeler, []), uye_gorevleri: j(r.uye_gorevleri, []),
+    kazanclar: j(r.kazanclar, []), puanlama: j(r.puanlama, null) };
 }
 function bolumRow(r) {
   if (!r) return null;

@@ -66,8 +66,9 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | 0 | `servis/yardimci.js` | `uid`, `nextNumber` (atomik sayaç), `safeName`, `allowedFile`, `guvenliYol` (dosya), `trdate`, `ayEtiketi`, `puanfmt`, `gorselKaydet` (imza + sharp), `logoBul` (5 dk önbellek) |
 | 0 | `servis/gunluk.js` | `gunlukEkle`, `loadGunluk`, `gunlukTemizle` |
 | 0 | `servis/ayarlar.js` | `puanKurallari`, `odulAyarlari`, `guncelKural`, `kuralCozucu`, `puanKuralKaydet`, `puanKuralSil`, `odulAyarKaydet` |
+| 0 | `servis/gorevTanimlari.js` | **Görev tanımları** (öneri "Görevi" + kaizen ekip görevleri; `config.gorev_tanimlari`): `gorevTanimlari`, `gorevEkle`, `gorevleriGuncelle`, `gorevSil`, `gorevSecimi` (saf), `gorevOzeti` (kullanım + kayıtlarda geçip listede olmayanlar) |
 | 1 | `servis/kayitlar.js` | `getRecord`, `updateRecord`, `combinedRecords`, `filtrele`, `sayfala`, `mevcutAylar`, `kayitDuzenleyebilir`, `kaizeneDonusturebilir`, `kaizenKaydetGorsel` |
-| 1 | `servis/bolumler.js` | **Ortak bölüm listesi** (öneri/kaizen açılır listesi + 5S): `loadBolumler`, `bolumById`, `bolumMap`, `besBolumleri` (yalnız 5S'e dahil), `bolumAdlari`, `bolumSecimi` (form doğrulama, saf), `bolumEkle` (toplu, mükerrer atlar), `bolumleriGuncelle` (ad + 5S'e dahil, çakışmada hiçbirini kaydetmez), `bolumKullanim`, `bolumAnahtar` |
+| 1 | `servis/bolumler.js` | **Ortak bölüm listesi** (öneri/kaizen açılır listesi + 5S): `loadBolumler`, `bolumById`, `bolumMap`, `besBolumleri` (yalnız 5S'e dahil), `bolumAdlari`, `bolumSecimi` (form doğrulama, saf), `bolumEkle` (toplu, mükerrer atlar), `bolumleriGuncelle` (ad + 5S'e dahil, çakışmada hiçbirini kaydetmez), `bolumKullanim`, `bolumAnahtar`, `bolumKisiEkle` (toplu "Ad Soyad", başka bölümde olanı bildirir), `bolumKisiSil`, `bolumLiderKaydet` |
 | 2 | `servis/bes.js` | denetim/aksiyon okuma, `besSTur*`, `besSIsle`, `besSPlanSatirlari`, `besSTrendTablo` (5S dışı bölüm yalnız geçmişi varsa), `turIslendi`, `denetimKriterPuanlari`, `saveDenetimFotolar`, `bolumSil` (denetimler + fotoğraflar dahil) |
 | 2 | `servis/hesaplar.js` | denetmen/misafir/yönetici okuma, `denetmenBySifre`, `yoneticiBySifre`, `aktifDenetmen`, `oturumYetkileri`, `sifreCakismasi`, `bolumLiderleri`, `denetmenAdaylari` |
 | 2 | `servis/kontrolFormu.js` | `kontrolDoldurabilir`, `kontrolImzalayabilir`, `kontrolAy`, `kontrolAylari`, `kontrolKaydet`, `kontrolImzala`, `kontrolOzet`, `bugunkuKontroller` |
@@ -85,6 +86,7 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | `src/sabitler.js` | `DATA_DIR` (env ile taşınabilir), tüm klasör yolları, `ODUL_ESIK=300`, `ODUL_MAP={100,75,50}`, `DURUMLAR`, `KAZANC_BASLIKLARI`, `TR_AYLAR`, `ALAN_MAX=5000`, `nowTr()/bugunIso()/zamanTr()` (Europe/Istanbul) |
 | `src/isim.js` | `adDuzelt` (Türkçe baş harf büyük), `adSoyad`, `adBol` (düzenleme formu için), `isimAnahtar` (büyük/küçük harf, boşluk, noktalama, Türkçe karakter farkını yok sayan karşılaştırma anahtarı), `isimIcerir` ("Ali / Veli" listesinde arama), `uzaklik` (Damerau-Levenshtein — yazım hatası önerileri) |
 | `src/yetkiler.js` | `YETKI_GRUPLARI` (10 ayrıntılı alan, 4 grup), `ESKI_YETKILER` (eski `degerlendirme`/`bes_s`/`tam` → yeni alanlar), `yetkiGenislet(liste)` → `{yetkiler}`, `yetkiFormdan(v)` |
+| `src/liste.js` | Yönetilen açılır listeler için saf yardımcılar: `adTemizle`, `anahtar` (büyük/küçük harf + boşluk farksız), `secimDogrula` (liste boşsa serbest; mevcut eski değer korunur), `yeniAdlar` (toplu eklemede tekrar/mevcut ayıklama) |
 | `src/puanKurallari.js` | Puan kuralları (saf): varsayılanlar, doğrulama (`kuralDogrula`, `odulDogrula`), sürüm seçimi (`kuralTarihi`, `kuralSec`, `yeniSurumler`), kazanç hesabı (`oneriKazanci`, `kaizenKazanci`, `puanAldi`), `kuralMetni` |
 | `src/kontrol.js` | `KONTROL_FORMU` (10 G + 3 H + 2 A madde, form notu; form kodu gösterilmez), `ayGunSayisi`, `haftaNo`/`haftalar` (Pazartesi başlangıçlı ay haftaları), `ayKaydir`, `ayCoz` |
 | `src/puanlama.js` | `PUAN_TEMEL/ETKI/MALIYET/YAYGIN/EFOR` rubrik tanımları, `PUAN_MAX`, `BESS` (şirket 5S formu: 5 bölüm / 23 soru, soru başına maksimum + kesme kuralı), `BESS_KRITER_MAX`, `bessKriterPuanla(k, bulgu)` (kuraldan puan), `bessKuralMetni(kr)`, `bessBulguTahmin` (eski kayıtta puandan bulgu), `bessBolumToplamlari` (S1–S5 toplamları), `hesaplaPuanlama(form)`, `puanlamaOzet(p)` |
@@ -97,7 +99,7 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | `src/rotalar/kaizen.js` | Kaizen yeni / **öneriden dönüştür** / düzenle / Excel / görsel servisi (girişli) |
 | `src/rotalar/bes_s.js` | 5S: bölümler (liste + trend), plan, denetim (yap/göster/**revize**/sil/Excel/ZIP), aksiyonlar, ödül işleme, geçmiş, görsel servisleri |
 | `src/rotalar/ayarlar.js` | **Puan ve Ödül Ayarları** (yalnız ana yönetici): görüntüle, önizle (`islem=onizle`), kaydet, kural sürümü kaldır |
-| `src/rotalar/bolumler.js` | **Yönetim › Bölümler** (`/yonetici/bolumler`, yetki `bes_plan`): toplu ekleme (her satıra bir ad), tek "Kaydet" ile ad + 5S'e dahil, silme (geçmişli bölümde denetim sayısı uyarısı) |
+| `src/rotalar/bolumler.js` | **Yönetim › Bölümler ve Görevler** (`/yonetici/bolumler`, yetki `bes_plan`): bölüm toplu ekleme, tek "Kaydet" ile ad + 5S'e dahil, silme (geçmişli bölümde denetim sayısı uyarısı); bölüm sayfası `/yonetici/bolumler/:bid` (ekip lideri, personel toplu ekleme/çıkarma); görev tanımları `/yonetici/gorevler/ekle\|kaydet\|sil` |
 | `src/rotalar/kontrol.js` | **Periyodik kontrol formu**: görüntüle (`?tarih=`), doldur, haftalık/aylık imza, Excel (`?ay=` — o aya kadar) |
 | `src/rotalar/admin.js` | Giriş/çıkış, **Yönetim** sayfası, ek yönetici (yalnız ana yönetici) ve denetmen/misafir yönetimi, şifre, durum değişikliği (onay / gerekçeli red / düzeltme ataması), **görev ataması**, puanlama, kayıt silme, trend Excel |
 | `scripts/import-json.js` | Eski JSON tabanlı sürümden veri + görsel aktarımı (kaynağa salt-okunur, tek transaction, hata durumunda tam geri alma) |
@@ -137,9 +139,9 @@ JSON** olarak saklanır; okurken `db.js`'teki satır dönüştürücüler nesney
 
 | Tablo | Anahtar | Önemli kolonlar |
 |---|---|---|
-| `config` | `anahtar` | `admin_password` (hash), `secret_key` (oturum imzası), `puan_kurallari` (öneri/kaizen kural sürümleri, JSON), `odul_ayarlari` (eşik + 5S tur ödülleri, JSON) |
+| `config` | `anahtar` | `admin_password` (hash), `secret_key` (oturum imzası), `puan_kurallari` (öneri/kaizen kural sürümleri, JSON), `odul_ayarlari` (eşik + 5S tur ödülleri, JSON), `gorev_tanimlari` (görev listesi, JSON) |
 | `oneriler` | `no` (ÖNFR…) | tarih, sahibi, görev, `bolum` (ortak listeden, AD olarak), konu, detay, çözüm, 4 katkı alanı, durum, `onay_zamani` (ilk onay — puan kuralı seçimi), `form_no` (eski, gösterilmez), `puan`, `puanlama` (JSON kırılım), degerlendirme_notu, `red_nedeni`, `revize_*` (düzeltme: not, atanan denetmen id/ad, isteyen, zaman, tamamlandı), `gorev_*` (görev: atanan id/ad, termin, not, atayan, zaman), `kaizen_no` (dönüştürülen kaizen) |
-| `kaizenler` | `no` (ÖSKFR…) | başlangıç/bitiş, konu, bölüm, lider, `uyeler` (JSON), sorumlular, `kazanclar` (JSON), önceki/sonraki + görsel adları, durum, `onay_zamani` (ilk onay — puan kuralı seçimi), `form_no` (eski, gösterilmez), puan, puanlama, `red_nedeni`, `revize_*`, `kaynak_oneri_no` |
+| `kaizenler` | `no` (ÖSKFR…) | başlangıç/bitiş, konu, bölüm, lider, `lider_gorevi`, `uyeler` (JSON), `uye_gorevleri` (JSON, `uyeler` ile aynı sırada), sorumlular, `kazanclar` (JSON), önceki/sonraki + görsel adları, durum, `onay_zamani` (ilk onay — puan kuralı seçimi), `form_no` (eski, gösterilmez), puan, puanlama, `red_nedeni`, `revize_*`, `kaynak_oneri_no` |
 | `bolumler` | `id` (hex8) | ad, `sorumlu` ("Ali / Veli" — çoklu lider), `kisiler` (JSON), `bes_dahil` (1 = 5S planı/kontrol formu/5S listelerinde; 0 = yalnız öneri/kaizen formunda seçilir) |
 | `denetimler` | `id` (hex8) | `revize_eden`, `revize_zamani` (denetim revizesi), bolum_id, `tarih` (**tur kimliği**), tur_adi, baslangic/bitis, plan_gun/saat, planlanan/misafir/gerçek denetmen, `puan` (NULL=bekliyor), `puanlar` (JSON kriter→hesaplanan puan), `bulgular` (JSON kriter→bulgu sayısı), `notu`, `aciklamalar` (JSON), `fotolar` (JSON kriter→[dosya]), denetim_tarihi |
 | `aksiyonlar` | `id` (hex8) | denetim_id, tur/bölüm bilgisi, kriter_k/m, aksiyon, sorumlu, atanan_lider, termin, durum (acik/kapali), `kapatma` (JSON: açıklama+kapatan+fotolar+zaman) |
@@ -253,7 +255,7 @@ Form `5s_denetim.ejs`'in revize modudur: kayıtlı bulgular (eski kayıtta `bess
 ile seçilen fotoğraflar (yalnız bu denetime aitse) silinir; puan yeniden hesaplanır; denetmen ve tarih değişmez;
 `revize_eden/revize_zamani` yazılır; yeni aksiyonlar `syncDenetimAksiyonlari` kuralıyla eklenir.
 
-### Ortak bölüm listesi (Kasım 2026)
+### Ortak bölüm listesi, personel ve görev tanımları (Kasım 2026)
 
 Tek tablo (`bolumler`) hem 5S'in bölümleri hem öneri/kaizen formlarındaki açılır listedir; yönetimi
 **Yönetim › 🏭 Bölümler** (`rotalar/bolumler.js`, yetki `bes_plan`). Kurallar `servis/bolumler.js`'te:
@@ -266,9 +268,17 @@ Tek tablo (`bolumler`) hem 5S'in bölümleri hem öneri/kaizen formlarındaki a�
   değişince eski kayıtlar değişmez; kullanım sayıları adla eşleşir (`bolumKullanim`).
 - **Doğrulama (`bolumSecimi`, saf):** liste boşsa serbest metin; değilse seçim zorunlu ve listedeki yazılışa
   çevrilir (büyük/küçük harf + boşluk farkı yok sayılır). Düzenlemede kaydın mevcut değeri listede olmasa da korunur
-  (formda "(eski kayıt — listede yok)" seçeneği, `partials/bolum_secimi.ejs`).
+  (formda "(eski kayıt — listede yok)" seçeneği, `partials/liste_secimi.ejs`).
 - **Ad tekliği:** `bolumEkle` mükerrerleri atlar; `bolumleriGuncelle` iki bölüm aynı ada düşerse hiçbirini kaydetmez.
   Eski sürüm aynı adı engellemiyordu — Bölümler sayfası ve `gecis-kontrol` bunu raporlar.
+- **Personel:** `bolumler.kisiler` (5S ödül dağıtımı + isim birleştirme). Bölüm sayfasında toplu ekleme: her satır
+  "Ad Soyad" (son kelime soyad, `isim.adBol`/`adSoyad` ile düzeltilir); tek kelime hatalı, bu bölümde olan atlanır,
+  başka bölümde de olan eklenir ama bildirilir.
+- **Görev tanımları:** tek ortak liste, `config.gorev_tanimlari` (alfabetik JSON). Öneri `gorevi` ve kaizen
+  `lider_gorevi` + `uye_gorevleri` (üyelerle aynı sırada) bu listeden seçilir (`gorevSecimi`); lider görevi zorunlu,
+  üye görevi üye yazıldıysa zorunlu. Liste boşken öneride serbest metin, kaizende görev alanı yok (düzenlemede kayıttaki
+  görevler korunur). Sayfa, kayıtlarda geçip listede olmayan görevleri (en sıktan) işaretlenip eklenmek üzere önerir.
+  Form alanı ortak `partials/liste_secimi.ejs` (bölüm ve görev).
 - **Silme (`bolumSil`):** eski davranış korunur — bölümün denetimleri ve fotoğrafları da silinir; sayfa geçmişli
   bölümde denetim sayısını onay penceresinde gösterir ve 5S'ten çıkarmak için silmek yerine kutunun kaldırılmasını önerir.
 
@@ -400,5 +410,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 181 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 203 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

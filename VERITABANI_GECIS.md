@@ -7,7 +7,7 @@ var. Yeni sürümü bu veritabanını bozmadan nasıl devreye alırım?
 > **[GUNCELLEME_REHBERI.md](GUNCELLEME_REHBERI.md)**. Bu belge veritabanı tarafının ayrıntısıdır.
 
 **Kısa cevap:** Mevcut veritabanı **olduğu gibi** kullanılır. Dışa aktarma, dönüştürme veya elle SQL gerekmez.
-Yeni sürüm ilk açılışta yalnızca **3 boş tablo ve 28 boş kolon ekler**; var olan hiçbir satır, kolon ya da isim
+Yeni sürüm ilk açılışta yalnızca **3 boş tablo ve 30 boş kolon ekler**; var olan hiçbir satır, kolon ya da isim
 değişmez, silinmez, yeniden adlandırılmaz. İsimler veritabanında yine tek alanda durur; ad/soyad ayrımı yalnız
 formdadır. Geri dönmek gerekirse eski kodu çalıştırmak yeterlidir. Bunların hepsi, eski sürümle üretilmiş bir
 veritabanı üzerinde denendi (§6).
@@ -25,7 +25,7 @@ Sunucu her açılışta `src/db.js:init()` çalıştırır. Bu fonksiyon iki şe
 |---|---|---|
 | `oneriler` | `red_nedeni`, `revize_notu`, `revize_atanan_id`, `revize_atanan_ad`, `revize_isteyen`, `revize_zamani`, `revize_tamamlandi`, `gorev_atanan_id`, `gorev_atanan_ad`, `gorev_termin`, `gorev_notu`, `gorev_atayan`, `gorev_zamani`, `kaizen_no`, `onay_zamani`, `bolum` | boş (NULL) |
 | `bolumler` | `bes_dahil` (bölüm 5S'e dahil mi) | **1** — bütün eski bölümler 5S'e dahil kalır |
-| `kaizenler` | `red_nedeni`, 6 adet `revize_*` kolonu, `kaynak_oneri_no`, `onay_zamani` | boş (NULL) |
+| `kaizenler` | `red_nedeni`, 6 adet `revize_*` kolonu, `kaynak_oneri_no`, `onay_zamani`, `lider_gorevi`, `uye_gorevleri` | boş (NULL) |
 | `denetimler` | `revize_eden`, `revize_zamani` | boş (NULL) |
 | yeni tablo | `isim_eslestirme` — elle isim birleştirmeleri | boş |
 | yeni tablo | `kontrol_kayitlari`, `kontrol_onaylari` — periyodik kontrol formu | boş |
@@ -97,6 +97,8 @@ puanları bölünüyordu. Yeni sürüm karşılaştırmayı bir **anahtar** üze
 | **Görseller** (`data/kaizen_gorseller`, 5S fotoğrafları) | Aynı klasör, aynı adlar. |
 | **Puan kuralları ve ödül eşiği** | Ayar hiç kaydedilmemişse varsayılanlar (öneri %10, kaizen %50/%25, 5S 100/75/50, eşik 300) geçerlidir — puanlar güncellemeden önceki gibi hesaplanır. Ana yönetici sonra 🏆 Puan ve Ödül Ayarları'ndan değiştirebilir. Eski onaylı kayıtların onay tarihi yoktur; kural seçiminde kayıt tarihi kullanılır. |
 | **5S bölümleri** | Öneri/kaizen formlarındaki **açılır bölüm listesi** olur (Yönetim › 🏭 Bölümler) ve hepsi 5S'e dahil kalır; ofis birimleri gibi 5S dışı bölümler sonradan eklenir. Eski sürüm aynı adı iki kez kaydetmeye izin veriyordu: büyük/küçük harf farkıyla aynı adlı bölümler varsa ön kontrol uyarır; Bölümler sayfası biri düzeltilene kadar kaydetmez. |
+| **Görevler** | Önerilerdeki serbest yazılmış görevler aynen kalır. Görev tanımları listesi **boş başlar**; o zamana kadar öneri formunda görev serbest yazılır, kaizende görev sorulmaz. Liste, Bölümler ve Görevler sayfasında kayıtlarda geçen yazılışlardan işaretlenerek kurulabilir. Liste tanımlanınca öneride ve kaizen ekibinin her kişisinde görev listeden seçilir. |
+| **Bölüm personeli** | Aynı (`bolumler.kisiler`). Bölümler ve Görevler › 👥 ile toplu eklenebilir (her satıra Ad Soyad). |
 | **Bölümsüz eski öneriler / serbest yazılmış kaizen bölümleri** | Kayıtlar değişmez (öneride bölüm boş, kaizende yazıldığı gibi). Düzenlenirken listede olmayan eski ad korunur; istenirse listeden seçilir. Yeni kayıtlarda bölüm listeden seçilmek zorundadır. |
 | **İşlem günlüğü** | Eski satırlar aynı, yeni işlemler eklenir. |
 | **Oturumlar** | Aynı imza anahtarı; açık oturumlar geçerli kalır. |
@@ -174,8 +176,9 @@ nssm start YalinUretim
    dolunca. Eski anahtarlar okunurken zaten çevrilir; kaydedilen yeni anahtarları eski sürüm tanımaz (§5).
 3. Yönetim › Denetmenler: görev/düzeltme atanacak kişilere ve hesabı olmayan bölüm liderlerine **denetmen hesabı** açın.
 4. 🔗 İsim Birleştirme: önerilen benzer yazılışları inceleyin; aynı kişiyse birleştirin.
-4b. 🏭 Bölümler: listeyi gözden geçirin — aynı adlı bölümleri düzeltin, öneri/kaizen formunda seçilecek 5S dışı birimleri
-   (ör. İdari İşler, Satın Alma) "5S'e dahil" işaretsiz ekleyin.
+4b. 🏭 Bölümler ve Görevler: aynı adlı bölümleri düzeltin, öneri/kaizen formunda seçilecek 5S dışı birimleri
+   (ör. İdari İşler, Satın Alma) "5S'e dahil" işaretsiz ekleyin; görev tanımları listesini kurun (kayıtlarda geçen
+   görevler işaretlenerek eklenebilir); gerekiyorsa bölüm personelini 👥 ile toplu ekleyin.
 5. Puan Durumu: birleşen isimler nedeniyle ödül eşiğini yeni geçen kişileri kontrol edin (§2.3).
 6. Kullanıcılara duyurun: öneri/kaizen **listesi artık giriş istiyor** (formlar herkese açık); Excel'de **Form No**
    sütunu yok — Excel'i şablona yapıştıran varsa sütun kayması olur.
@@ -224,7 +227,7 @@ nssm start YalinUretim
 Ön kontrolün deneme veritabanındaki çıktısından bir bölüm:
 ```
 Oluşturulacak yeni tablo: 3 (kontrol_kayitlari, kontrol_onaylari, isim_eslestirme)
-Eklenecek yeni kolon: 26 · Otomatik eklenemeyecek eksik kolon: 0   (Kasım 2026 bölüm listesiyle 28)
+Eklenecek yeni kolon: 26 · Otomatik eklenemeyecek eksik kolon: 0   (Kasım 2026 bölüm listesi ve görevlerle 30)
 Otomatik birleşecekler:
 - "Ayşe Çelik" · "ayse celik" · "AYŞE ÇELİK" · "ayşe çelik" — Öneri, Kaizen, 5S ödülü, Bölüm lideri, Denetmen
 - "ŞÜKRÜ ÖZTÜRK" · "Sukru Ozturk" — Öneri
@@ -243,6 +246,8 @@ Ek yönetici: Kalite Müdürü — kayıtlı: degerlendirme, odul → Değerlend
 | Yeni sürüm: eski bölümler açılır listede ve 5S'te (hepsi `bes_dahil = 1`); Bölümler sayfası aynı adları uyarıyor | ✔ |
 | Yeni sürüm: eski kaizenin serbest metin bölümü düzenlemede "(eski kayıt — listede yok)" olarak seçili kalıyor | ✔ |
 | **Geri dönüş:** eski sürüm 5S sayfası, öneri gönderme (bölüm boş kalır), bölüm ekleme (`bes_dahil` varsayılan 1), liste, detay | ✔ |
+| Görev tanımları ve personel (aynı gün): ön kontrol 3 tablo + **30 kolon**, önerilerdeki görev yazılışlarını listeliyor; yeni sürümde kayıt görevleri listeye öneri olarak çıkıyor, eski önerinin görevi ("operatör") düzenlemede listedeki "Operatör" ile seçili; görevli kaizen kaydı | ✔ |
+| Geri dönüş: eski sürümde görevli kaizenin detayı ve toplu eklenen personelli bölüm sayfası | ✔ |
 
 ---
 

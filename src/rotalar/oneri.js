@@ -21,11 +21,21 @@ function formToDict(req) {
   };
 }
 
-// bolumMevcut: düzenlemede kaydın veritabanındaki bölümü (listeden kalkmış olsa da seçenek olarak kalır)
-async function formRender(res, kayit, duzenle, geri = "", bolumMevcut = "") {
+// Bölüm ve görev seçimini ortak listelere göre doğrular; değerleri listedeki yazılışa çevirir.
+// mevcut: düzenlemede kaydın veritabanındaki hâli (listeden kalkmış eski değer korunabilir). Döner: hata | null
+async function secimleriDogrula(k, mevcut = {}) {
+  const g = C.gorevSecimi(k.gorevi, await C.gorevTanimlari(), mevcut.gorevi);
+  const b = C.bolumSecimi(k.bolum, await C.bolumAdlari(), mevcut.bolum);
+  k.gorevi = g.gorev;
+  k.bolum = b.bolum;
+  return g.hata || b.hata;
+}
+
+// mevcut: düzenlemede kaydın veritabanındaki hâli (listeden kalkmış eski bölüm/görev seçenek olarak kalır)
+async function formRender(res, kayit, duzenle, geri = "", mevcut = {}) {
   res.render("oneri_form", {
     title: duzenle ? "Öneri Düzenle" : "Yeni Öneri", bugun: duzenle ? "" : S.bugunIso(), kayit,
-    bolum_secenekleri: await C.bolumAdlari(), bolum_mevcut: bolumMevcut,
+    bolum_secenekleri: await C.bolumAdlari(), gorev_secenekleri: await C.gorevTanimlari(), mevcut,
     action_url: duzenle
       ? "/oneri/duzenle?no=" + encodeURIComponent(kayit.no) + (geri ? "&geri=" + encodeURIComponent(geri) : "")
       : "/oneri/yeni",
@@ -42,13 +52,12 @@ module.exports = function register(app) {
       return res.redirect("/oneri/yeni");
     }
     const { k, sahibiEksik } = formToDict(req);
-    const secim = C.bolumSecimi(k.bolum, await C.bolumAdlari());
-    k.bolum = secim.bolum;
-    if (sahibiEksik || !(k.konu && k.detay) || secim.hata) {
+    const secimHata = await secimleriDogrula(k);
+    if (sahibiEksik || !(k.konu && k.detay) || secimHata) {
       // Form, girilen bilgiler kaybolmadan hata mesajıyla yeniden gösterilir
       res.locals.mesajlar.push(["error", sahibiEksik
         ? "Öneri sahibinin adını ve soyadını ayrı kutulara yazın."
-        : (secim.hata || "Konu ve detay açıklama zorunludur.")]);
+        : (secimHata || "Konu ve detay açıklama zorunludur.")]);
       return formRender(res, k, false);
     }
     // Numara atomik sayaçtan gelir — eşzamanlı gönderimde mükerrer numara oluşmaz
@@ -71,7 +80,7 @@ module.exports = function register(app) {
       flash(req, "error", "Bu kaydı düzenleme yetkiniz yok.");
       return res.redirect("/detay?tip=oneri&no=" + encodeURIComponent(rec.no));
     }
-    await formRender(res, rec, true, guvenliYol(req.query.geri, ""), rec.bolum);
+    await formRender(res, rec, true, guvenliYol(req.query.geri, ""), rec);
   }));
 
   app.post("/oneri/duzenle", girisRequired, sar(async (req, res) => {
@@ -83,12 +92,11 @@ module.exports = function register(app) {
       return res.redirect("/detay?tip=oneri&no=" + encodeURIComponent(no));
     }
     const { k, sahibiEksik } = formToDict(req);
-    const secim = C.bolumSecimi(k.bolum, await C.bolumAdlari(), rec.bolum);
-    k.bolum = secim.bolum;
-    if (sahibiEksik || !(k.konu && k.detay) || secim.hata) {
-      res.locals.mesajlar.push(["error", secim.hata && !sahibiEksik && k.konu && k.detay
-        ? secim.hata : "Öneri sahibinin adı-soyadı, bölüm, konu ve detay açıklama zorunludur."]);
-      return formRender(res, { ...rec, ...k }, true, guvenliYol(req.query.geri, ""), rec.bolum);
+    const secimHata = await secimleriDogrula(k, rec);
+    if (sahibiEksik || !(k.konu && k.detay) || secimHata) {
+      res.locals.mesajlar.push(["error", sahibiEksik || !(k.konu && k.detay)
+        ? "Öneri sahibinin adı-soyadı, konu ve detay açıklama zorunludur." : secimHata]);
+      return formRender(res, { ...rec, ...k }, true, guvenliYol(req.query.geri, ""), rec);
     }
     // Düzeltmesi atanan denetmen kaydedince kayıt yeniden değerlendirmeye döner
     const revizeTamam = rec.durum === "Düzeltme İsteniyor" && req.denetmen

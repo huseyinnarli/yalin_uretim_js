@@ -26,6 +26,9 @@ const BOLUMLER = [
   ["Köpük Enjeksiyon", "Emre Arslan", ["Barış Güneş", "Tuncay Er"]],
   ["Kapı Üretim", "Fatma Öztürk", ["Esra Doğan", "Hakan Yurt", "Kaan Uysal"]],
 ];
+// Görev tanımları (öneri ve kaizen formlarındaki açılır liste)
+const GOREVLER = ["Üretim Operatörü", "Ekip Lideri", "Usta", "Kalite Kontrol Uzmanı", "Bakım Teknisyeni",
+  "Forklift Operatörü", "Depo Sorumlusu", "Mühendis"];
 const DENETMENLER = [["Ali Yılmaz", "ali1234"], ["Mehmet Kaya", "mehmet1234"], ["Ayşe Çelik", "ayse1234"], ["Murat Şahin", "murat1234"]];
 
 const ONERILER = [
@@ -81,6 +84,7 @@ async function main() {
     await calistir("INSERT INTO bolumler(id, ad, sorumlu, kisiler) VALUES(?,?,?,?)", [id, ad, sorumlu, js(kisiler)]);
     bolumler.push({ id, ad, sorumlu, kisiler });
   }
+  await calistir("INSERT INTO config(anahtar, deger) VALUES('gorev_tanimlari', ?)", [js(GOREVLER)]);
   // 5S'e dahil olmayan (yalnız öneri/kaizen formunda seçilen) bölümler
   for (const ad of ["İdari İşler", "Satın Alma"]) {
     await calistir("INSERT INTO bolumler(id, ad, sorumlu, kisiler, bes_dahil) VALUES(?,?,'','[]',0)", [C.uid(), ad]);
@@ -209,7 +213,7 @@ async function main() {
          revize_atanan_ad, revize_isteyen, revize_zamani, gorev_atanan_id, gorev_atanan_ad, gorev_termin, gorev_notu,
          gorev_atayan, gorev_zamani)
        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [no, iso(d), sahibi, "Operatör", bolumAd, konu, detay, cozum, "Hata azalır", "Süre kısalır", "", "", "",
+      [no, iso(d), sahibi, GOREVLER[[0, 0, 2, 0, 3, 4][i % 6]], bolumAd, konu, detay, cozum, "Hata azalır", "Süre kısalır", "", "", "",
         durum, alan.puan, alan.puanlama, alan.puan ? "Komite değerlendirmesi" : "", zaman(d), alan.red_nedeni,
         alan.revize_notu, alan.revize_atanan_id, alan.revize_atanan_ad, alan.revize_isteyen, alan.revize_zamani,
         alan.gorev_atanan_id, alan.gorev_atanan_ad, alan.gorev_termin, alan.gorev_notu, alan.gorev_atayan, alan.gorev_zamani]);
@@ -229,11 +233,12 @@ async function main() {
     const puanli = i < 4;
     const { puanlama, toplam } = puanFormu();
     await calistir(
-      `INSERT INTO kaizenler(\`no\`, baslangic, bitis, konu, bolum, lider, uyeler, sorumlular, kazanclar,
-         onceki, sonraki, onceki_gorsel, sonraki_gorsel, durum, puan, puanlama, degerlendirme_notu, kayit_zamani, kaynak_oneri_no)
-       VALUES(?,?,?,?,?,?,?,?,?,?,?,'','',?,?,?,?,?,?)`,
-      [no, iso(d), iso(new Date(d.getTime() + 10 * 864e5)), konu, bolum, lider,
-        js(uyeler), [lider, ...uyeler].join(", "), js(["Setup", "Kalite", "5S"].slice(0, 1 + (i % 3))), onceki, sonraki,
+      `INSERT INTO kaizenler(\`no\`, baslangic, bitis, konu, bolum, lider, lider_gorevi, uyeler, uye_gorevleri,
+         sorumlular, kazanclar, onceki, sonraki, onceki_gorsel, sonraki_gorsel, durum, puan, puanlama, degerlendirme_notu,
+         kayit_zamani, kaynak_oneri_no)
+       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'','',?,?,?,?,?,?)`,
+      [no, iso(d), iso(new Date(d.getTime() + 10 * 864e5)), konu, bolum, lider, "Ekip Lideri",
+        js(uyeler), js(uyeler.map((_, k) => (k ? "Usta" : "Üretim Operatörü"))), [lider, ...uyeler].join(", "), js(["Setup", "Kalite", "5S"].slice(0, 1 + (i % 3))), onceki, sonraki,
         puanli ? "Onaylandı" : "Değerlendiriliyor", puanli ? toplam : null, puanli ? js(puanlama) : null,
         puanli ? "Komite değerlendirmesi" : "", zaman(d), i === 0 ? kaynak.no : null]);
     if (i === 0) await calistir("UPDATE oneriler SET kaizen_no = ? WHERE `no` = ?", [no, kaynak.no]);
