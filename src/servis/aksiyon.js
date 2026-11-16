@@ -7,7 +7,8 @@ const P = require("../puanlama");
 const I = require("../isim");
 const { sorgu, calistir, aksiyonRow } = require("../db");
 const { uid, allowedFile, gorselKaydet } = require("./yardimci");
-const { bolumById, bolumMap, loadAksiyonlar, turAdiUret } = require("./bes");
+const { bolumById, bolumMap } = require("./bolumler");
+const { loadAksiyonlar, turAdiUret } = require("./bes");
 const { aktifDenetmen, oturumYetkileri } = require("./hesaplar");
 
 // Aksiyonu kapatabilecek kişi = açıldığı bölümün GÜNCEL ekip lideri

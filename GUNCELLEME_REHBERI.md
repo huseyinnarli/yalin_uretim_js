@@ -17,7 +17,7 @@ fotoğraflar korunur, kullanıcıların oturumu düşmez, sorun çıkarsa dakika
 
 **Ne değişiyor?**
 - **Kod:** yaklaşık 80 dosya değişti. Uygulama aynı: Node.js + Express + MySQL. Başlatma komutu (`node server.js`) ve port düzeni aynı.
-- **Veritabanı:** aynı veritabanı kullanılır. Yeni sürüm ilk açılışta **3 boş tablo ve 26 boş kolon ekler**. Var olan
+- **Veritabanı:** aynı veritabanı kullanılır. Yeni sürüm ilk açılışta **3 boş tablo ve 28 boş kolon ekler**. Var olan
   hiçbir satır, kolon veya isim değişmez ya da silinmez.
 - **Bağımlılıklar:** `multer` 1.4 → 2.4 (güvenlik güncellemesi). `sharp`, `mysql2` ve `express` küçük sürüm aldı. Bu
   yüzden `node_modules` **mutlaka yeniden kurulur**. Node.js **20.9 veya üstü** gerekir. Eski sürümdeki `sharp` 0.35
@@ -118,12 +118,14 @@ cmd /c "npm run -s gecis-kontrol > on_kontrol.md"
 | `1` | Bağlanılamadı ya da beklenmeyen bir hata oluştu. Ekrandaki mesajı okuyun; çoğunlukla bağlantı ayarıdır |
 
 Raporda bakılacaklar:
-- **Oluşturulacak tablo: 3**, **eklenecek kolon: 26**, **otomatik EKLENMEYECEK kolon: 0**. Sıfır değilse durun, geliştiriciye bildirin.
+- **Oluşturulacak tablo: 3**, **eklenecek kolon: 28**, **otomatik EKLENMEYECEK kolon: 0**. Sıfır değilse durun, geliştiriciye bildirin.
 - **Veritabanı kullanıcısının yetkileri → tamam.** "Eksik" yazıyorsa raporun önerdiği `GRANT` komutunu bir MySQL
   yöneticisine çalıştırtın (§4, T2).
 - **Varsayılan şifre uyarısı:** ana yönetici şifresini **eski sitede şimdi değiştirin** (Yönetici Paneli'ndeki şifre
   değiştirme bölümü) ve ön kontrolü tekrar çalıştırın.
 - Otomatik birleşecek isimler ve benzer yazılışlar bilgi amaçlıdır; güncellemeyi engellemez (§5).
+- **6. Bölüm listesi:** 5S bölümleri öneri/kaizen formlarının açılır listesi olur. "Aynı adlı bölümler" uyarısı varsa
+  güncellemeden sonra Yönetim › Bölümler'de birinin adı değiştirilmeli ya da biri silinmelidir (Adım 8).
 
 ### Adım 4 — Kopya veritabanında prova (önerilir)
 
@@ -214,6 +216,7 @@ Formlar ilk gerçek kayıtla takip edilir.
 | 6 | Excel: öneri, kaizen (görselli), puan listesi, kontrol formu | İner ve açılır |
 | 7 | Yönetim › 🏆 Puan ve Ödül Ayarları | Açılır, değerler varsayılan: öneri %10, kaizen %50/%25, eşik 300, 5S 100/75/50. **Kaydetmeyin** |
 | 8 | Yönetim › İşlem Günlüğü | Eski kayıtlar görünür |
+| 8b | Yönetim › 🏭 Bölümler; öneri formunu açın | Eski 5S bölümleri listede, hepsi "5S'e dahil" işaretli; öneri formunda bölüm açılır liste. **Kaydetmeyin** |
 | 9 | Ters vekil varsa: bir sonraki 5S denetiminde fotoğraflı gönderimi izleyin | "413" veya zaman aşımı olmamalı (§4, T4) |
 
 ### Adım 8 — Güncelleme sonrası yönetim işleri (ana yönetici)
@@ -227,9 +230,13 @@ Formlar ilk gerçek kayıtla takip edilir.
 3. Yönetim › Denetmenler: görev/düzeltme atanacak kişilere ve hesabı olmayan bölüm liderlerine hesap açın. Ön kontrol
    raporu bu bölüm liderlerinin listesini verir.
 4. 🔗 İsim Birleştirme: önerilen benzer yazılışları inceleyin (§5).
+4b. 🏭 Bölümler: aynı adlı bölümleri düzeltin; öneri/kaizen formunda seçilmesi gereken 5S dışı birimleri (ör. İdari İşler,
+   Satın Alma) "5S'e dahil" işaretini kaldırarak ekleyin. Bu sayfa güvenle hemen kullanılabilir: eski sürüme dönülürse
+   5S dışı bölümler eski sürümün 5S listesinde görünür, başka bir şey bozulmaz.
 5. Ödül dağıtmadan önce Puan Durumu'na bakın: isimler birleştiği için eşiği yeni geçen kişi olabilir.
 6. Kullanıcılara duyurun:
    - Öneri ve kaizen **formları herkese açık**, ama **liste ve detay artık giriş ister**.
+   - Formlarda **bölüm açılır listeden seçilir** ve zorunludur; listede olmayan bölüm yöneticiye bildirilir.
    - Excel'de **Form No sütunu kalktı.** Öneri Excel'inde 2. sütundu, sonraki sütunlar bir sola kaydı. Kaizen
      Excel'inde "Kayıt Zamanı"ndan sonraydı. Yeni sütunlar en sona eklendi. Excel'i sabit sütunlu bir şablona yapıştıran
      varsa şablonu güncellemelidir.
@@ -250,6 +257,7 @@ sürüme tekrar geçince yerindedir:
 - Red gerekçeleri, düzeltme ve görev atamaları, periyodik kontrol formu kayıtları.
 - İsim birleştirmeleri. Eski sürümde puan listesi yine yazılışlara göre bölünür.
 - Puan ve Ödül Ayarları'nda yapılan değişiklikler. Eski sürüm sabit kurallarla hesaplar (öneri %10, kaizen %50/%25, eşik 300).
+- Önerilerin bölümü (eski sürüm göstermez) ve bölümlerin "5S'e dahil" ayarı: eski sürüm bütün bölümleri 5S'te gösterir.
 - Yeni sürümde **kaydedilmiş** ek yönetici yetkileri. Eski sürüm yalnız `odul` ve `kayit` anahtarlarını tanır; o
   yöneticilere eski Yönetici Paneli'nden yetkilerini yeniden verin. Adım 8.2'yi bir hafta bekletmenin nedeni budur.
 
@@ -423,14 +431,15 @@ Formlar herkese açık olduğu için isimler serbest yazılır ve yazım farklar
 
 ## 7. Bu rehber nasıl doğrulandı (2 Kasım 2026)
 
-Güncel kod (bu belgeyle aynı commit), eski sürümün (`1d67cea`) ürettiği bir veritabanı üzerinde denendi. Bu veritabanında
+2 Kasım 2026'daki kod, eski sürümün (`1d67cea`) ürettiği bir veritabanı üzerinde denendi; 16 Kasım'daki ortak bölüm
+listesi eklemesi aynı yöntemle ayrıca denendi (son satırlar). Bu veritabanında
 29 öneri ve 6 kaizen vardı; isimler tek kutudan ve 14 farklı yazılışla girilmişti. Ayrıca eski yetki anahtarlı
 yöneticiler, denetmenler, ödül defteri ve form numaraları bulunuyordu.
 
 | Deneme | Sonuç |
 |---|---|
 | Ön kontrol (Adım 3): çalıştırmadan önce ve sonra bütün tabloların `CHECKSUM TABLE` değerleri | **Aynı**: araç hiçbir şey yazmıyor |
-| Ön kontrol raporu | 3 tablo, 26 kolon eklenecek, otomatik eklenemeyecek kolon 0 |
+| Ön kontrol raporu | 3 tablo, 26 kolon eklenecek (16 Kasım'dan itibaren 28), otomatik eklenemeyecek kolon 0 |
 | Yeni sürümün bu veritabanıyla açılması + 46 kontrollük geçiş doğrulaması (eski veri birebir, puan toplamları, eski şifrelerle giriş, bütün sayfalar, Excel'ler) | **46/46** |
 | Açılıştan sonra ön kontrol | Eklenecek tablo 0, kolon 0 |
 | Geri dönüş: eski sürüm (kendi `node_modules`'ıyla) genişletilmiş veritabanında | Giriş, öneri gönderme, listeler, puan, 5S, silinenler çalışıyor |
@@ -439,7 +448,10 @@ yöneticiler, denetmenler, ödül defteri ve form numaraları bulunuyordu.
 | Joker kalıplı yetki (`yalin\_yet%`.*) | Ön kontrol doğru çözüyor |
 | `https: true` iken `X-Forwarded-Proto` yok | Oturum çerezi yazılmıyor; giriş formu **400 "CSRF doğrulaması başarısız"** |
 | `https: true` + `proxy: true` + `X-Forwarded-Proto: https` | Çerez `Secure` ile yazılıyor, giriş çalışıyor |
-| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **159/159** |
+| **16 Kasım — bölüm listesi:** ön kontrol öncesi/sonrası `CHECKSUM TABLE` | Aynı; rapor 3 tablo + 28 kolon, aynı adlı bölüm uyarısı |
+| **16 Kasım — bölüm listesi:** yeni sürüm eski veritabanında | Eski bölümler açılır listede ve 5S'te; serbest metin kaizen bölümü düzenlemede korunuyor |
+| **16 Kasım — bölüm listesi:** geri dönüş (eski sürüm) | 5S, öneri gönderme, bölüm ekleme, liste, detay çalışıyor |
+| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **181/181** |
 
 ---
 

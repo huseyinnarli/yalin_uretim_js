@@ -52,7 +52,8 @@ module.exports = function register(app) {
     const kontrolAyi = S.bugunIso().slice(0, 7);
     const kontrol = await C.kontrolOzet(kontrolAyi);
     const bolumler = [];
-    for (const b of await C.loadBolumler()) {
+    const tumBolumler = await C.loadBolumler();
+    for (const b of tumBolumler.filter((x) => x.bes_dahil)) {
       bolumler.push({ ...b, _son: await C.sonDenetim(b.id), _personel: bolumPersonelSayisi(b),
         _acik_aksiyon: acikAks[b.id] || 0, _kontrol: kontrol.ozet[b.id] || null });
     }
@@ -83,7 +84,7 @@ module.exports = function register(app) {
         ? a.bolum_ad.localeCompare(b.bolum_ad, "tr") : (a.benim ? -1 : 1));
     }
     res.render("5s_liste", {
-      title: "5S", bolumler, bugun: S.bugunIso(), kontrol_gecen: kontrol.gecen, kontrol_ay: kontrolAyi,
+      title: "5S", bolumler, bes_disi_sayi: tumBolumler.length - bolumler.length, bugun: S.bugunIso(), kontrol_gecen: kontrol.gecen, kontrol_ay: kontrolAyi,
       sonuc_tur: sonucTur, sonuc_siralama: sonucSiralama,
       sonuc_tur_adi: sonucTur ? await C.besSTurAdi(sonucTur) : "",
       sonuc_islendi: islenen.includes(sonucTur),
@@ -110,30 +111,20 @@ module.exports = function register(app) {
     res.redirect("/5s");
   }));
 
+  // Eski adresler (5S › Bölümler sekmesi). Liste artık Yönetim › Bölümler'de yönetilir; bu uçlar aynı ortak
+  // listeye yazar (eklenen bölüm 5S'e dahildir).
   app.post("/5s/bolum/ekle", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const ad = alan(req, "ad");
     if (ad) {
-      await calistir("INSERT INTO bolumler(id, ad, sorumlu, kisiler) VALUES(?,?,?,'[]')",
-        [C.uid(), ad, kisiOku(req, "sorumlu").tam]);
-      flash(req, "success", `Bölüm eklendi: ${ad}`);
+      const { eklenen } = await C.bolumEkle([ad], { besDahil: true, sorumlu: kisiOku(req, "sorumlu").tam });
+      flash(req, eklenen.length ? "success" : "error",
+        eklenen.length ? `Bölüm eklendi: ${eklenen[0]}` : `“${ad}” adlı bir bölüm zaten var.`);
     }
     res.redirect("/5s#bolumler");
   }));
 
   app.post("/5s/bolum/sil", yetkiGerek("bes_plan"), sar(async (req, res) => {
-    const bid = req.body.id || "";
-    // Bölümün denetim fotoğraflarını diskten temizle
-    for (const d of await C.loadDenetimler()) {
-      if (d.bolum_id === bid) {
-        for (const fn of C.denetimFotolari(d)) {
-          try { fs.unlinkSync(path.join(S.BESS_FOTO_DIR, fn)); } catch {}
-        }
-      }
-    }
-    await transaction(async (conn) => {
-      await calistir("DELETE FROM bolumler WHERE id = ?", [bid], conn);
-      await calistir("DELETE FROM denetimler WHERE bolum_id = ?", [bid], conn);
-    });
+    await C.bolumSil(req.body.id || "");
     flash(req, "success", "Bölüm silindi.");
     res.redirect("/5s#bolumler");
   }));
@@ -146,9 +137,9 @@ module.exports = function register(app) {
       flash(req, "error", "Denetim başlangıç tarihi gerekli.");
       return res.redirect("/5s#plan");
     }
-    const bolumler = await C.loadBolumler();
+    const bolumler = await C.besBolumleri(); // yalnız 5S'e dahil bölümler denetlenir
     if (!bolumler.length) {
-      flash(req, "error", "Önce bölüm ekleyin.");
+      flash(req, "error", "5S'e dahil bölüm yok — Yönetim › Bölümler'den bölüm ekleyin ya da 5S'e dahil edin.");
       return res.redirect("/5s#plan");
     }
     // Aynı başlangıç tarihiyle ikinci tur açılamaz (turlar tarihle ayırt edilir)

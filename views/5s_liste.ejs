@@ -67,13 +67,11 @@
 <!-- ===== BÖLÜMLER (liste) ===== -->
 <div class="tab-panel" id="tab-bolumler" style="display:none">
     <% if (yetki('bes_plan')) { %>
-    <div class="yonetim-kutu">
-        <form method="post" action="/5s/bolum/ekle" class="satir-form"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-            <input type="text" name="ad" placeholder="Bölüm adı (örn. Montaj)" required>
-            <input type="text" name="sorumlu_ad" placeholder="Ekip lideri — Ad">
-            <input type="text" name="sorumlu_soyad" placeholder="Ekip lideri — Soyad">
-            <button type="submit" class="btn primary">+ Bölüm Ekle</button>
-        </form>
+    <div class="yonetim-kutu bolum-yonlendir">
+        <a class="btn primary" href="/yonetici/bolumler">🏭 Bölüm listesini düzenle</a>
+        <small>Bölüm ekleme, ad değiştirme ve 5S'e dahil etme Yönetim › Bölümler'dedir; liste öneri ve kaizen
+            formlarıyla ortaktır. Ekip lideri ve personel bölümün Detay sayfasından girilir.
+            <% if (bes_disi_sayi) { %><strong><%= bes_disi_sayi %> bölüm 5S dışında</strong> (burada görünmez).<% } %></small>
     </div>
     <% } %>
 
@@ -109,13 +107,6 @@
                 </td>
                 <td class="nowrap" data-label="">
                     <a class="btn-mini eval" href="/5s/bolum/<%= b.id %>">Detay →</a>
-                    <% if (yetki('bes_plan')) { %>
-                    <form method="post" action="/5s/bolum/sil" style="display:inline"
-                          onsubmit="return confirm('Bu bölüm ve denetimleri silinsin mi?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-                        <input type="hidden" name="id" value="<%= b.id %>">
-                        <button type="submit" class="btn-mini del">Sil</button>
-                    </form>
-                    <% } %>
                 </td>
             </tr>
             <% } %>
@@ -123,7 +114,7 @@
     </table>
     </div>
     <% } else { %>
-    <div class="empty">Henüz bölüm yok.<% if (yetki('bes_plan')) { %> Yukarıdan bölüm ekleyin.<% } else { %> Yetkili yönetici girişi ile bölüm eklenebilir.<% } %></div>
+    <div class="empty">5S'e dahil bölüm yok.<% if (yetki('bes_plan')) { %> <a href="/yonetici/bolumler">Bölümler</a> sayfasından ekleyin.<% } else { %> Yetkili yönetici girişi ile bölüm eklenebilir.<% } %></div>
     <% } %>
 </div>
 

@@ -14,6 +14,7 @@ const I = require("../src/isim");
 const Y = require("../src/yetkiler");
 const { baglantiAyarlari, semaKomutlari, EK_KOLONLAR, j } = require("../src/db");
 const { checkPassword } = require("../src/servis/guvenlik");
+const { bolumAnahtar } = require("../src/servis/bolumler");
 
 const satirlar = [];
 const yaz = (s = "") => satirlar.push(s);
@@ -296,6 +297,33 @@ async function main() {
     }
   }
   yaz();
+
+  // ---------------------------------------------------------------- 6. Bölüm listesi
+  // Yeni sürümde 5S bölümleri öneri/kaizen formlarının açılır listesi olur (Yönetim › Bölümler); hepsi 5S'e dahil kalır.
+  if (canli.bolumler) {
+    yaz(`## 6. Bölüm listesi (öneri/kaizen açılır listesi + 5S)`);
+    yaz();
+    const adlar = (await q("SELECT ad FROM bolumler ORDER BY ad")).map((r) => r.ad);
+    yaz(`- Mevcut ${adlar.length} bölüm yeni sürümde öneri ve kaizen formlarında açılır liste olur ve 5S'e dahil kalır.` +
+      (adlar.length ? "" : " Liste boş: formlar Bölümler sayfasında liste tanımlanana kadar serbest metin bölüm alanı gösterir."));
+    const sayac = new Map();
+    for (const a of adlar) sayac.set(bolumAnahtar(a), [...(sayac.get(bolumAnahtar(a)) || []), a]);
+    const ciftler = [...sayac.values()].filter((v) => v.length > 1);
+    if (ciftler.length) {
+      yaz(`- ⚠ Aynı adlı bölümler (büyük/küçük harf farkıyla): ${ciftler.map((v) => v.join(" / ")).join("; ")}`);
+      notlar.push(`Aynı adlı ${ciftler.length} bölüm grubu var — Yönetim › Bölümler'de birinin adı değiştirilene ya da biri ` +
+        "silinene kadar liste kaydedilemez ve formlarda aynı ad iki kez görünür.");
+    }
+    if (canli.kaizenler) {
+      const liste = new Set(adlar.map(bolumAnahtar));
+      const disari = (await q("SELECT DISTINCT bolum FROM kaizenler WHERE bolum IS NOT NULL AND bolum <> ''"))
+        .map((r) => r.bolum).filter((b) => !liste.has(bolumAnahtar(b)));
+      yaz(`- Kaizenlerde serbest yazılmış ve listede olmayan bölüm adı: ${disari.length}` +
+        (disari.length ? ` (${disari.slice(0, 15).join(", ")}${disari.length > 15 ? "…" : ""}) — kayıtlar değişmez; ` +
+          "düzenlenirken eski ad korunur, istenirse listeden seçilir." : ""));
+    }
+    yaz();
+  }
 
   // ---------------------------------------------------------------- Sonuç
   yaz(`## Sonuç`);

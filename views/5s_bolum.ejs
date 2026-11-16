@@ -6,9 +6,13 @@
     <h1 class="page-title">🧹 <%= b.ad %></h1>
     <div class="list-actions">
         <a class="btn ghost" href="/5s#bolumler">← Bölümler</a>
-        <a class="btn primary" href="/5s/bolum/<%= b.id %>/kontrol">✅ Periyodik Kontrol Formu</a>
+        <% if (b.bes_dahil) { %><a class="btn primary" href="/5s/bolum/<%= b.id %>/kontrol">✅ Periyodik Kontrol Formu</a><% } %>
     </div>
 </div>
+<% if (!b.bes_dahil) { %>
+<div class="gorev-kutu"><strong>Bu bölüm 5S'e dahil değil.</strong> Denetim planına ve periyodik kontrol formuna girmez;
+    aşağıda yalnız geçmiş kayıtlar görünür. <% if (yetki('bes_plan')) { %><a href="/yonetici/bolumler">Bölümler</a> sayfasından 5S'e dahil edebilirsiniz.<% } %></div>
+<% } %>
 
 <div class="ozet-kutular">
     <div class="ozet-kutu"><span class="ok-deger"><%= personel_sayisi %></span><span class="ok-etiket">Personel</span></div>

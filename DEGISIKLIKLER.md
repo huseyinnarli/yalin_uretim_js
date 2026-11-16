@@ -1,5 +1,24 @@
 # Sürüm Notları
 
+## 16 Kasım 2026 — Ortak bölüm listesi
+
+- **Yönetim › 🏭 Bölümler** (yetki: Bölüm listesi & denetim planı): öneri/kaizen formları ile 5S'in **tek** bölüm listesi.
+  - Toplu ekleme (her satıra bir ad; listede olan ad — büyük/küçük harf farkıyla — atlanır).
+  - Tek "Kaydet" ile ad değiştirme ve her bölüm için **5S'e dahil** kutusu. İki bölüm aynı ada düşerse hiçbir şey kaydedilmez.
+  - Her bölümün öneri, kaizen ve 5S denetim sayısı. Silme onayında, bölümün 5S geçmişi varsa kaç denetimin (ve
+    fotoğraflarının) silineceği yazar; 5S'ten çıkarmak için silmek yerine kutunun kaldırılması önerilir.
+- **Öneri ve kaizen formlarında bölüm açılır listeden seçilir** ve zorunludur (sunucuda listeye göre doğrulanır; liste boşsa
+  serbest metin). Öneride yeni alan; kaizende serbest metin yerine liste. Öneriden kaizene dönüştürmede bölüm taşınır.
+  Düzenlemede listeden kalkmış eski ad "(eski kayıt — listede yok)" olarak seçili kalır.
+- **5S yalnız 5S'e dahil bölümleri kullanır:** denetim turu planı, 5S bölüm tablosu, denetmenin günlük kontrol formları.
+  5S dışına alınan bölümün geçmiş denetimleri korunur; trendde yalnız geçmişi varsa görünür, bölüm sayfasında not çıkar.
+  5S sekmesindeki ekleme/silme Bölümler sayfasına taşındı (eski uçlar aynı listeye yazar).
+- Öneri detayında ve öneri Excel'inde (son sütun) **Bölüm**.
+- `npm run gecis-kontrol`: yeni "Bölüm listesi" bölümü — aynı adlı bölümler ve listede olmayan kaizen bölüm adları.
+- **Veritabanı (yalnız ekleme):** `bolumler.bes_dahil` (varsayılan 1 — eski bölümler 5S'te kalır), `oneriler.bolum`.
+  Eski sürüm genişletilmiş veritabanında çalışmaya devam eder (denendi).
+- e2e testi: **181/181** (22 yeni kontrol).
+
 ## 2 Kasım 2026 — Devreye alma hazırlığı
 
 Kullanıcıya görünen işlev değişmedi; canlıdaki eski sitenin üzerine güvenli kurulum için:

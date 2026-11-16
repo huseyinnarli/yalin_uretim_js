@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 159 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 181 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -103,6 +103,11 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
 8c. **İsimler:** kişi girişleri ad + soyad ayrı kutulardır (`web.js:kisiOku`). Kişi karşılaştırmalarında
    ASLA `===` kullanma — `isim.js:isimEsit/isimIcerir` (anahtarla) kullan. Puan listesi `isimCozucu` +
    `isim_eslestirme` ile gruplar; kayıtlardaki isimler değiştirilmez.
+8c2. **Bölüm listesi ortaktır:** `bolumler` tablosu hem 5S bölümleri hem öneri/kaizen formlarının açılır listesi
+   (`servis/bolumler.js`, sayfa `/yonetici/bolumler`, yetki `bes_plan`). 5S'in "şimdiki" listeleri (tur planı, 5S tablosu,
+   günlük kontrol formları) `C.besBolumleri()` (yalnız `bes_dahil`) kullanır; ad çözümü/geçmiş için `bolumMap()` (hepsi).
+   Yeni bir 5S listesi yazarken `loadBolumler()` değil `besBolumleri()` kullan. Formdan gelen bölüm `C.bolumSecimi(girilen,
+   await C.bolumAdlari(), mevcut)` ile doğrulanır; kayıt bölümü ADIYLA saklar. Form alanı `partials/bolum_secimi.ejs`.
 8d. **Dosya yükleme sırası:** yetki/giriş middleware'i `...dosyaYukleyici(N)`'den ÖNCE gelir (girişsiz istek
    belleğe dosya alamasın). Dönüş adresleri (`geri`, `don`) daima `web.js:guvenliYol` ile doğrulanır.
 9. Numara üretimi (`ÖNFR2607-01`) `sayaclar` tablosunda **atomik sayaçtır** — elle SELECT
@@ -161,6 +166,11 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     `gecis-kontrol` veritabanı kullanıcısının CREATE/ALTER yetkisini SHOW GRANTS ile denetler (eksikse uygulama açılmaz);
     açılışta yetki hatası ayrı mesaj. Eski DB (1d67cea) ile geçiş 46/46 + geri dönüş yeniden doğrulandı. e2e 159/159.
     Yeni statik dosya eklerken şablonda `?v=<%= sv %>` kullan.
+20. **Ortak bölüm listesi** (16 Kasım): `servis/bolumler.js` (katman 1; `bes` katman 2'ye indi), `rotalar/bolumler.js`,
+    `views/bolumler.ejs`, `partials/bolum_secimi.ejs`; `bolumler.bes_dahil` + `oneriler.bolum` (EK_KOLONLAR → 28 kolon);
+    öneri/kaizen formunda zorunlu açılır liste; 5S yalnız 5S'e dahil bölümler; 5S sekmesindeki ekle/sil Bölümler'e taşındı
+    (eski uçlar duruyor); gecis-kontrol §6 bölüm listesi; `flash(req, "uyari", …)` (sarı, günlüğe yazılmaz).
+    Eski DB ile geçiş + geri dönüş denendi. e2e 181/181.
 
 ## Açık konular
 

@@ -236,9 +236,9 @@ async function main() {
 
     // --- Öneri numarası + onay + puanlama ---
     csrf = csrfFrom(await getText("/oneri/yeni"));
-    await post("/oneri/yeni", { csrf_token: csrf, tarih: bugun, sahibi_ad: "Puan", sahibi_soyad: "Test",
+    await post("/oneri/yeni", { csrf_token: csrf, bolum: "Montaj", tarih: bugun, sahibi_ad: "Puan", sahibi_soyad: "Test",
       gorevi: "Operatör", konu: "Test konusu", detay: "Detay açıklama", cozum: "Çözüm" });
-    await post("/oneri/yeni", { csrf_token: csrf, tarih: bugun, sahibi: "Puan Test 2",
+    await post("/oneri/yeni", { csrf_token: csrf, bolum: "Montaj", tarih: bugun, sahibi: "Puan Test 2",
       gorevi: "Operatör", konu: "İkinci konu", detay: "Detay", cozum: "" });
     html = await getText("/liste");
     const nolar = [...new Set([...html.matchAll(/ÖNFR\d{4}-\d{2}/g)].map((m) => m[0]))].sort();
@@ -269,7 +269,7 @@ async function main() {
     ok("dosya kabul etmeyen uca multipart reddedildi", rm.status === 400);
     // Kaizen: görselli kayıt (2 dosya sınırının içinde)
     await postMultipart("/kaizen/yeni", {
-      csrf_token: csrf, baslangic: bugun, konu: "Görselli kaizen", bolum: "Test",
+      csrf_token: csrf, baslangic: bugun, konu: "Görselli kaizen", bolum: "Kaynak",
       lider: "Foto Test", onceki: "Önce", sonraki: "Sonra",
     }, { onceki_gorsel: ["once.png", MINI_PNG], sonraki_gorsel: ["sonra.png", MINI_PNG] });
     html = await getText("/liste");
@@ -388,12 +388,12 @@ async function main() {
     r = await get("/panel");
     ok("girişsiz panel → giriş sayfası", r.status === 302);
     let anon = csrfFrom(await getText("/oneri/yeni"));
-    r = await post("/oneri/yeni", { csrf_token: anon, tarih: bugun, sahibi_ad: "aHMET", sahibi_soyad: "YILMAZ",
+    r = await post("/oneri/yeni", { csrf_token: anon, bolum: "Montaj", tarih: bugun, sahibi_ad: "aHMET", sahibi_soyad: "YILMAZ",
       gorevi: "Operatör", konu: "Girişsiz öneri", detay: "Detay" });
     ok("girişsiz öneri gönderildi → anasayfa", r.status === 302 && konum(r) === "/");
     html = await getText("/");
     ok("girişsiz gönderim teşekkür mesajı", html.includes("teşekkürler"));
-    r = await post("/oneri/yeni", { csrf_token: anon, tarih: bugun, sahibi_ad: "Sadece", sahibi_soyad: "",
+    r = await post("/oneri/yeni", { csrf_token: anon, bolum: "Montaj", tarih: bugun, sahibi_ad: "Sadece", sahibi_soyad: "",
       gorevi: "X", konu: "Soyadsız", detay: "Detay" });
     html = await r.text();
     ok("soyad eksik → form verisi korunarak hata", r.status === 200 && html.includes("ayrı kutulara") && html.includes("Soyadsız"));
@@ -463,14 +463,14 @@ async function main() {
     ok("denetmen durum değiştiremez", r.status === 302 && konum(r).startsWith("/yonetici/giris"));
     r = await get(`/oneri/duzenle?no=${encodeURIComponent(revNo)}`);
     ok("denetmen atanan kaydı düzenleme formu", r.status === 200);
-    r = await post(`/oneri/duzenle?no=${encodeURIComponent(revNo)}`, { csrf_token: csrf, tarih: "2025-01-15",
+    r = await post(`/oneri/duzenle?no=${encodeURIComponent(revNo)}`, { csrf_token: csrf, bolum: "Montaj", tarih: "2025-01-15",
       sahibi_ad: "Toplu", sahibi_soyad: "Test", gorevi: "Op", konu: "Toplu 2 (düzeltildi)", detay: "Maliyet: 5.000 TL" });
     ok("düzeltme kaydı → görevlerim", konum(r) === "/gorevlerim");
     [[rd]] = await db.query("SELECT durum, konu, revize_tamamlandi FROM oneriler WHERE `no` = ?", [revNo]);
     ok("düzeltme sonrası yeniden değerlendirmede", rd.durum === "Değerlendiriliyor" && rd.revize_tamamlandi && rd.konu.includes("düzeltildi"));
     html = await getText(`/kaizen/yeni?oneri=${encodeURIComponent(gorNo)}`);
     ok("kaizene dönüştürme formu öneriyle dolu", html.includes(gorNo) && html.includes('name="kaynak_oneri"'));
-    r = await postMultipart("/kaizen/yeni", { csrf_token: csrf, kaynak_oneri: gorNo, baslangic: bugun,
+    r = await postMultipart("/kaizen/yeni", { csrf_token: csrf, bolum: "Montaj", kaynak_oneri: gorNo, baslangic: bugun,
       konu: "Dönüşen kaizen", lider_ad: "Deniz", lider_soyad: "Denetmen", uye1_ad: "Ali", uye1_soyad: "Test",
       onceki: "Önce", sonraki: "Sonra" });
     const [[dk]] = await db.query("SELECT kaizen_no FROM oneriler WHERE `no` = ?", [gorNo]);
@@ -497,7 +497,7 @@ async function main() {
     // --- İsim birleştirme: otomatik + elle ---
     csrf = csrfFrom(await getText("/oneri/yeni"));
     for (const [ad, soyad, konu] of [["ALİ", "TEST", "Büyük harfli"], ["Ali", "Tset", "Yazım hatalı"]]) {
-      await post("/oneri/yeni", { csrf_token: csrf, tarih: bugun, sahibi_ad: ad, sahibi_soyad: soyad,
+      await post("/oneri/yeni", { csrf_token: csrf, bolum: "Montaj", tarih: bugun, sahibi_ad: ad, sahibi_soyad: soyad,
         gorevi: "Op", konu, detay: "d" });
       const [[o]] = await db.query("SELECT `no` FROM oneriler WHERE konu = ?", [konu]);
       await post("/durum", { csrf_token: csrf, tip: "oneri", no: o.no, durum: "Onaylandı" });
@@ -700,7 +700,7 @@ async function main() {
     ok("sabit puan kuralı kaydedildi", konum(r) === AYAR);
     kp = await kisiPuani("Kural Test");
     ok("ileriye dönük: eski onaylı öneri eski kuralla (10)", kp.oneri === 10, JSON.stringify(kp));
-    await post("/oneri/yeni", { csrf_token: csrf, tarih: trBugun, sahibi_ad: "Sabit", sahibi_soyad: "Test",
+    await post("/oneri/yeni", { csrf_token: csrf, bolum: "Montaj", tarih: trBugun, sahibi_ad: "Sabit", sahibi_soyad: "Test",
       gorevi: "Operatör", konu: "Sabit puan denemesi", detay: "d", cozum: "c" });
     const [[sabitNo]] = await db.query("SELECT `no` FROM oneriler WHERE sahibi = 'Sabit Test'");
     html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(sabitNo.no)}`);
@@ -747,6 +747,105 @@ async function main() {
       VALUES('ÖNFR2601-91', '2026-01-06', 'O''Brien Test', 'Tırnak', 'Onaylandı', 100, '06.01.2026 10:00')`);
     html = await getText("/puan-durumu");
     ok("onay pencerelerinde isim JS dizgisine gömülmüyor", !html.includes("confirm('") && /data-onay="[^"]*O&#39;Brien Test/i.test(html));
+
+    // --- Ortak bölüm listesi (Yönetim › Bölümler): öneri/kaizen açılır listesi + 5S'e dahil ---
+    const BOL = "/yonetici/bolumler";
+    const bolumleriOku = async () => Object.fromEntries(
+      (await db.query("SELECT id, ad, bes_dahil FROM bolumler"))[0].map((b) => [b.ad, { ...b, bes_dahil: Number(b.bes_dahil) }]));
+    csrf = await girisYap("kisitli123");
+    r = await get(BOL);
+    await post(BOL + "/ekle", { csrf_token: csrf, adlar: "Yetkisiz Liste" });
+    ok("bes_plan yetkisi olmayan bölüm listesini açamaz/ekleyemez",
+      konum(r) === "/" && !(await bolumleriOku())["Yetkisiz Liste"]);
+    csrf = await girisYap("planci12");
+    html = await getText(BOL);
+    ok("bes_plan yetkili ek yönetici bölüm listesini açar", html.includes("🏭 Bölümler") && html.includes('name="ad_'));
+    // Toplu ekleme (5S kutusu işaretsiz): mükerrer (harf farkıyla) atlanır, boşluk düzeltilir; eskiler 5S'te kalır
+    r = await post(BOL + "/ekle", { csrf_token: csrf, adlar: "İdari İşler\nmontaj\n  Satın   Alma  \n\n<b>Xss</b>" });
+    let bol = await bolumleriOku();
+    ok("toplu ekleme: 3 yeni 5S dışı bölüm, mükerrer 'montaj' atlandı, boşluk düzeltildi",
+      bol["İdari İşler"]?.bes_dahil === 0 && bol["Satın Alma"]?.bes_dahil === 0 && bol["<b>Xss</b>"]
+      && Object.keys(bol).filter((a) => a.toLocaleLowerCase("tr") === "montaj").length === 1);
+    ok("eski bölümler 5S'e dahil kaldı", bol.Montaj.bes_dahil === 1 && bol.Kaynak.bes_dahil === 1);
+    html = await getText(BOL);
+    ok("bölüm adı sayfada kaçışlı", html.includes("&lt;b&gt;Xss&lt;/b&gt;") && !html.includes("<b>Xss</b>"));
+    html = await getText("/5s");
+    ok("5S bölüm tablosunda 5S dışı bölüm yok", !html.includes("İdari İşler") && html.includes("3 bölüm 5S dışında"));
+    // Öneri formu: açılır liste + sunucu doğrulaması (girişsiz)
+    await get("/yonetici/cikis");
+    html = await getText("/oneri/yeni");
+    const anonCsrf = csrfFrom(html);
+    ok("öneri formunda bölüm açılır listesi (5S dışı bölümler de)",
+      html.includes('<select id="bolum" name="bolum" required>') && html.includes('<option value="İdari İşler"'));
+    html = await (await post("/oneri/yeni", { csrf_token: anonCsrf, bolum: "Uydurma Bölüm", tarih: bugun,
+      sahibi_ad: "Liste", sahibi_soyad: "Dışı", gorevi: "Op", konu: "Liste dışı", detay: "d" })).text();
+    const [[disiSay]] = await db.query("SELECT COUNT(*) AS n FROM oneriler WHERE sahibi = 'Liste Dışı'");
+    ok("listede olmayan bölüm reddedildi, kayıt açılmadı", html.includes('flash error">Bölümü listeden seçin.') && disiSay.n === 0);
+    await post("/oneri/yeni", { csrf_token: anonCsrf, bolum: "idari  işler", tarih: bugun,
+      sahibi_ad: "Liste", sahibi_soyad: "İçi", gorevi: "Op", konu: "Liste içi", detay: "d" });
+    const [[iciKayit]] = await db.query("SELECT `no`, bolum FROM oneriler WHERE sahibi = 'Liste İçi'");
+    ok("bölüm listedeki yazılışıyla kaydedildi", iciKayit && iciKayit.bolum === "İdari İşler", JSON.stringify(iciKayit));
+    html = await getText("/kaizen/yeni");
+    ok("kaizen formunda aynı bölüm listesi", html.includes('<select id="bolum" name="bolum" required>') && html.includes('<option value="Satın Alma"'));
+    html = await (await postMultipart("/kaizen/yeni", { csrf_token: anonCsrf, baslangic: bugun, konu: "Bölümsüz kaizen",
+      bolum: "", lider_ad: "Kai", lider_soyad: "Zen", onceki: "o", sonraki: "s" })).text();
+    const [[kzSay]] = await db.query("SELECT COUNT(*) AS n FROM kaizenler WHERE konu = 'Bölümsüz kaizen'");
+    ok("kaizende bölüm seçimi zorunlu", html.includes('flash error">Bölüm seçin.') && kzSay.n === 0);
+    // Tek kaydet: ad değiştirme + 5S dışına alma; çakışan ad hiçbir şeyi kaydetmez
+    csrf = await girisYap("planci12");
+    const bolumFormu = (degis) => {
+      const f = new URLSearchParams({ csrf_token: csrf });
+      for (const b of Object.values(bol)) {
+        const d = { ad: b.ad, bes: b.bes_dahil === 1, ...(degis[b.ad] || {}) };
+        f.append("id", b.id);
+        f.append(`ad_${b.id}`, d.ad);
+        if (d.bes) f.append(`bes_${b.id}`, "1");
+      }
+      return f;
+    };
+    r = await post(BOL + "/kaydet", bolumFormu({ "İdari İşler": { ad: "MONTAJ" } }));
+    html = await getText(BOL);
+    ok("çakışan ad reddedildi, hiçbir şey değişmedi", html.includes("Aynı adla iki bölüm olamaz") && (await bolumleriOku())["İdari İşler"]);
+    r = await post(BOL + "/kaydet", bolumFormu({ Kaynak: { ad: "Kaynakhane", bes: false }, "Satın Alma": { bes: true } }));
+    html = await getText(BOL);
+    bol = await bolumleriOku();
+    ok("ad değişti + 5S'ten çıktı + 5S'e girdi (tek kayıt)", bol.Kaynakhane?.bes_dahil === 0 && !bol.Kaynak && bol["Satın Alma"].bes_dahil === 1);
+    ok("değişiklik özeti mesajda", html.includes("Kaynak → Kaynakhane") && html.includes("Kaynakhane 5S dışına alındı"));
+    const [[kaynakDenetim]] = await db.query("SELECT COUNT(*) AS n FROM denetimler WHERE bolum_id = ? AND puan IS NOT NULL", [bol.Kaynakhane.id]);
+    ok("5S dışına alınan bölümün geçmiş denetimleri korundu", kaynakDenetim.n > 0);
+    html = await getText(`/5s/bolum/${bol.Kaynakhane.id}`);
+    ok("5S dışı bölüm sayfasında not, kontrol formu düğmesi yok", html.includes("Bu bölüm 5S'e dahil değil") && !html.includes("Periyodik Kontrol Formu</a>"));
+    html = await getText("/panel");
+    ok("5S trendinde geçmişi olan 5S dışı bölüm görünür, hiç denetimi olmayan görünmez",
+      html.includes("Kaynakhane") && !html.includes("İdari İşler"));
+    // Eski kayıttaki (listeden kalkmış) bölüm düzenlemede korunur
+    const [[eskiKz]] = await db.query("SELECT `no` FROM kaizenler WHERE bolum = 'Kaynak' LIMIT 1");
+    csrf = await girisYap("admin123");
+    html = await getText(`/kaizen/duzenle?no=${encodeURIComponent(eskiKz.no)}`);
+    ok("düzenlemede eski bölüm seçili kalır (listede yok)", html.includes('<option value="Kaynak" selected>Kaynak (eski kayıt — listede yok)</option>'));
+    // Denetim turu yalnız 5S'e dahil bölümler için açılır
+    await post("/5s/denetim-turu", { csrf_token: csrf, baslangic: "2027-03-01", bitis: "2027-03-05" });
+    const [turBolum] = await db.query("SELECT bolum_id FROM denetimler WHERE tarih = '2027-03-01'");
+    const dahilIdler = Object.values(await bolumleriOku()).filter((b) => b.bes_dahil === 1).map((b) => b.id).sort();
+    ok("yeni denetim turu yalnız 5S'e dahil bölümleri kapsar",
+      turBolum.map((x) => x.bolum_id).sort().join() === dahilIdler.join() && !turBolum.some((x) => x.bolum_id === bol.Kaynakhane.id));
+    // Excel: öneri Excel'inin son sütunu Bölüm
+    r = await get("/oneri/excel");
+    const ExcelJSm = require("exceljs");
+    const wbB = new ExcelJSm.Workbook();
+    await wbB.xlsx.load(Buffer.from(await r.arrayBuffer()));
+    const wsB = wbB.worksheets[0];
+    const basliklarB = wsB.getRow(1).values.slice(1);
+    let iciSatir = null;
+    wsB.eachRow((row) => { if (row.getCell(1).value === iciKayit.no) iciSatir = row; });
+    ok("öneri Excel'inde son sütun Bölüm ve değeri dolu",
+      basliklarB[basliklarB.length - 1] === "Bölüm" && iciSatir && iciSatir.getCell(basliklarB.length).value === "İdari İşler");
+    // Silme: geçmişi olmayan bölüm silinir; öneri kaydındaki ad değişmez
+    await post(BOL + "/sil", { csrf_token: csrf, id: (await bolumleriOku())["İdari İşler"].id });
+    const [[iciSonra]] = await db.query("SELECT bolum FROM oneriler WHERE `no` = ?", [iciKayit.no]);
+    ok("bölüm silindi, öneri kaydındaki bölüm adı yerinde", !(await bolumleriOku())["İdari İşler"] && iciSonra.bolum === "İdari İşler");
+    html = await getText(BOL);
+    ok("geçmişli bölümün silme onayında denetim sayısı uyarısı", /data-onay="[^"]*Kaynakhane[^"]*denetim ve fotoğrafları da KALICI/.test(html));
 
     await db.end();
   } finally {

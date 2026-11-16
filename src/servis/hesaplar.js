@@ -4,7 +4,7 @@ const I = require("../isim");
 const Y = require("../yetkiler");
 const { sorgu, tek, yoneticiRow } = require("../db");
 const { checkPassword, adminSifreDogru } = require("./guvenlik");
-const { loadBolumler } = require("./bes");
+const { loadBolumler } = require("./bolumler");
 
 async function loadDenetmenler() {
   return sorgu("SELECT * FROM denetmenler ORDER BY ad");

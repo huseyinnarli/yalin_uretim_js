@@ -1,26 +1,28 @@
-// 5S — bölümler, denetimler, turlar, ödül defteri, trend. (Aksiyonlar: aksiyon.js; periyodik kontrol formu: kontrolFormu.js)
+// 5S — denetimler, turlar, ödül defteri, trend, bölüm silme. (Bölüm listesi: bolumler.js; aksiyonlar: aksiyon.js;
+// periyodik kontrol formu: kontrolFormu.js)
+const fs = require("fs");
 const path = require("path");
 
 const S = require("../sabitler");
 const P = require("../puanlama");
 const I = require("../isim");
-const { sorgu, tek, calistir, transaction, js, bolumRow, denetimRow, aksiyonRow } = require("../db");
+const { sorgu, tek, calistir, transaction, js, denetimRow, aksiyonRow } = require("../db");
 const { uid, allowedFile, gorselKaydet } = require("./yardimci");
 const { odulAyarlari } = require("./ayarlar");
+const { loadBolumler, bolumMap } = require("./bolumler");
 
-async function loadBolumler() {
-  return (await sorgu("SELECT * FROM bolumler ORDER BY ad")).map(bolumRow);
-}
-
-async function bolumById(bid) {
-  return bolumRow(await tek("SELECT * FROM bolumler WHERE id = ?", [bid]));
-}
-
-// id -> bölüm haritası (döngülerde N+1 sorguyu önler)
-async function bolumMap() {
-  const m = {};
-  for (const b of await loadBolumler()) m[b.id] = b;
-  return m;
+// Bölümü siler. 5S geçmişi de gider: denetimleri ve fotoğrafları (eski sürümdeki davranış). Aksiyonlar ve ödül
+// kayıtları bölüm adını kendileri sakladığı için kalır. Öneri/kaizen kayıtlarındaki bölüm adı değişmez.
+async function bolumSil(bid) {
+  for (const d of await bolumDenetimleri(bid)) {
+    for (const fn of denetimFotolari(d)) {
+      try { fs.unlinkSync(path.join(S.BESS_FOTO_DIR, fn)); } catch { /* dosya zaten yoksa */ }
+    }
+  }
+  await transaction(async (conn) => {
+    await calistir("DELETE FROM bolumler WHERE id = ?", [bid], conn);
+    await calistir("DELETE FROM denetimler WHERE bolum_id = ?", [bid], conn);
+  });
 }
 
 async function loadDenetimler() {
@@ -264,7 +266,8 @@ async function besSTrendTablo() {
         onceki = d.puan;
       } else hucreler.push(null);
     }
-    satirlar.push({ ad: b.ad, hucreler });
+    // 5S'e dahil olmayan bölüm yalnız geçmiş puanı varsa görünür (ör. sonradan 5S'ten çıkarıldıysa)
+    if (b.bes_dahil || hucreler.some(Boolean)) satirlar.push({ ad: b.ad, hucreler });
   }
   satirlar.sort((a, b) => a.ad.localeCompare(b.ad, "tr"));
   return [basliklar, satirlar];
@@ -298,7 +301,7 @@ async function saveDenetimFotolar(did, mevcut, files) {
 }
 
 module.exports = {
-  loadBolumler, bolumById, bolumMap, loadDenetimler, denetimById, loadAksiyonlar, aksiyonById, odulIslenenler,
+  bolumSil, loadDenetimler, denetimById, loadAksiyonlar, aksiyonById, odulIslenenler,
   bolumDenetimleri, sonDenetim, denetimKriterPuanlari, denetimTarihi, denetimFotolari,
   turAdiUret, besSTurAdi, besSTurlar, besSPlanTur, besSSonSonucTur, aksiyonSayilari, besSTurSiralama,
   besSTurTamam, besSTurEksikler, besSIsle, besSArsivAylar, besSGecmisTurlar,

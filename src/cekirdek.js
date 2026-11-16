@@ -8,8 +8,9 @@
 //      gunluk        işlem günlüğü
 //      ayarlar       puan kuralı sürümleri + ödül ayarları (config; hesap kuralları src/puanKurallari.js)
 //   1  kayitlar      öneri/kaizen okuma-yazma, liste filtresi + sayfalama, düzenleme izni, kaizen görseli
-//      bes           5S bölüm/denetim/tur/ödül defteri/trend, denetim fotoğrafları
-//   2  hesaplar      denetmen + misafir + ek yönetici hesapları, oturum yetkileri, şifre çakışması
+//      bolumler      ortak bölüm listesi (öneri/kaizen açılır listesi + 5S'e dahil bayrağı), seçim doğrulama
+//   2  bes           5S denetim/tur/ödül defteri/trend, denetim fotoğrafları, bölüm silme
+//      hesaplar      denetmen + misafir + ek yönetici hesapları, oturum yetkileri, şifre çakışması
 //      kontrolFormu  5S periyodik kontrol formu (işaret + imza + aylık özet)
 //   3  isimler       isim birleştirme (otomatik anahtar + elle eşleştirme)
 //      aksiyon       5S aksiyonları (kapatma izni, gruplu liste, denetimden senkron, fotoğraf)
@@ -18,8 +19,8 @@
 //      panel         panel istatistikleri + 12 ay trendi
 const MODULLER = [
   "guvenlik", "yardimci", "gunluk", "ayarlar",
-  "kayitlar", "bes",
-  "hesaplar", "kontrolFormu",
+  "kayitlar", "bolumler",
+  "bes", "hesaplar", "kontrolFormu",
   "isimler", "aksiyon",
   "puan", "gorevler", "panel",
 ];

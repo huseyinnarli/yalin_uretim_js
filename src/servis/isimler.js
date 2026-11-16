@@ -5,7 +5,7 @@
 const S = require("../sabitler");
 const I = require("../isim");
 const { sorgu, calistir, kaizenRow, odulKayitRow } = require("../db");
-const { loadBolumler } = require("./bes");
+const { loadBolumler } = require("./bolumler");
 const { loadDenetmenler } = require("./hesaplar");
 
 async function isimEslestirmeleri() {

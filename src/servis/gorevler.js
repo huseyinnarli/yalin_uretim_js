@@ -1,7 +1,7 @@
 // Düzeltme (revize) ve görev atamaları: denetmenin Görevlerim sayfası, yönetici takip listesi, menü rozeti.
 const I = require("../isim");
 const { sorgu, tek, oneriRow, kaizenRow, aksiyonRow } = require("../db");
-const { bolumMap } = require("./bes");
+const { bolumMap } = require("./bolumler");
 const { bugunkuKontroller } = require("./kontrolFormu");
 const { aksiyonAtanan } = require("./aksiyon");
 

@@ -46,10 +46,12 @@ async function generateOneriExcel() {
     "Detay Açıklama", "Çözüm Önerisi", "Kaliteye Katkısı", "Verimliliğe Katkısı",
     "İSG'ye Katkısı", "Maliyete Katkısı", "Ek Açıklama", "Durum", "Puan",
     "Puan Detayı", "Kayıt Zamanı", "Red Nedeni", "Düzeltme Talebi", "Görev Atanan",
-    "Görev Termini", "Dönüştürülen Kaizen", "Sahibine Yazılan Puan"];
+    "Görev Termini", "Dönüştürülen Kaizen", "Sahibine Yazılan Puan",
+    // Yeni sütunlar sona eklenir: Excel'i sabit sütunlu şablona yapıştıranların düzeni kaymasın
+    "Bölüm"];
   ws.addRow(headers);
   styleHeader(ws, headers.length);
-  [16, 12, 22, 18, 30, 40, 40, 28, 28, 28, 28, 30, 16, 8, 50, 18, 30, 30, 20, 12, 16, 14]
+  [16, 12, 22, 18, 30, 40, 40, 28, 28, 28, 28, 30, 16, 8, 50, 18, 30, 30, 20, 12, 16, 14, 22]
     .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   const kuralBul = await C.kuralCozucu();
   for (const r of (await sorgu("SELECT * FROM oneriler")).map(oneriRow)) {
@@ -58,7 +60,8 @@ async function generateOneriExcel() {
       r.durum || S.VARSAYILAN_DURUM, r.puan ?? "",
       P.puanlamaOzet(r.puanlama), r.kayit_zamani, r.red_nedeni || "",
       r.revize_notu ? `${r.revize_notu} (${r.revize_atanan_ad || ""})` : "",
-      r.gorev_atanan_ad || "", r.gorev_termin || "", r.kaizen_no || "", PK.oneriKazanci(r, kuralBul(r)) || ""]);
+      r.gorev_atanan_ad || "", r.gorev_termin || "", r.kaizen_no || "", PK.oneriKazanci(r, kuralBul(r)) || "",
+      r.bolum || ""]);
   }
   govdeStil(ws, headers.length);
   return wb.xlsx.writeBuffer();

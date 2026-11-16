@@ -39,9 +39,11 @@ function formKaydi(req, ekip) {
   };
 }
 
-async function formRender(res, kayit, duzenle, geri = "") {
+// bolumMevcut: düzenlemede kaydın veritabanındaki bölümü (listeden kalkmış olsa da seçenek olarak kalır)
+async function formRender(res, kayit, duzenle, geri = "", bolumMevcut = "") {
   res.render("kaizen_form", {
     kural: await C.guncelKural(), // ekip kutularındaki "puanın %…'i" notları
+    bolum_secenekleri: await C.bolumAdlari(), bolum_mevcut: bolumMevcut,
     title: duzenle ? "Kaizen Düzenle" : "Yeni Kaizen", bugun: duzenle ? "" : S.bugunIso(), kayit,
     kazanc_basliklari: S.KAZANC_BASLIKLARI,
     action_url: duzenle
@@ -72,7 +74,7 @@ module.exports = function register(app) {
       return res.redirect(oneri ? "/detay?tip=oneri&no=" + encodeURIComponent(oneriNo) : "/");
     }
     await formRender(res, {
-      konu: oneri.konu, onceki: oneri.detay, sonraki: oneri.cozum,
+      konu: oneri.konu, onceki: oneri.detay, sonraki: oneri.cozum, bolum: oneri.bolum || "",
       lider: oneri.gorev_atanan_ad || "", kaynak_oneri_no: oneri.no,
     }, false);
   }));
@@ -85,7 +87,9 @@ module.exports = function register(app) {
     S.ensureDirs();
     const ekip = ekipOku(req);
     const kayit = formKaydi(req, ekip);
-    const hata = ekipHatasi(ekip, req);
+    const secim = C.bolumSecimi(kayit.bolum, await C.bolumAdlari());
+    kayit.bolum = secim.bolum;
+    const hata = ekipHatasi(ekip, req) || secim.hata;
     if (hata) {
       // Form girilen bilgilerle yeniden gösterilir (seçilen fotoğrafların yeniden seçilmesi gerekir)
       res.locals.mesajlar.push(["error", hata + " Fotoğraf seçtiyseniz yeniden seçin."]);
@@ -136,7 +140,7 @@ module.exports = function register(app) {
       flash(req, "error", "Bu kaydı düzenleme yetkiniz yok.");
       return res.redirect("/detay?tip=kaizen&no=" + encodeURIComponent(rec.no));
     }
-    await formRender(res, rec, true, guvenliYol(req.query.geri, ""));
+    await formRender(res, rec, true, guvenliYol(req.query.geri, ""), rec.bolum);
   }));
 
   app.post("/kaizen/duzenle", girisRequired, ...dosyaYukleyici(2), sar(async (req, res) => {
@@ -149,10 +153,11 @@ module.exports = function register(app) {
     }
     const geri = guvenliYol(req.query.geri, "");
     const ekip = ekipOku(req);
-    const hata = ekipHatasi(ekip, req);
+    const secim = C.bolumSecimi(alan(req, "bolum"), await C.bolumAdlari(), eski.bolum);
+    const hata = ekipHatasi(ekip, req) || secim.hata;
     if (hata) {
       res.locals.mesajlar.push(["error", hata]);
-      return await formRender(res, { ...eski, ...formKaydi(req, ekip), no }, true, geri);
+      return await formRender(res, { ...eski, ...formKaydi(req, ekip), no }, true, geri, eski.bolum);
     }
     S.ensureDirs();
     const sn = C.safeName(no);
@@ -160,7 +165,7 @@ module.exports = function register(app) {
     const yeniSonraki = await C.kaizenKaydetGorsel(dosya(req, "sonraki_gorsel"), "sonrasi", sn);
     const alanlar = {
       baslangic: alan(req, "baslangic"), bitis: alan(req, "bitis"),
-      konu: alan(req, "konu"), bolum: alan(req, "bolum"),
+      konu: alan(req, "konu"), bolum: secim.bolum,
       lider: ekip.lider, uyeler: js(ekip.uyeler), sorumlular: ekip.sorumlular,
       kazanclar: js(kazanclarOku(req)),
       onceki: alan(req, "onceki"), sonraki: alan(req, "sonraki"),

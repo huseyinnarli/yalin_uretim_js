@@ -1,0 +1,21 @@
+<%# Ortak bölüm listesinden açılır seçim (öneri + kaizen formları). Değişkenler: bolum_secenekleri (sayfadan),
+    secili (formdaki değer), mevcut (düzenlemede kaydın veritabanındaki bölümü), etiket.
+    Liste henüz tanımlanmamışsa serbest metin kutusu çıkar. Sunucu doğrulaması: servis/bolumler.js:bolumSecimi %>
+<% const _anah = (x) => String(x || '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('tr');
+   const _sec = _anah(secili), _mev = String(mevcut || '').trim(); %>
+<div class="field bolum-alan">
+    <label for="bolum"><%= etiket %><%= bolum_secenekleri.length ? ' *' : '' %></label>
+    <% if (bolum_secenekleri.length) { %>
+    <select id="bolum" name="bolum" required>
+        <option value="">— Bölüm seçin —</option>
+        <% for (const a of bolum_secenekleri) { %>
+        <option value="<%= a %>" <%= _anah(a) === _sec ? 'selected' : '' %>><%= a %></option>
+        <% } %>
+        <% if (_mev && !bolum_secenekleri.some((a) => _anah(a) === _anah(_mev))) { %>
+        <option value="<%= _mev %>" <%= _anah(_mev) === _sec ? 'selected' : '' %>><%= _mev %> (eski kayıt — listede yok)</option>
+        <% } %>
+    </select>
+    <% } else { %>
+    <input type="text" id="bolum" name="bolum" value="<%= secili || '' %>" placeholder="Örn. Montaj Hattı 2">
+    <% } %>
+</div>

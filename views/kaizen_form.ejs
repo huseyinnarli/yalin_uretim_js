@@ -32,10 +32,7 @@
             <label>Kaizen Konusu *</label>
             <input type="text" name="konu" required value="<%= kayit.konu || '' %>" placeholder="Örn. Montaj hattı setup süresinin kısaltılması">
         </div>
-        <div class="field small" style="max-width:260px">
-            <label>Yapıldığı Bölüm</label>
-            <input type="text" name="bolum" value="<%= kayit.bolum || '' %>" placeholder="Örn. Montaj Hattı 2">
-        </div>
+        <%- include('partials/bolum_secimi', { secili: kayit.bolum, mevcut: bolum_mevcut, etiket: 'Yapıldığı Bölüm' }) %>
     </div>
 
     <fieldset class="ekip">

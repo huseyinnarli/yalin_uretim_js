@@ -40,13 +40,20 @@ Anasayfada 3 kutu: **🏆 Puan Listesi · 💡🔧 Öneri & Kaizen · 🧹 5S**.
 
 ### Öneri Formu (No: `ÖNFR2607-01`) — herkese açık
 Numara otomatik atanır: `ÖNFR` + yıl + ay + o ayki sıra (her ay sıfırlanır).
-Alanlar: öneri sahibi (**ad** ve **soyad** ayrı kutularda), görevi, tarih, konu, detay açıklama, çözüm önerisi,
+Alanlar: öneri sahibi (**ad** ve **soyad** ayrı kutularda), görevi, **bölüm** (açılır listeden), tarih, konu, detay açıklama, çözüm önerisi,
 4 katkı sorusu (Kalite / Verimlilik / İSG / Maliyet), ek açıklama. Eksik bilgide form girilenler korunarak tekrar gösterilir.
 
 ### Kaizen Formu (No: `ÖSKFR2607-01`) — herkese açık
-Başlangıç–bitiş tarihi, kazanç başlıkları (çoklu seçim), konu, bölüm, **ekip** (1 lider + en fazla 2 üye; her biri
+Başlangıç–bitiş tarihi, kazanç başlıkları (çoklu seçim), konu, **bölüm** (açılır listeden), **ekip** (1 lider + en fazla 2 üye; her biri
 ad/soyad ayrı), önceki/sonraki durum açıklaması **+ önce/sonra fotoğrafı**. Onaylanan öneriden dönüştürülürken
 form öneriden doldurulur ve kaizen öneriye bağlanır.
+
+### Ortak bölüm listesi — Yönetim › 🏭 Bölümler
+Öneri ve kaizen formlarındaki açılır liste ile 5S **aynı listeyi** kullanır. Liste, **Bölüm listesi & denetim planı**
+yetkili yönetici tarafından tutulur: her satıra bir ad yazarak toplu ekleme, ad değiştirme ve her bölüm için
+**5S'e dahil** kutusu. 5S dışı bölüm (ör. ofis birimleri) yalnız formlarda seçilir; denetim planına, kontrol formuna ve
+5S tablolarına girmez. Formlarda bölüm seçimi zorunludur ve sunucuda listeye göre doğrulanır. Kayıtlar bölümü adıyla
+saklar; ad değişikliği eski kayıtları değiştirmez, düzenlemede listeden kalkmış eski ad korunur.
 
 ### Liste, Değerlendirme, Görev (giriş gerekir)
 - Öneri + kaizen tek listede tarihe göre; **20'şerli sayfa**; **Tür / Durum / Dönem / arama** filtreleri.
@@ -70,7 +77,8 @@ form öneriden doldurulur ve kaizen öneriye bağlanır.
 `/5s` — sekmeler: **Son Denetimler · Bölümler · Denetim Planı** + Geçmiş Denetimler ve Aksiyonlar.
 5S sonuçları, aksiyonlar ve kontrol formları **herkese açıktır**.
 
-- **Bölümler** (tablo): ekip lideri, personel sayısı, son skor ve tarih, açık aksiyon, bu ayki kontrol doluluğu.
+- **Bölümler** (tablo, yalnız 5S'e dahil olanlar): ekip lideri, personel sayısı, son skor ve tarih, açık aksiyon, bu ayki
+  kontrol doluluğu. Bölüm ekleme/ad/5S'e dahil etme Yönetim › 🏭 Bölümler'dedir.
 - **Bölüm sayfası:** özet kutuları, ekip (1–2 lider + üyeler, ad/soyad ayrı), denetim geçmişi,
   **skor trend grafiği** ve her denetimin **S1–S5 kırılımı**.
 - **Denetim Planı:** tarih aralığı seçilince tüm bölümler için denetim açılır; gün/saat/denetmen atanır;
@@ -118,7 +126,7 @@ form öneriden doldurulur ve kaizen öneriye bağlanır.
   öneri/kaizen × gelen / değerlendiriliyor / düzeltme / onaylandı / puan alan / reddedildi; altta sabit tüm
   zamanlar toplamı; **son 12 ay gelen vs. puan alan** grafiği; bölümlerin 5S trendi (Excel'e aktarılır).
 - **🛠 Yönetim:** denetmen hesapları, misafir denetmenler, ek yöneticiler (yetki kutucukları; yalnız ana yönetici),
-  ana yönetici şifresi — her bölüm yalnızca yetkisi olana görünür.
+  ana yönetici şifresi, **🏭 Bölümler** (ortak bölüm listesi) — her bölüm yalnızca yetkisi olana görünür.
 - **📋 Görevlerim:** atanan düzeltmeler, kaizene dönüştürme görevleri, planlanan 5S denetimleri, kapatılacak
   aksiyonlar, bugünkü kontrol formu. Değerlendirme yetkili yönetici tüm açık atamaları izler.
 - **📜 İşlem Günlüğü** (ana yönetici): yönetici/denetmen işlemleri — kim, ne zaman, ne yaptı.
@@ -135,7 +143,7 @@ form öneriden doldurulur ve kaizen öneriye bağlanır.
 | Öneri & Kaizen | **Değerlendirme** | Onay, gerekçeli red, düzeltme isteyip denetmene atama, görev atama |
 | | **Puanlama** | Onaylanan kayıtlara ★ puan |
 | | **Kayıt düzenle-sil & raporlar** | Düzenleme, silme, silinenleri geri yükleme, Excel |
-| 5S | **Bölüm & denetim planı** | Bölüm/ekip, denetim tarihi planlama, denetmen/misafir dağıtımı |
+| 5S | **Bölüm listesi & denetim planı** | Ortak bölüm listesi (öneri/kaizen açılır listesi, 5S'e dahil), ekip, denetim tarihi planlama, denetmen/misafir dağıtımı |
 | | **Denetim yapma** | Her bölümün denetimini yapabilir, kontrol formunu doldurabilir |
 | | **Denetim revize & silme** | Yapılmış denetimi düzeltme (ödülü işlenmemiş turda), silme |
 | | **Aksiyon yönetimi** | Her aksiyonu kapatma/silme, aksiyon Excel/ZIP |

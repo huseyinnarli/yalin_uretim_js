@@ -230,6 +230,9 @@ const EK_KOLONLAR = [
   ["kaizenler", "onay_zamani", "VARCHAR(20)"],
   ["denetimler", "revize_eden", "VARCHAR(191)"],
   ["denetimler", "revize_zamani", "VARCHAR(20)"],
+  // Kasım 2026: ortak bölüm listesi — bölüm 5S'e dahil mi (eski bölümler dahil kalır); öneride bölüm (açılır liste)
+  ["bolumler", "bes_dahil", "TINYINT(1) NOT NULL DEFAULT 1"],
+  ["oneriler", "bolum", "TEXT"],
 ];
 
 // Şemanın tek tek CREATE TABLE IF NOT EXISTS komutları
@@ -274,7 +277,8 @@ function kaizenRow(r) {
 }
 function bolumRow(r) {
   if (!r) return null;
-  return { ...r, kisiler: j(r.kisiler, []) };
+  // bes_dahil kolonu yoksa (eski şema, ör. geçiş öncesi okuma) bölüm 5S'e dahil sayılır
+  return { ...r, kisiler: j(r.kisiler, []), bes_dahil: r.bes_dahil === undefined || r.bes_dahil === null || Number(r.bes_dahil) === 1 };
 }
 function denetimRow(r) {
   if (!r) return null;

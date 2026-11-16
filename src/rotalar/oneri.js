@@ -12,7 +12,7 @@ function formToDict(req) {
   const sahibi = kisiOku(req, "sahibi");
   return {
     k: {
-      tarih: alan(req, "tarih"), sahibi: sahibi.tam, gorevi: alan(req, "gorevi"),
+      tarih: alan(req, "tarih"), sahibi: sahibi.tam, gorevi: alan(req, "gorevi"), bolum: alan(req, "bolum"),
       konu: alan(req, "konu"), detay: alan(req, "detay"), cozum: alan(req, "cozum"),
       kalite: alan(req, "kalite"), verimlilik: alan(req, "verimlilik"),
       isg: alan(req, "isg"), maliyet: alan(req, "maliyet"), ek: alan(req, "ek"),
@@ -21,9 +21,11 @@ function formToDict(req) {
   };
 }
 
-function formRender(res, kayit, duzenle, geri = "") {
+// bolumMevcut: düzenlemede kaydın veritabanındaki bölümü (listeden kalkmış olsa da seçenek olarak kalır)
+async function formRender(res, kayit, duzenle, geri = "", bolumMevcut = "") {
   res.render("oneri_form", {
     title: duzenle ? "Öneri Düzenle" : "Yeni Öneri", bugun: duzenle ? "" : S.bugunIso(), kayit,
+    bolum_secenekleri: await C.bolumAdlari(), bolum_mevcut: bolumMevcut,
     action_url: duzenle
       ? "/oneri/duzenle?no=" + encodeURIComponent(kayit.no) + (geri ? "&geri=" + encodeURIComponent(geri) : "")
       : "/oneri/yeni",
@@ -32,7 +34,7 @@ function formRender(res, kayit, duzenle, geri = "") {
 }
 
 module.exports = function register(app) {
-  app.get("/oneri/yeni", (req, res) => formRender(res, {}, false));
+  app.get("/oneri/yeni", sar(async (req, res) => formRender(res, {}, false)));
 
   app.post("/oneri/yeni", sar(async (req, res) => {
     if (hizLimitAsildi(req, "oneri", 30, 300)) {
@@ -40,20 +42,22 @@ module.exports = function register(app) {
       return res.redirect("/oneri/yeni");
     }
     const { k, sahibiEksik } = formToDict(req);
-    if (sahibiEksik || !(k.konu && k.detay)) {
+    const secim = C.bolumSecimi(k.bolum, await C.bolumAdlari());
+    k.bolum = secim.bolum;
+    if (sahibiEksik || !(k.konu && k.detay) || secim.hata) {
       // Form, girilen bilgiler kaybolmadan hata mesajıyla yeniden gösterilir
       res.locals.mesajlar.push(["error", sahibiEksik
         ? "Öneri sahibinin adını ve soyadını ayrı kutulara yazın."
-        : "Konu ve detay açıklama zorunludur."]);
+        : (secim.hata || "Konu ve detay açıklama zorunludur.")]);
       return formRender(res, k, false);
     }
     // Numara atomik sayaçtan gelir — eşzamanlı gönderimde mükerrer numara oluşmaz
     const no = await C.nextNumber("oneriler", "ÖNFR");
     await calistir(
-      `INSERT INTO oneriler(\`no\`, tarih, sahibi, gorevi, konu, detay, cozum,
+      `INSERT INTO oneriler(\`no\`, tarih, sahibi, gorevi, bolum, konu, detay, cozum,
         kalite, verimlilik, isg, maliyet, ek, durum, puan, puanlama, kayit_zamani)
-       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?)`,
-      [no, k.tarih, k.sahibi, k.gorevi, k.konu, k.detay, k.cozum,
+       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?)`,
+      [no, k.tarih, k.sahibi, k.gorevi, k.bolum, k.konu, k.detay, k.cozum,
         k.kalite, k.verimlilik, k.isg, k.maliyet, k.ek, S.VARSAYILAN_DURUM, S.zamanTr()]);
     flash(req, "success", `Öneri kaydedildi: ${no}` + (req.girisli ? "" : " — teşekkürler!"));
     res.redirect(req.girisli ? "/liste" : "/");
@@ -67,7 +71,7 @@ module.exports = function register(app) {
       flash(req, "error", "Bu kaydı düzenleme yetkiniz yok.");
       return res.redirect("/detay?tip=oneri&no=" + encodeURIComponent(rec.no));
     }
-    formRender(res, rec, true, guvenliYol(req.query.geri, ""));
+    await formRender(res, rec, true, guvenliYol(req.query.geri, ""), rec.bolum);
   }));
 
   app.post("/oneri/duzenle", girisRequired, sar(async (req, res) => {
@@ -79,9 +83,12 @@ module.exports = function register(app) {
       return res.redirect("/detay?tip=oneri&no=" + encodeURIComponent(no));
     }
     const { k, sahibiEksik } = formToDict(req);
-    if (sahibiEksik || !(k.konu && k.detay)) {
-      res.locals.mesajlar.push(["error", "Öneri sahibinin adı-soyadı, konu ve detay açıklama zorunludur."]);
-      return formRender(res, { ...rec, ...k }, true, guvenliYol(req.query.geri, ""));
+    const secim = C.bolumSecimi(k.bolum, await C.bolumAdlari(), rec.bolum);
+    k.bolum = secim.bolum;
+    if (sahibiEksik || !(k.konu && k.detay) || secim.hata) {
+      res.locals.mesajlar.push(["error", secim.hata && !sahibiEksik && k.konu && k.detay
+        ? secim.hata : "Öneri sahibinin adı-soyadı, bölüm, konu ve detay açıklama zorunludur."]);
+      return formRender(res, { ...rec, ...k }, true, guvenliYol(req.query.geri, ""), rec.bolum);
     }
     // Düzeltmesi atanan denetmen kaydedince kayıt yeniden değerlendirmeye döner
     const revizeTamam = rec.durum === "Düzeltme İsteniyor" && req.denetmen

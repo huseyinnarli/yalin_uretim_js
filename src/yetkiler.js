@@ -12,8 +12,8 @@ const YETKI_GRUPLARI = [
       aciklama: "Öneri/kaizen düzenleme, silme, silinenleri geri yükleme, Excel indirme" },
   ]},
   { grup: "5S", yetkiler: [
-    { k: "bes_plan", ad: "Bölüm & denetim planı",
-      aciklama: "Bölüm ve ekip yönetimi, denetim tarihi planlama, denetmen/misafir dağıtımı" },
+    { k: "bes_plan", ad: "Bölüm listesi & denetim planı",
+      aciklama: "Ortak bölüm listesi (öneri/kaizen açılır listesi, 5S'e dahil), ekip yönetimi, denetim tarihi planlama, denetmen/misafir dağıtımı" },
     { k: "bes_denetim", ad: "Denetim yapma",
       aciklama: "Kendisine planlanmamış olsa da her bölümün denetimini yapabilir" },
     { k: "bes_revize", ad: "Denetim revize & silme",

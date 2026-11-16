@@ -4,7 +4,7 @@ const S = require("../sabitler");
 const I = require("../isim");
 const K = require("../kontrol");
 const { sorgu, tek, calistir } = require("../db");
-const { loadBolumler } = require("./bes");
+const { besBolumleri } = require("./bolumler");
 
 // Formu doldurabilir: o bölümün ekip lideri (denetmen girişli) veya "denetim yapma" yetkili yönetici
 function kontrolDoldurabilir(b, yetkiler, denetmen) {
@@ -97,7 +97,7 @@ async function bugunkuKontroller(denetmen) {
   const bugun = S.bugunIso();
   const ay = bugun.slice(0, 7), gun = parseInt(bugun.slice(8, 10), 10);
   const out = [];
-  for (const b of await loadBolumler()) {
+  for (const b of await besBolumleri()) { // 5S dışı bölümün kontrol formu yoktur
     if (!I.isimIcerir(b.sorumlu, denetmen.ad)) continue;
     const r = await tek(
       `SELECT COUNT(*) AS n FROM kontrol_kayitlari WHERE bolum_id = ? AND ay = ? AND gun = ? AND madde IN (${K.GUNLUK.map(() => "?").join(",")})`,

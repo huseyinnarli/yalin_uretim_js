@@ -25,6 +25,7 @@
             <label>Görevi *</label>
             <input type="text" name="gorevi" required value="<%= kayit.gorevi || '' %>" placeholder="Örn. Üretim Operatörü">
         </div>
+        <%- include('partials/bolum_secimi', { secili: kayit.bolum, mevcut: bolum_mevcut, etiket: 'Bölüm' }) %>
         <div class="field small">
             <label>Tarih *</label>
             <input type="date" name="tarih" value="<%= kayit.tarih || bugun %>" required>

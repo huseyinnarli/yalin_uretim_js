@@ -67,7 +67,8 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | 0 | `servis/gunluk.js` | `gunlukEkle`, `loadGunluk`, `gunlukTemizle` |
 | 0 | `servis/ayarlar.js` | `puanKurallari`, `odulAyarlari`, `guncelKural`, `kuralCozucu`, `puanKuralKaydet`, `puanKuralSil`, `odulAyarKaydet` |
 | 1 | `servis/kayitlar.js` | `getRecord`, `updateRecord`, `combinedRecords`, `filtrele`, `sayfala`, `mevcutAylar`, `kayitDuzenleyebilir`, `kaizeneDonusturebilir`, `kaizenKaydetGorsel` |
-| 1 | `servis/bes.js` | bölüm/denetim/aksiyon okuma, `besSTur*`, `besSIsle`, `besSPlanSatirlari`, `besSTrendTablo`, `turIslendi`, `denetimKriterPuanlari`, `saveDenetimFotolar` |
+| 1 | `servis/bolumler.js` | **Ortak bölüm listesi** (öneri/kaizen açılır listesi + 5S): `loadBolumler`, `bolumById`, `bolumMap`, `besBolumleri` (yalnız 5S'e dahil), `bolumAdlari`, `bolumSecimi` (form doğrulama, saf), `bolumEkle` (toplu, mükerrer atlar), `bolumleriGuncelle` (ad + 5S'e dahil, çakışmada hiçbirini kaydetmez), `bolumKullanim`, `bolumAnahtar` |
+| 2 | `servis/bes.js` | denetim/aksiyon okuma, `besSTur*`, `besSIsle`, `besSPlanSatirlari`, `besSTrendTablo` (5S dışı bölüm yalnız geçmişi varsa), `turIslendi`, `denetimKriterPuanlari`, `saveDenetimFotolar`, `bolumSil` (denetimler + fotoğraflar dahil) |
 | 2 | `servis/hesaplar.js` | denetmen/misafir/yönetici okuma, `denetmenBySifre`, `yoneticiBySifre`, `aktifDenetmen`, `oturumYetkileri`, `sifreCakismasi`, `bolumLiderleri`, `denetmenAdaylari` |
 | 2 | `servis/kontrolFormu.js` | `kontrolDoldurabilir`, `kontrolImzalayabilir`, `kontrolAy`, `kontrolAylari`, `kontrolKaydet`, `kontrolImzala`, `kontrolOzet`, `bugunkuKontroller` |
 | 3 | `servis/isimler.js` | `isimCozucu`, `gorunenAd`, `isimGruplari`, `isimBirlestir`, `isimAyir` |
@@ -96,6 +97,7 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | `src/rotalar/kaizen.js` | Kaizen yeni / **öneriden dönüştür** / düzenle / Excel / görsel servisi (girişli) |
 | `src/rotalar/bes_s.js` | 5S: bölümler (liste + trend), plan, denetim (yap/göster/**revize**/sil/Excel/ZIP), aksiyonlar, ödül işleme, geçmiş, görsel servisleri |
 | `src/rotalar/ayarlar.js` | **Puan ve Ödül Ayarları** (yalnız ana yönetici): görüntüle, önizle (`islem=onizle`), kaydet, kural sürümü kaldır |
+| `src/rotalar/bolumler.js` | **Yönetim › Bölümler** (`/yonetici/bolumler`, yetki `bes_plan`): toplu ekleme (her satıra bir ad), tek "Kaydet" ile ad + 5S'e dahil, silme (geçmişli bölümde denetim sayısı uyarısı) |
 | `src/rotalar/kontrol.js` | **Periyodik kontrol formu**: görüntüle (`?tarih=`), doldur, haftalık/aylık imza, Excel (`?ay=` — o aya kadar) |
 | `src/rotalar/admin.js` | Giriş/çıkış, **Yönetim** sayfası, ek yönetici (yalnız ana yönetici) ve denetmen/misafir yönetimi, şifre, durum değişikliği (onay / gerekçeli red / düzeltme ataması), **görev ataması**, puanlama, kayıt silme, trend Excel |
 | `scripts/import-json.js` | Eski JSON tabanlı sürümden veri + görsel aktarımı (kaynağa salt-okunur, tek transaction, hata durumunda tam geri alma) |
@@ -136,9 +138,9 @@ JSON** olarak saklanır; okurken `db.js`'teki satır dönüştürücüler nesney
 | Tablo | Anahtar | Önemli kolonlar |
 |---|---|---|
 | `config` | `anahtar` | `admin_password` (hash), `secret_key` (oturum imzası), `puan_kurallari` (öneri/kaizen kural sürümleri, JSON), `odul_ayarlari` (eşik + 5S tur ödülleri, JSON) |
-| `oneriler` | `no` (ÖNFR…) | tarih, sahibi, görev, konu, detay, çözüm, 4 katkı alanı, durum, `onay_zamani` (ilk onay — puan kuralı seçimi), `form_no` (eski, gösterilmez), `puan`, `puanlama` (JSON kırılım), degerlendirme_notu, `red_nedeni`, `revize_*` (düzeltme: not, atanan denetmen id/ad, isteyen, zaman, tamamlandı), `gorev_*` (görev: atanan id/ad, termin, not, atayan, zaman), `kaizen_no` (dönüştürülen kaizen) |
+| `oneriler` | `no` (ÖNFR…) | tarih, sahibi, görev, `bolum` (ortak listeden, AD olarak), konu, detay, çözüm, 4 katkı alanı, durum, `onay_zamani` (ilk onay — puan kuralı seçimi), `form_no` (eski, gösterilmez), `puan`, `puanlama` (JSON kırılım), degerlendirme_notu, `red_nedeni`, `revize_*` (düzeltme: not, atanan denetmen id/ad, isteyen, zaman, tamamlandı), `gorev_*` (görev: atanan id/ad, termin, not, atayan, zaman), `kaizen_no` (dönüştürülen kaizen) |
 | `kaizenler` | `no` (ÖSKFR…) | başlangıç/bitiş, konu, bölüm, lider, `uyeler` (JSON), sorumlular, `kazanclar` (JSON), önceki/sonraki + görsel adları, durum, `onay_zamani` (ilk onay — puan kuralı seçimi), `form_no` (eski, gösterilmez), puan, puanlama, `red_nedeni`, `revize_*`, `kaynak_oneri_no` |
-| `bolumler` | `id` (hex8) | ad, `sorumlu` ("Ali / Veli" — çoklu lider), `kisiler` (JSON) |
+| `bolumler` | `id` (hex8) | ad, `sorumlu` ("Ali / Veli" — çoklu lider), `kisiler` (JSON), `bes_dahil` (1 = 5S planı/kontrol formu/5S listelerinde; 0 = yalnız öneri/kaizen formunda seçilir) |
 | `denetimler` | `id` (hex8) | `revize_eden`, `revize_zamani` (denetim revizesi), bolum_id, `tarih` (**tur kimliği**), tur_adi, baslangic/bitis, plan_gun/saat, planlanan/misafir/gerçek denetmen, `puan` (NULL=bekliyor), `puanlar` (JSON kriter→hesaplanan puan), `bulgular` (JSON kriter→bulgu sayısı), `notu`, `aciklamalar` (JSON), `fotolar` (JSON kriter→[dosya]), denetim_tarihi |
 | `aksiyonlar` | `id` (hex8) | denetim_id, tur/bölüm bilgisi, kriter_k/m, aksiyon, sorumlu, atanan_lider, termin, durum (acik/kapali), `kapatma` (JSON: açıklama+kapatan+fotolar+zaman) |
 | `odul_islenen` | `tarih` | ödülleri işlenmiş tur tarihleri |
@@ -250,6 +252,25 @@ grupları ve anahtar uzaklığı ≤1 (10+ karakterde ≤2) olan çiftleri öner
 Form `5s_denetim.ejs`'in revize modudur: kayıtlı bulgular (eski kayıtta `bessBulguTahmin`) ön-doludur; `foto_sil`
 ile seçilen fotoğraflar (yalnız bu denetime aitse) silinir; puan yeniden hesaplanır; denetmen ve tarih değişmez;
 `revize_eden/revize_zamani` yazılır; yeni aksiyonlar `syncDenetimAksiyonlari` kuralıyla eklenir.
+
+### Ortak bölüm listesi (Kasım 2026)
+
+Tek tablo (`bolumler`) hem 5S'in bölümleri hem öneri/kaizen formlarındaki açılır listedir; yönetimi
+**Yönetim › 🏭 Bölümler** (`rotalar/bolumler.js`, yetki `bes_plan`). Kurallar `servis/bolumler.js`'te:
+
+- **5S'e dahil (`bes_dahil`):** 1 ise bölüm denetim turu açılırken plana (`/5s/denetim-turu` → `besBolumleri()`),
+  5S bölüm tablosuna, denetmenin günlük kontrol formu listesine girer; 0 ise yalnız formlarda seçilir. Trend tablosunda
+  5S dışı bölüm yalnız geçmiş puanı varsa görünür. Geçmiş denetimler, aksiyonlar ve ödül defteri adlarını `bolumMap()`
+  ile (5S dışı dahil) çözer. Eski kurulumdaki bölümler kolon varsayılanıyla 5S'e dahildir.
+- **Kayıtta saklama:** öneri/kaizen bölümü **adıyla** saklar (`oneriler.bolum`, `kaizenler.bolum`). Bölüm adı
+  değişince eski kayıtlar değişmez; kullanım sayıları adla eşleşir (`bolumKullanim`).
+- **Doğrulama (`bolumSecimi`, saf):** liste boşsa serbest metin; değilse seçim zorunlu ve listedeki yazılışa
+  çevrilir (büyük/küçük harf + boşluk farkı yok sayılır). Düzenlemede kaydın mevcut değeri listede olmasa da korunur
+  (formda "(eski kayıt — listede yok)" seçeneği, `partials/bolum_secimi.ejs`).
+- **Ad tekliği:** `bolumEkle` mükerrerleri atlar; `bolumleriGuncelle` iki bölüm aynı ada düşerse hiçbirini kaydetmez.
+  Eski sürüm aynı adı engellemiyordu — Bölümler sayfası ve `gecis-kontrol` bunu raporlar.
+- **Silme (`bolumSil`):** eski davranış korunur — bölümün denetimleri ve fotoğrafları da silinir; sayfa geçmişli
+  bölümde denetim sayısını onay penceresinde gösterir ve 5S'ten çıkarmak için silmek yerine kutunun kaldırılmasını önerir.
 
 ### 5S periyodik kontrol formu
 `/5s/bolum/:bid/kontrol?tarih=YYYY-MM-DD` herkese açık (takvim alanı `static/takvim.js` flatpickr ile açılır, gün
@@ -379,5 +400,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 159 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 181 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

@@ -1,0 +1,78 @@
+<%- include('partials/header') %>
+<div class="ayar-sayfa">
+<div class="list-head">
+    <h1 class="page-title">🏭 Bölümler</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/yonetici">← Yönetim</a>
+        <a class="btn ghost" href="/5s#bolumler">🧹 5S</a>
+    </div>
+</div>
+<p class="subtitle">Bu liste <strong>öneri ve kaizen formlarındaki açılır listede</strong> çıkar. <strong>5S'e dahil</strong>
+    işaretli bölümler ayrıca 5S denetim planına, periyodik kontrol formuna ve 5S tablolarına girer.</p>
+
+<% if (ciftler.length) { %>
+<div class="flash error">Aynı adla birden fazla bölüm var: <strong><%= ciftler.join(', ') %></strong>. Birinin adını
+    değiştirmeden ya da birini silmeden liste kaydedilemez.</div>
+<% } %>
+
+<form method="post" action="/yonetici/bolumler/ekle" class="form-card ayar-form" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <h3 class="ayar-baslik">➕ Bölüm ekle</h3>
+    <div class="bolum-ekle">
+        <textarea name="adlar" rows="3" required aria-label="Eklenecek bölüm adları"
+                  placeholder="Her satıra bir bölüm adı&#10;Örn. Montaj Hattı 1&#10;Boyahane"></textarea>
+        <div class="bolum-ekle-yan">
+            <label class="kutu-secim"><input type="checkbox" name="bes_dahil" value="1" checked> 5S'e dahil</label>
+            <button type="submit" class="btn primary">Ekle</button>
+        </div>
+    </div>
+</form>
+
+<% if (bolumler.length) { %>
+<form method="post" action="/yonetici/bolumler/kaydet" class="form-card ayar-form" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <h3 class="ayar-baslik">📋 Liste — <%= bolumler.length %> bölüm, <%= bolumler.filter((b) => b.bes_dahil).length %> tanesi 5S'te</h3>
+    <div class="table-wrap">
+    <table class="data-table mini-tablo bolum-yonetim">
+        <thead><tr><th>Bölüm adı</th><th class="orta">5S'e dahil</th><th>Ekip lideri</th>
+            <th class="sayi">Öneri</th><th class="sayi">Kaizen</th><th class="sayi">5S denetimi</th><th></th></tr></thead>
+        <tbody>
+        <% for (const b of bolumler) { const k = kullanim[b.id] || { oneri: 0, kaizen: 0, denetim: 0 }; %>
+            <tr>
+                <td data-label="Bölüm adı"><input type="hidden" name="id" value="<%= b.id %>">
+                    <input type="text" name="ad_<%= b.id %>" value="<%= b.ad %>" maxlength="<%= ad_uzunluk %>" required aria-label="Bölüm adı"></td>
+                <td data-label="5S'e dahil" class="orta">
+                    <input type="checkbox" name="bes_<%= b.id %>" value="1" <%= b.bes_dahil ? 'checked' : '' %> aria-label="<%= b.ad %> 5S'e dahil"></td>
+                <td data-label="Ekip lideri"><%= b.sorumlu || '—' %></td>
+                <td data-label="Öneri" class="sayi"><%= k.oneri %></td>
+                <td data-label="Kaizen" class="sayi"><%= k.kaizen %></td>
+                <td data-label="5S denetimi" class="sayi"><%= k.denetim %></td>
+                <td data-label="" class="nowrap">
+                    <% if (b.bes_dahil || k.denetim) { %><a class="btn-mini eval" href="/5s/bolum/<%= b.id %>">5S detay</a><% } %>
+                    <button type="submit" class="btn-mini del" form="sil-<%= b.id %>">Sil</button>
+                </td>
+            </tr>
+        <% } %>
+        </tbody>
+    </table>
+    </div>
+    <div class="ayar-butonlar"><button type="submit" class="btn primary">💾 Değişiklikleri kaydet</button></div>
+    <p class="bolum-not">Ad değişikliği eski öneri/kaizen kayıtlarındaki bölüm adını değiştirmez; öneri ve kaizen sayıları adı
+        eşleşen kayıtları gösterir. Bir bölümü 5S'ten çıkarmak için silmeyin, <strong>5S'e dahil</strong> işaretini kaldırın:
+        geçmiş denetimleri korunur. Ekip lideri ve personel 5S detay sayfasından girilir.</p>
+</form>
+
+<% for (const b of bolumler) { const k = kullanim[b.id] || { denetim: 0 }; %>
+<form id="sil-<%= b.id %>" method="post" action="/yonetici/bolumler/sil" hidden onsubmit="return confirm(this.dataset.onay)"
+      data-onay="<%= k.denetim
+        ? `“${b.ad}” silinsin mi? 5S geçmişindeki ${k.denetim} denetim ve fotoğrafları da KALICI olarak silinir. Yalnız 5S'ten çıkarmak istiyorsanız iptal edip “5S'e dahil” işaretini kaldırın.`
+        : `“${b.ad}” listeden silinsin mi? Öneri/kaizen kayıtlarındaki bölüm adı değişmez.` %>">
+    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <input type="hidden" name="id" value="<%= b.id %>">
+</form>
+<% } %>
+<% } else { %>
+<div class="empty">Henüz bölüm yok. Yukarıdan ekleyin. Liste tanımlanana kadar öneri ve kaizen formları serbest metin bölüm alanı gösterir.</div>
+<% } %>
+</div>
+<%- include('partials/footer') %>

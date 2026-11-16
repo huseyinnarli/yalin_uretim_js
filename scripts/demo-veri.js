@@ -81,6 +81,10 @@ async function main() {
     await calistir("INSERT INTO bolumler(id, ad, sorumlu, kisiler) VALUES(?,?,?,?)", [id, ad, sorumlu, js(kisiler)]);
     bolumler.push({ id, ad, sorumlu, kisiler });
   }
+  // 5S'e dahil olmayan (yalnız öneri/kaizen formunda seçilen) bölümler
+  for (const ad of ["İdari İşler", "Satın Alma"]) {
+    await calistir("INSERT INTO bolumler(id, ad, sorumlu, kisiler, bes_dahil) VALUES(?,?,'','[]',0)", [C.uid(), ad]);
+  }
   const denetmenId = {};
   for (const [ad, sifre] of DENETMENLER) {
     denetmenId[ad] = C.uid();
@@ -171,6 +175,8 @@ async function main() {
     // Listenin sonundakiler en yeni: son kayıtlar değerlendirme bekliyor, eskiler onaylı/puanlı
     const d = gunOnce(Math.floor((ONERILER.length - 1 - i) * 175 / ONERILER.length) + 1);
     let sahibi = sec(kisiler);
+    // Öneri sahibinin bölümü (her 6. öneri 5S dışı bölümden)
+    const bolumAd = i % 6 === 5 ? "İdari İşler" : (bolumler.find((b) => b.kisiler.includes(sahibi)) || bolumler[0]).ad;
     if (i === 3) sahibi = "MEHMET KAYA";   // isim birleştirme örneği (otomatik)
     if (i === 7) sahibi = "Mehmet Kya";    // yazım hatası örneği (İsim Birleştirme önerisi)
     const no = oneriNo(d);
@@ -198,12 +204,12 @@ async function main() {
         gorev_zamani: zaman(d) });
     }
     await calistir(
-      `INSERT INTO oneriler(\`no\`, tarih, sahibi, gorevi, konu, detay, cozum, kalite, verimlilik, isg, maliyet, ek,
+      `INSERT INTO oneriler(\`no\`, tarih, sahibi, gorevi, bolum, konu, detay, cozum, kalite, verimlilik, isg, maliyet, ek,
          durum, puan, puanlama, degerlendirme_notu, kayit_zamani, red_nedeni, revize_notu, revize_atanan_id,
          revize_atanan_ad, revize_isteyen, revize_zamani, gorev_atanan_id, gorev_atanan_ad, gorev_termin, gorev_notu,
          gorev_atayan, gorev_zamani)
-       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [no, iso(d), sahibi, "Operatör", konu, detay, cozum, "Hata azalır", "Süre kısalır", "", "", "",
+       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [no, iso(d), sahibi, "Operatör", bolumAd, konu, detay, cozum, "Hata azalır", "Süre kısalır", "", "", "",
         durum, alan.puan, alan.puanlama, alan.puan ? "Komite değerlendirmesi" : "", zaman(d), alan.red_nedeni,
         alan.revize_notu, alan.revize_atanan_id, alan.revize_atanan_ad, alan.revize_isteyen, alan.revize_zamani,
         alan.gorev_atanan_id, alan.gorev_atanan_ad, alan.gorev_termin, alan.gorev_notu, alan.gorev_atayan, alan.gorev_zamani]);
