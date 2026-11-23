@@ -69,7 +69,7 @@ saklar; ad değişikliği eski kayıtları değiştirmez, düzenlemede listeden 
   - **✕ Reddet** — red nedeni zorunlu. Onaylanmış kayıt reddedilemez.
   - **✏ Düzeltme İste** — düzeltmeyi yapacak **denetmen** + açıklama zorunlu. Yalnızca o denetmen düzenler;
     kaydedince kayıt "Değerlendiriliyor"a döner.
-- **📌 Görev:** onaylanan öneri bir denetmene atanır (termin + not). Atanan kişi **🔧 Kaizene Dönüştür** ile
+- **📌 Görev:** onaylanan öneri bir denetmene atanır; **termin ve açıklama zorunludur** (termin bugünden önce olamaz). Atanan kişi **🔧 Kaizene Dönüştür** ile
   kaizeni açar; öneri ↔ kaizen bağlantısı detaylarda görünür.
 - **★ Puanla** (Puanlama yetkisi) — 100 üzerinden rubrik: Temel 10 · Etki 40 · Maliyet 20 · Yaygınlaştırma 15 ·
   Efor 15. Kaydedince kaydın detayına dönülür; "← Listeye Dön" kaldığın sayfaya/filtreye götürür.

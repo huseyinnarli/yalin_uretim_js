@@ -1,5 +1,16 @@
 # Sürüm Notları
 
+## 23 Kasım 2026 — Görev atamasında termin ve açıklama zorunlu
+
+- Öneriyi uygulayıp kaizene dönüştürme görevi atanırken **termin** ve **açıklama** artık zorunlu (önceden isteğe bağlıydı).
+  - Onay kartında görev isteğe bağlı kalır; denetmen seçilince termin ve açıklama kutuları zorunlu olur. Eksikse kayıt
+    onaylanmaz ve sebebi yazılır.
+  - "Uygulama Görevi Ata / Görevi Değiştir" kartında ikisi de her zaman zorunlu.
+  - Termin bugünden önce olamaz (takvimde geçmiş günler kapalı). Görev değiştirilirken termin aynı bırakılırsa geçmişte
+    kalmış eski termin kabul edilir.
+  - Başarı mesajında (ve işlem günlüğünde) termin tarihi yazar.
+- Veritabanı: değişiklik yok. e2e testi: **210/210** (7 yeni kontrol).
+
 ## 16 Kasım 2026 (devam) — Bölüm personeli ve görev tanımları
 
 - Sayfa adı **Yönetim › 🏭 Bölümler ve Görevler** (yetki adı: Bölüm/görev listeleri & denetim planı).

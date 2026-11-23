@@ -196,10 +196,11 @@
         <input type="hidden" name="durum" value="Onaylandı"><input type="hidden" name="don" value="<%= bu_sayfa %>">
         <h3>✓ Onayla</h3>
         <% if (tip == 'oneri') { %>
-        <p class="bos-not">İsterseniz uygulayıp kaizene dönüştürecek kişiyi şimdi atayın:</p>
-        <select name="gorev_denetmen"><option value="">— görev atama (isteğe bağlı) —</option><%- include('partials/denetmen_secenekleri', { denetmenler, secili: null }) %></select>
-        <input type="date" name="gorev_termin" title="Termin (isteğe bağlı)" placeholder="Termin (isteğe bağlı)">
-        <textarea name="gorev_notu" rows="2" placeholder="Görev notu (isteğe bağlı)"></textarea>
+        <p class="bos-not">İsterseniz uygulayıp kaizene dönüştürecek kişiyi şimdi atayın; atarsanız termin ve açıklama zorunludur:</p>
+        <select name="gorev_denetmen" data-gorev-sec><option value="">— görev atama (isteğe bağlı) —</option><%- include('partials/denetmen_secenekleri', { denetmenler, secili: null }) %></select>
+        <input type="date" name="gorev_termin" min="<%= bugun_iso %>" data-gorev-alan
+               title="Termin — görev atanırsa zorunlu" placeholder="Termin — görev atanırsa zorunlu">
+        <textarea name="gorev_notu" rows="2" data-gorev-alan placeholder="Görev açıklaması (ne yapılacak) — görev atanırsa zorunlu"></textarea>
         <% if (sabitOneri) { %><p class="bos-not">Onaylanınca öneri sahibine <strong><%= puanfmt(kural.oneri_sabit) %> puan</strong> yazılır (puanlama tablosu kullanılmaz).</p><% } %>
         <% } else { %>
         <p class="bos-not">Onaylandıktan sonra puanlanabilir.</p>
@@ -241,8 +242,11 @@
         <h3>📌 <%= r.gorev_atanan_id ? 'Görevi Değiştir' : 'Uygulama Görevi Ata' %></h3>
         <p class="bos-not">Atanan kişi öneriyi uygular ve kaizene dönüştürür.</p>
         <select name="gorev_denetmen" required><option value="">— denetmen seçin —</option><%- include('partials/denetmen_secenekleri', { denetmenler, secili: r.gorev_atanan_id }) %></select>
-        <input type="date" name="gorev_termin" value="<%= r.gorev_termin || '' %>" title="Termin (isteğe bağlı)" placeholder="Termin (isteğe bağlı)">
-        <textarea name="gorev_notu" rows="2" placeholder="Görev notu (isteğe bağlı)"><%= r.gorev_notu || '' %></textarea>
+        <%# Eski görevin termini geçmişte kaldıysa aynı tarih seçili kalabilsin diye min ona çekilir (sunucu: değişmeyen termin kabul) %>
+        <input type="date" name="gorev_termin" value="<%= r.gorev_termin || '' %>" required
+               min="<%= r.gorev_termin && r.gorev_termin < bugun_iso ? r.gorev_termin : bugun_iso %>"
+               title="Termin — zorunlu" placeholder="Termin — zorunlu">
+        <textarea name="gorev_notu" rows="2" required placeholder="Görev açıklaması (ne yapılacak) — zorunlu"><%= r.gorev_notu || '' %></textarea>
         <button type="submit" class="btn primary">📌 Kaydet</button>
         <% if (r.gorev_atanan_id) { %>
         <button type="submit" name="kaldir" value="1" class="btn-mini del" formnovalidate>Görevi Kaldır</button>
@@ -250,6 +254,20 @@
     </form>
     <% } %>
 </div>
+<script>
+// Onay kartında görevi yapacak kişi seçilince termin ve açıklama zorunlu olur (sunucu da denetler).
+// Tarih kutusunun görünen kopyası (takvim) de güncellenir.
+document.querySelectorAll('[data-gorev-sec]').forEach(function (sec) {
+    function guncelle() {
+        sec.form.querySelectorAll('[data-gorev-alan]').forEach(function (el) {
+            el.required = !!sec.value;
+            if (el._flatpickr && el._flatpickr.altInput) el._flatpickr.altInput.required = !!sec.value;
+        });
+    }
+    sec.addEventListener('change', guncelle);
+    guncelle();
+});
+</script>
 <% } %>
 
 <% if (!silinen && yetki('kayit')) { %>

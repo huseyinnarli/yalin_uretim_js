@@ -440,12 +440,44 @@ async function main() {
       revize_notu: "Maliyet etkisini yazın", revize_denetmen: dz.id });
     [[rd]] = await db.query("SELECT durum, revize_atanan_ad FROM oneriler WHERE `no` = ?", [revNo]);
     ok("düzeltme denetmene atandı", rd.durum === "Düzeltme İsteniyor" && rd.revize_atanan_ad === "Deniz Denetmen");
-    // Onaylanacak öneri + görev ataması (kaizene dönüştürme)
+    // Onaylanacak öneri + görev ataması (kaizene dönüştürme): görev atanırsa termin + açıklama zorunlu, termin geçmiş olamaz
     const gorNo = "ÖNFR9901-04";
+    const gunEkle = (n) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+    const ileriTermin = gunEkle(30), dunTermin = gunEkle(-2);
     await post("/durum", { csrf_token: csrf, tip: "oneri", no: gorNo, durum: "Onaylandı", gorev_denetmen: dz.id,
-      gorev_termin: "2026-12-31", gorev_notu: "Hatta uygula" });
-    [[rd]] = await db.query("SELECT durum, gorev_atanan_ad, form_no FROM oneriler WHERE `no` = ?", [gorNo]);
-    ok("onayla birlikte görev atandı (form no atanmadı)", rd.durum === "Onaylandı" && rd.gorev_atanan_ad === "Deniz Denetmen" && !rd.form_no);
+      gorev_termin: "", gorev_notu: "Hatta uygula" });
+    html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(gorNo)}`);
+    [[rd]] = await db.query("SELECT durum, gorev_atanan_ad FROM oneriler WHERE `no` = ?", [gorNo]);
+    ok("görev atanırken termin boşsa onay da yapılmaz", rd.durum !== "Onaylandı" && !rd.gorev_atanan_ad
+      && html.includes("termin ve açıklama zorunludur") && html.includes("data-gorev-alan"));
+    await post("/durum", { csrf_token: csrf, tip: "oneri", no: gorNo, durum: "Onaylandı", gorev_denetmen: dz.id,
+      gorev_termin: ileriTermin, gorev_notu: "  " });
+    [[rd]] = await db.query("SELECT durum FROM oneriler WHERE `no` = ?", [gorNo]);
+    ok("görev atanırken açıklama boşsa onay yapılmaz", rd.durum !== "Onaylandı");
+    await post("/durum", { csrf_token: csrf, tip: "oneri", no: gorNo, durum: "Onaylandı", gorev_denetmen: dz.id,
+      gorev_termin: dunTermin, gorev_notu: "Hatta uygula" });
+    html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(gorNo)}`);
+    [[rd]] = await db.query("SELECT durum FROM oneriler WHERE `no` = ?", [gorNo]);
+    ok("geçmiş tarihli termin reddedildi", rd.durum !== "Onaylandı" && html.includes("Termin bugünden önce olamaz"));
+    await post("/durum", { csrf_token: csrf, tip: "oneri", no: gorNo, durum: "Onaylandı", gorev_denetmen: dz.id,
+      gorev_termin: ileriTermin, gorev_notu: "Hatta uygula" });
+    [[rd]] = await db.query("SELECT durum, gorev_atanan_ad, gorev_termin, gorev_notu, form_no FROM oneriler WHERE `no` = ?", [gorNo]);
+    ok("onayla birlikte görev atandı (form no atanmadı)", rd.durum === "Onaylandı" && rd.gorev_atanan_ad === "Deniz Denetmen"
+      && rd.gorev_termin === ileriTermin && rd.gorev_notu === "Hatta uygula" && !rd.form_no);
+    html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(gorNo)}`);
+    ok("görev değiştirme formunda termin ve açıklama zorunlu", /name="gorev_termin"[^>]*required/.test(html) && /name="gorev_notu" rows="2" required/.test(html));
+    // Görev değiştirme (/gorev): açıklamasız kaydedilmez; değişmeyen eski (geçmiş) termin kabul, yeni geçmiş tarih değil
+    await post("/gorev", { csrf_token: csrf, no: gorNo, gorev_denetmen: dz.id, gorev_termin: ileriTermin, gorev_notu: "" });
+    [[rd]] = await db.query("SELECT gorev_notu FROM oneriler WHERE `no` = ?", [gorNo]);
+    ok("görev değiştirirken açıklama zorunlu", rd.gorev_notu === "Hatta uygula");
+    await db.query("UPDATE oneriler SET gorev_termin = ? WHERE `no` = ?", [dunTermin, gorNo]);
+    await post("/gorev", { csrf_token: csrf, no: gorNo, gorev_denetmen: dz.id, gorev_termin: dunTermin, gorev_notu: "Not güncellendi" });
+    [[rd]] = await db.query("SELECT gorev_notu FROM oneriler WHERE `no` = ?", [gorNo]);
+    ok("değişmeyen eski termin ile görev güncellenebilir", rd.gorev_notu === "Not güncellendi");
+    await post("/gorev", { csrf_token: csrf, no: gorNo, gorev_denetmen: dz.id, gorev_termin: gunEkle(-5), gorev_notu: "Geçmiş" });
+    [[rd]] = await db.query("SELECT gorev_notu FROM oneriler WHERE `no` = ?", [gorNo]);
+    ok("görev değiştirirken yeni termin geçmiş olamaz", rd.gorev_notu === "Not güncellendi");
+    await post("/gorev", { csrf_token: csrf, no: gorNo, gorev_denetmen: dz.id, gorev_termin: ileriTermin, gorev_notu: "Hatta uygula" });
 
     // Denetmen olarak
     csrf = await girisYap("deniz123");

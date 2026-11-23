@@ -125,6 +125,7 @@ const ortakLocals = sar(async (req, res, next) => {
   res.locals.marka_adi = S.MARKA_ADI;
   res.locals.marka_logo = C.logoBul();
   res.locals.trdate = C.trdate;
+  res.locals.bugun_iso = S.bugunIso(); // Türkiye saatiyle bugün (tarih alanlarında min= için)
   res.locals.puanfmt = C.puanfmt;
   res.locals.adBol = I.adBol;
   res.locals.mesajlar = req.session.flash || [];

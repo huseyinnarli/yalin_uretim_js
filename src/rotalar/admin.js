@@ -48,6 +48,23 @@ function oturumuTemizle(session) {
 }
 
 module.exports = function register(app) {
+  // Uygulama/kaizene dönüştürme görevi: denetmen + termin + açıklama ZORUNLU. Termin bugünden önce olamaz
+  // (görev değiştirilirken tarihi değişmeyen eski termin kalabilir). Döner: { alanlar } ya da { hata }
+  function gorevAlanlari(req, denetmen, eskiTermin = "") {
+    const termin = alan(req, "gorev_termin");
+    const notu = alan(req, "gorev_notu");
+    if (!termin || !notu) return { hata: "Görev atarken termin ve açıklama zorunludur." };
+    const t = new Date(termin + "T00:00:00Z");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(termin) || isNaN(t) || t.toISOString().slice(0, 10) !== termin) {
+      return { hata: "Termin geçerli bir tarih olmalı." };
+    }
+    if (termin !== eskiTermin && termin < S.bugunIso()) return { hata: "Termin bugünden önce olamaz." };
+    return { alanlar: {
+      gorev_atanan_id: denetmen.id, gorev_atanan_ad: denetmen.ad, gorev_termin: termin,
+      gorev_notu: notu, gorev_atayan: yapanAd(req), gorev_zamani: S.zamanTr(),
+    } };
+  }
+
   // Tek giriş: şifre ana yöneticininkiyse ana yönetici (tam yetki), bir ek
   // yöneticininkiyse o yönetici (kısıtlı yetki), bir denetmeninkiyse o denetmen.
   app.get("/yonetici/giris", (req, res) => {
@@ -365,16 +382,14 @@ module.exports = function register(app) {
     } else if (durum === "Onaylandı") {
       // İlk onay zamanı: kayda o günün puan kuralı uygulanır (src/puanKurallari.js)
       if (!mevcut.onay_zamani) alanlar.onay_zamani = S.zamanTr();
-      // Öneride isteğe bağlı: onayla birlikte uygulama görevi ata
+      // Öneride isteğe bağlı: onayla birlikte uygulama görevi ata (atanırsa termin + açıklama zorunlu)
       if (tip === "oneri" && req.body.gorev_denetmen) {
         const g = await C.denetmenById(req.body.gorev_denetmen);
-        if (g) {
-          Object.assign(alanlar, {
-            gorev_atanan_id: g.id, gorev_atanan_ad: g.ad, gorev_termin: alan(req, "gorev_termin"),
-            gorev_notu: alan(req, "gorev_notu"), gorev_atayan: yapanAd(req), gorev_zamani: S.zamanTr(),
-          });
-          ek += ` · görev ${g.ad} kişisine atandı`;
-        }
+        if (!g) return hata("Görevi yapacak denetmen bulunamadı. Kayıt onaylanmadı.");
+        const gorev = gorevAlanlari(req, g);
+        if (gorev.hata) return hata(`${gorev.hata} Kayıt onaylanmadı.`);
+        Object.assign(alanlar, gorev.alanlar);
+        ek += ` · görev ${g.ad} kişisine atandı (termin ${C.trdate(gorev.alanlar.gorev_termin)})`;
       }
     }
     await C.updateRecord(tip, no, alanlar);
@@ -401,11 +416,10 @@ module.exports = function register(app) {
     }
     const g = await C.denetmenById(req.body.gorev_denetmen || "");
     if (!g) { flash(req, "error", "Görevi yapacak denetmeni seçin."); return res.redirect(don); }
-    await C.updateRecord("oneri", no, {
-      gorev_atanan_id: g.id, gorev_atanan_ad: g.ad, gorev_termin: alan(req, "gorev_termin"),
-      gorev_notu: alan(req, "gorev_notu"), gorev_atayan: yapanAd(req), gorev_zamani: S.zamanTr(),
-    });
-    flash(req, "success", `${no} uygulama ve kaizene dönüştürme görevi ${g.ad} kişisine atandı.`);
+    const gorev = gorevAlanlari(req, g, oneri.gorev_termin || "");
+    if (gorev.hata) { flash(req, "error", gorev.hata); return res.redirect(don); }
+    await C.updateRecord("oneri", no, gorev.alanlar);
+    flash(req, "success", `${no} uygulama ve kaizene dönüştürme görevi ${g.ad} kişisine atandı (termin ${C.trdate(gorev.alanlar.gorev_termin)}).`);
     res.redirect(don);
   }));
 

@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 203 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 210 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -181,6 +181,9 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     görevi ve kaizen ekip görevleri açılır listeden (`kaizenler.lider_gorevi`, `uye_gorevleri` → 30 kolon); `src/liste.js`,
     `servis/gorevTanimlari.js` (katman 0), `partials/liste_secimi.ejs` (`bolum_secimi.ejs` kaldırıldı). Eski DB ile geçiş +
     geri dönüş denendi. e2e 203/203.
+22. **Görev atamasında termin + açıklama zorunlu** (23 Kasım): `admin.js:gorevAlanlari` (/durum onay + /gorev ortak;
+    termin geçerli tarih ve bugünden önce değil, değişmeyen eski termin kabul); onay kartında denetmen seçilince alanlar
+    `required` (detay.ejs satır içi betik, takvimin görünen kutusu dahil); `res.locals.bugun_iso`. e2e 210/210.
 
 ## Açık konular
 
