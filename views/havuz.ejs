@@ -3,10 +3,10 @@
    const gecikenSay = beklemede.filter((r) => r.bekleme_gozden && r.bekleme_gozden <= bugun_iso).length; %>
 
 <div class="list-head">
-    <h1 class="page-title">🗃 Öneri Havuzu</h1>
+    <h1 class="page-title"><%- ik('inbox') %> Öneri Havuzu</h1>
     <div class="list-actions">
         <a class="btn ghost" href="/liste">← Öneri &amp; Kaizen</a>
-        <a class="btn ghost" href="/arsiv">🗂 Reddedilen &amp; Silinen</a>
+        <a class="btn ghost" href="/arsiv"><%- ik('archive') %> Reddedilen &amp; Silinen</a>
     </div>
 </div>
 

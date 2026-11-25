@@ -1,21 +1,23 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">📜 İşlem Günlüğü</h1>
+    <h1 class="page-title"><%- ik('history') %> İşlem Günlüğü</h1>
     <div class="list-actions">
-        <a class="btn ghost" href="/yonetici">← Yönetici Paneli</a>
+        <a class="btn ghost" href="/yonetici">← Yönetim</a>
         <% if (kayitlar.length) { %>
+        <a class="btn ghost" href="/yonetici/gunluk/excel"><%- ik('download') %> Günlük Excel (tümü)</a>
         <form method="post" action="/yonetici/gunluk/temizle" style="display:inline"
-              onsubmit="return confirm('Tüm işlem günlüğü kalıcı olarak silinsin mi?');">
+              onsubmit="return confirm('Tüm işlem günlüğü kalıcı olarak silinsin mi? (Önce Excel olarak indirmeniz önerilir.)');">
             <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-            <button type="submit" class="btn-mini del">🗑 Günlüğü Temizle</button>
+            <button type="submit" class="btn-mini del"><%- ik('trash-2') %> Günlüğü Temizle</button>
         </form>
         <% } %>
     </div>
 </div>
 
 <p class="subtitle">Yöneticilerin ve denetmenlerin yaptığı <strong>değerlendirme ve yetki gerektiren</strong>
-    işlemler burada zaman sırasıyla (en yeni üstte) listelenir. Son 500 kayıt gösterilir.</p>
+    işlemler burada zaman sırasıyla (en yeni üstte) listelenir. Son 500 kayıt gösterilir; tamamı için Excel'i indirin
+    (temizlemeden önce arşivlemek için de kullanılabilir).</p>
 
 <% if (kayitlar.length) { %>
 <div class="table-wrap">

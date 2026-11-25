@@ -1,14 +1,13 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">🏆 Puan Listesi</h1>
+    <h1 class="page-title"><%- ik('trophy') %> Puan Listesi</h1>
     <div class="list-actions">
-        <a class="btn ghost" href="/liste">💡🔧 Öneri &amp; Kaizen</a>
-        <a class="btn ghost" href="/5s">🧹 5S</a>
-        <a class="btn ghost" href="/odul-alanlar">🎁 Ödül Alanlar</a>
+        <% if (!girisli) { %><a class="btn ghost" href="/5s"><%- ik('brush-cleaning') %> 5S</a><% } %>
+        <a class="btn ghost" href="/odul-alanlar"><%- ik('gift') %> Ödül Alanlar</a>
         <% if (yetki('odul')) { %>
-        <a class="btn ghost" href="/isimler">🔗 İsim Birleştirme</a>
-        <a class="btn ghost" href="/puan-durumu/excel">⬇ Liste Excel</a>
+        <a class="btn ghost" href="/isimler"><%- ik('link') %> İsim Birleştirme</a>
+        <a class="btn ghost" href="/puan-durumu/excel"><%- ik('download') %> Liste Excel</a>
         <% } %>
     </div>
 </div>
@@ -36,12 +35,12 @@
         <% siralama.forEach(function (k, i) { const idx = i + 1; %>
         <tr class="puan-satir-ana <%= idx <= 3 ? 'lider-satir' : '' %>" data-detay="detay-<%= idx %>">
             <td class="sira" data-label="Sıra">
-                <% if (idx == 1) { %>🥇<% } else if (idx == 2) { %>🥈<% } else if (idx == 3) { %>🥉<% } else { %><%= idx %><% } %>
+                <% if (idx == 1) { %><span class="madalya m1">1</span><% } else if (idx == 2) { %><span class="madalya m2">2</span><% } else if (idx == 3) { %><span class="madalya m3">3</span><% } else { %><%= idx %><% } %>
             </td>
             <td class="personel" data-label="Personel">
                 <button type="button" class="detay-ac" aria-label="Puan dağılımı">▸</button>
                 <%= k.ad %>
-                <% if (k.odul_sayisi) { %><span class="odul-rozet" title="Aldığı ödül">🎁 <%= k.odul_sayisi %></span><% } %>
+                <% if (k.odul_sayisi) { %><span class="odul-rozet" title="Aldığı ödül"><%- ik('gift') %> <%= k.odul_sayisi %></span><% } %>
             </td>
             <td data-label="Öneri"><%= puanfmt(k.oneri) %></td>
             <td data-label="Kaizen"><%= puanfmt(k.kaizen) %></td>
@@ -54,7 +53,7 @@
                 <form method="post" action="/odul-ver" style="display:inline"
                       onsubmit="return confirm(this.dataset.onay)" data-onay="<%= k.ad %> ödül aldı olarak işaretlenecek ve net puanından <%= puanfmt(esik) %> düşülecek. Devam?"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                     <input type="hidden" name="ad" value="<%= k.ad %>">
-                    <button type="submit" class="btn-mini onay">🎁 Ödül Ver (−<%= puanfmt(esik) %>)</button>
+                    <button type="submit" class="btn-mini onay"><%- ik('gift') %> Ödül Ver (−<%= puanfmt(esik) %>)</button>
                 </form>
                 <% } else { %>
                 <span class="kalan-not"><%= puanfmt(esik - k.net) %> puan kaldı</span>
@@ -78,14 +77,14 @@
                     <ul class="puan-detay-liste">
                         <% for (const d of k.detay) { %>
                         <li class="pd-<%= d.tip %>">
-                            <span class="pd-rozet"><% if (d.tip == 'oneri') { %>💡 Öneri<% } else if (d.tip == 'kaizen') { %>🔧 Kaizen<% } else { %>🧹 5S<% } %></span>
+                            <span class="pd-rozet"><% if (d.tip == 'oneri') { %><%- ik('lightbulb') %> Öneri<% } else if (d.tip == 'kaizen') { %><%- ik('wrench') %> Kaizen<% } else { %><%- ik('brush-cleaning') %> 5S<% } %></span>
                             <span class="pd-etiket"><% if (d.no) { %><span class="mono"><%= d.no %></span> · <% } %><%= d.etiket %></span>
                             <span class="pd-puan">+<%= puanfmt(d.puan) %></span>
                         </li>
                         <% } %>
                     </ul>
                     <% if (k.harcanan) { %>
-                    <p class="pd-harcanan">🎁 Verilen ödül(ler): −<%= puanfmt(k.harcanan) %> · <strong>Net: <%= puanfmt(k.net) %></strong></p>
+                    <p class="pd-harcanan"><%- ik('gift') %> Verilen ödül(ler): −<%= puanfmt(k.harcanan) %> · <strong>Net: <%= puanfmt(k.net) %></strong></p>
                     <% } %>
                     <% } else { %>
                     <p class="bos-not">Kaynak detayı bulunamadı.</p>

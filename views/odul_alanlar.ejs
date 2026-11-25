@@ -1,11 +1,11 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">🎁 Ödül Alanlar</h1>
+    <h1 class="page-title"><%- ik('gift') %> Ödül Alanlar</h1>
     <div class="list-actions">
         <a class="btn ghost" href="/puan-durumu">← Puan Listesi</a>
         <% if (yetki('odul')) { %>
-        <a class="btn ghost" href="/odul-alanlar/excel">⬇ Excel İndir</a>
+        <a class="btn ghost" href="/odul-alanlar/excel"><%- ik('download') %> Excel İndir</a>
         <% } %>
     </div>
 </div>

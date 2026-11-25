@@ -1,15 +1,15 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">📋 Öneri &amp; Kaizen Listesi</h1>
+    <h1 class="page-title"><%- ik('clipboard-list') %> Öneri &amp; Kaizen Listesi</h1>
     <div class="list-actions">
         <a class="btn primary" href="/oneri/yeni">+ Öneri</a>
         <a class="btn primary" href="/kaizen/yeni">+ Kaizen</a>
-        <a class="btn ghost" href="/havuz">🗃 Öneri Havuzu<% if (havuz.beklemede + havuz.uygulanamadi) { %> <span class="sayi-rozet"><%= havuz.beklemede + havuz.uygulanamadi %></span><% } %></a>
-        <a class="btn ghost" href="/arsiv">🗂 Reddedilen &amp; Silinen</a>
+        <a class="btn ghost" href="/havuz"><%- ik('inbox') %> Öneri Havuzu<% if (havuz.beklemede + havuz.uygulanamadi) { %> <span class="sayi-rozet"><%= havuz.beklemede + havuz.uygulanamadi %></span><% } %></a>
+        <a class="btn ghost" href="/arsiv"><%- ik('archive') %> Reddedilen &amp; Silinen</a>
         <% if (yetki('kayit')) { %>
-        <a class="btn ghost" href="/oneri/excel">⬇ Öneri Excel</a>
-        <a class="btn ghost" href="/kaizen/excel">⬇ Kaizen Excel</a>
+        <a class="btn ghost" href="/oneri/excel"><%- ik('download') %> Öneri Excel</a>
+        <a class="btn ghost" href="/kaizen/excel"><%- ik('download') %> Kaizen Excel</a>
         <% } %>
     </div>
 </div>
@@ -69,7 +69,7 @@
 <% const islemVar = yetki('degerlendir') || yetki('puanla') || yetki('kayit'); %>
 <% if (kayitlar.length) { %>
 <div class="table-wrap">
-<table class="data-table">
+<table class="data-table liste-tablo">
     <thead>
         <tr>
             <th>Tür</th><th>No</th><th>Tarih</th><th>Konu / Başlık</th><th>Kişi</th><th>Bölüm</th>
@@ -81,29 +81,29 @@
         <% for (const r of kayitlar) { const du = r.durum || 'Değerlendiriliyor';
            const detayUrl = '/detay?tip=' + r.tip + '&no=' + encodeURIComponent(r.no) + '&geri=' + encodeURIComponent(tam_yol); %>
         <tr>
-            <td data-label="Tür">
+            <td class="c-tur" data-label="Tür">
                 <% if (r.tip == 'kaizen') { %><span class="tip-badge kaizen">KAIZEN</span>
                 <% } else { %><span class="tip-badge oneri">ÖNERİ</span><% } %>
             </td>
-            <td class="mono nowrap" data-label="No"><%= r.no %></td>
-            <td class="nowrap" data-label="Tarih"><%= trdate(r.sort_date) %></td>
-            <td data-label="Konu">
+            <td class="mono nowrap c-no" data-label="No"><%= r.no %></td>
+            <td class="nowrap c-tarih" data-label="Tarih"><%= trdate(r.sort_date) %></td>
+            <td class="c-konu" data-label="Konu">
                 <a class="title-link" href="<%= detayUrl %>"><%= r.baslik || '(başlıksız)' %></a>
-                <% if (r.tip == 'oneri' && r.kaizen_no) { %><br><small class="bos-not">🔧 Kaizene dönüştü: <%= r.kaizen_no %></small>
-                <% } else if (r.tip == 'oneri' && r.gorev_atanan_ad) { %><br><small class="bos-not">📌 Görev: <%= r.gorev_atanan_ad %></small><% } %>
+                <% if (r.tip == 'oneri' && r.kaizen_no) { %><br><small class="bos-not"><%- ik('wrench') %> Kaizene dönüştü: <%= r.kaizen_no %></small>
+                <% } else if (r.tip == 'oneri' && r.gorev_atanan_ad) { %><br><small class="bos-not"><%- ik('pin') %> Görev: <%= r.gorev_atanan_ad %></small><% } %>
             </td>
-            <td data-label="Kişi"><%= r.kisi %></td>
-            <td data-label="Bölüm"><%= r.bolum || '—' %></td>
-            <td class="nowrap" data-label="Durum">
+            <td class="c-kisi" data-label="Kişi"><%= r.kisi %></td>
+            <td class="c-bolum" data-label="Bölüm"><%= r.bolum || '—' %></td>
+            <td class="nowrap c-durum" data-label="Durum">
                 <% if (du == 'Onaylandı') { %><span class="durum-badge onay"><%= du %></span>
                 <% } else if (du == 'Düzeltme İsteniyor') { %><span class="durum-badge revize"><%= du %></span>
-                    <% if (r.revize_atanan_ad) { %><br><small class="bos-not">✏ <%= r.revize_atanan_ad %></small><% } %>
+                    <% if (r.revize_atanan_ad) { %><br><small class="bos-not"><%- ik('pencil') %> <%= r.revize_atanan_ad %></small><% } %>
                 <% } else { %><span class="durum-badge bekle"><%= du %></span><% } %>
             </td>
             <% const kz = kural_bul(r); const sabit = r.tip == 'oneri' && kz.oneri_mod == 'sabit'; %>
-            <td class="nowrap puan-cell" data-label="Puan"><% if (sabit) { %><span title="Sabit puan kuralı: puanlama tablosu kullanılmaz"><%= du == 'Onaylandı' ? 'sabit +' + puanfmt(kz.oneri_sabit) : '—' %></span><% } else { %><%= (r.puan === null || r.puan === '' || r.puan === undefined) ? '—' : r.puan %><% } %></td>
+            <td class="nowrap puan-cell c-puan" data-label="Puan"><% if (sabit) { %><span title="Sabit puan kuralı: puanlama tablosu kullanılmaz"><%= du == 'Onaylandı' ? 'sabit +' + puanfmt(kz.oneri_sabit) : '—' %></span><% } else { %><%= (r.puan === null || r.puan === '' || r.puan === undefined) ? '—' : r.puan %><% } %></td>
             <% if (islemVar) { %>
-            <td class="nowrap islem-hucre" data-label="İşlem">
+            <td class="nowrap islem-hucre c-islem" data-label="İşlem">
                 <% if (yetki('degerlendir') && du != 'Onaylandı') { %>
                 <form method="post" action="/durum" style="display:inline"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                     <input type="hidden" name="tip" value="<%= r.tip %>">

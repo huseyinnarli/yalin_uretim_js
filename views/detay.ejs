@@ -10,29 +10,29 @@
 
 <div class="list-head">
     <h1 class="page-title">
-        <% if (tip == 'kaizen') { %>🔧 Kaizen Detayı<% } else { %>💡 Öneri Detayı<% } %>
+        <% if (tip == 'kaizen') { %><%- ik('wrench') %> Kaizen Detayı<% } else { %><%- ik('lightbulb') %> Öneri Detayı<% } %>
     </h1>
     <div class="list-actions">
         <a class="btn ghost" href="<%= geri %>">← <%= silinen ? 'Arşive Dön' : 'Listeye Dön' %></a>
         <% if (duzenleyebilir) { %>
-        <a class="btn ghost" href="/<%= tip %>/duzenle?no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">✏ Düzenle</a>
+        <a class="btn ghost" href="/<%= tip %>/duzenle?no=<%= encodeURIComponent(r.no) %><%= detayGeri %>"><%- ik('pencil') %> Düzenle</a>
         <% } %>
         <% if (!silinen && yetki('puanla') && d == 'Onaylandı' && !sabitOneri) { %>
         <a class="btn <%= r.puanlama ? 'ghost' : 'primary' %>" href="/degerlendir/puan?tip=<%= tip %>&no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">★ <%= r.puanlama ? 'Puanı Düzenle' : 'Puanla' %></a>
         <% } %>
         <% if (donusturebilir) { %>
-        <a class="btn primary" href="/kaizen/yeni?oneri=<%= encodeURIComponent(r.no) %>">🔧 Kaizene Dönüştür</a>
+        <a class="btn primary" href="/kaizen/yeni?oneri=<%= encodeURIComponent(r.no) %>"><%- ik('wrench') %> Kaizene Dönüştür</a>
         <% } %>
     </div>
 </div>
 
 <% if (silinen) { %>
-<div class="uyari-kutu">🗑 Bu kayıt <strong><%= silinen.silme_zamani %></strong> tarihinde <strong><%= silinen.silen %></strong>
+<div class="uyari-kutu"><%- ik('trash-2') %> Bu kayıt <strong><%= silinen.silme_zamani %></strong> tarihinde <strong><%= silinen.silen %></strong>
     tarafından silindi — yalnızca görüntüleniyor.
     <% if (yetki('kayit')) { %>
     <form method="post" action="/silinenler/geri" style="display:inline"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
         <input type="hidden" name="id" value="<%= silinen.id %>">
-        <button type="submit" class="btn-mini onay">↩ Geri Yükle</button>
+        <button type="submit" class="btn-mini onay"><%- ik('undo-2') %> Geri Yükle</button>
     </form>
     <% } %>
 </div>
@@ -40,7 +40,7 @@
 
 <% if (benimRevizem) { %>
 <div class="gorev-kutu">
-    <strong>✏ Bu kaydın düzeltmesi size atandı.</strong>
+    <strong><%- ik('pencil') %> Bu kaydın düzeltmesi size atandı.</strong>
     <p><%= r.revize_notu %></p>
     <small>İsteyen: <%= r.revize_isteyen || '—' %> · <%= r.revize_zamani || '' %></small>
     <div><a class="btn primary" href="/<%= tip %>/duzenle?no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">Düzeltmeyi Yap</a></div>
@@ -67,7 +67,7 @@
         <% } %>
     </div>
     <% if (!silinen && (kazanc.sahibi > 0 || kazanc.lider > 0)) { %>
-    <p class="kazanc-not">🏆 Puan listesine yazılan:
+    <p class="kazanc-not"><%- ik('trophy') %> Puan listesine yazılan:
         <% if (tip == 'oneri') { %>öneri sahibine <strong>+<%= puanfmt(kazanc.sahibi) %></strong>
         <% } else { %>lidere <strong>+<%= puanfmt(kazanc.lider) %></strong><% if (kazanc.uye > 0) { %>, her üyeye <strong>+<%= puanfmt(kazanc.uye) %></strong><% } %><% } %>
         <small>(<%= sabitOneri ? 'sabit puan kuralı' : (tip == 'oneri' ? 'puanın %' + puanfmt(kural.oneri_oran) + ' payı' : 'lider %' + puanfmt(kural.kaizen_lider_oran) + ' · üye %' + puanfmt(kural.kaizen_uye_oran) + ' pay') %>)</small></p>
@@ -118,7 +118,7 @@
         <div class="pp-col">
             <div class="pp-label before">ÖNCEKİ DURUM</div>
             <p><%= r.onceki || '—' %></p>
-            <% if (r.onceki_maliyet != null) { %><p class="pp-maliyet">💶 Maliyet: <strong><%= parafmt(r.onceki_maliyet) %></strong></p><% } %>
+            <% if (r.onceki_maliyet != null) { %><p class="pp-maliyet"><%- ik('euro') %> Maliyet: <strong><%= parafmt(r.onceki_maliyet) %></strong></p><% } %>
             <% if (r.onceki_gorsel) { %>
             <a href="/kaizen/gorsel/<%= encodeURIComponent(r.onceki_gorsel) %>" target="_blank">
                 <img loading="lazy" src="/kaizen/gorsel/<%= encodeURIComponent(r.onceki_gorsel) %>" alt="önce">
@@ -128,7 +128,7 @@
         <div class="pp-col">
             <div class="pp-label after">SONRAKİ DURUM</div>
             <p><%= r.sonraki || '—' %></p>
-            <% if (r.sonraki_maliyet != null) { %><p class="pp-maliyet">💶 Maliyet: <strong><%= parafmt(r.sonraki_maliyet) %></strong></p><% } %>
+            <% if (r.sonraki_maliyet != null) { %><p class="pp-maliyet"><%- ik('euro') %> Maliyet: <strong><%= parafmt(r.sonraki_maliyet) %></strong></p><% } %>
             <% if (r.sonraki_gorsel) { %>
             <a href="/kaizen/gorsel/<%= encodeURIComponent(r.sonraki_gorsel) %>" target="_blank">
                 <img loading="lazy" src="/kaizen/gorsel/<%= encodeURIComponent(r.sonraki_gorsel) %>" alt="sonra">
@@ -137,8 +137,8 @@
         </div>
     </div>
     <% const mf = maliyetFarki(r); %>
-    <% if (mf) { %><p class="maliyet-sonuc <%= mf.tur %>">💶 <%= mf.metin %> <small>(önceki − sonraki maliyet)</small></p>
-    <% } else { %><p class="bos-not">💶 Maliyet hesabı girilmemiş (eski kayıt).</p><% } %>
+    <% if (mf) { %><p class="maliyet-sonuc <%= mf.tur %>"><%- ik('euro') %> <%= mf.metin %> <small>(önceki − sonraki maliyet)</small></p>
+    <% } else { %><p class="bos-not"><%- ik('euro') %> Maliyet hesabı girilmemiş (eski kayıt).</p><% } %>
     <% } %>
 
     <% if (r.puanlama) { const pz = r.puanlama;
@@ -165,23 +165,23 @@
     <% } %>
 
     <% if (r.revize_notu) { %>
-    <div class="detail-block"><h3>✏ Düzeltme Talebi</h3>
+    <div class="detail-block"><h3><%- ik('pencil') %> Düzeltme Talebi</h3>
         <p><%= r.revize_notu %></p>
         <small class="bos-not">Atanan: <strong><%= r.revize_atanan_ad || '—' %></strong> · İsteyen: <%= r.revize_isteyen || '—' %>
-            · <%= r.revize_zamani || '' %><% if (r.revize_tamamlandi) { %> · ✔ Düzeltildi: <%= r.revize_tamamlandi %><% } %></small>
+            · <%= r.revize_zamani || '' %><% if (r.revize_tamamlandi) { %> · <%- ik('check') %> Düzeltildi: <%= r.revize_tamamlandi %><% } %></small>
     </div>
     <% } %>
 
     <% if (tip == 'oneri' && (r.gorev_atanan_ad || r.kaizen_no)) { %>
-    <div class="detail-block"><h3>📌 Uygulama Görevi</h3>
+    <div class="detail-block"><h3><%- ik('pin') %> Uygulama Görevi</h3>
         <% if (r.gorev_atanan_ad) { %>
         <p><strong><%= r.gorev_atanan_ad %></strong><% if (r.gorev_termin) { %> · Termin: <%= trdate(r.gorev_termin) %><% } %></p>
         <% if (r.gorev_notu) { %><p><%= r.gorev_notu %></p><% } %>
         <small class="bos-not">Atayan: <%= r.gorev_atayan || '—' %> · <%= r.gorev_zamani || '' %></small>
         <% } %>
         <% if (r.kaizen_no) { %>
-        <p>✔ Kaizene dönüştürüldü: <a href="/detay?tip=kaizen&no=<%= encodeURIComponent(r.kaizen_no) %>" class="mono"><%= r.kaizen_no %></a></p>
-        <% } else if (r.gorev_atanan_ad) { %><p class="bos-not">⏳ Henüz kaizene dönüştürülmedi.</p><% } %>
+        <p><%- ik('check') %> Kaizene dönüştürüldü: <a href="/detay?tip=kaizen&no=<%= encodeURIComponent(r.kaizen_no) %>" class="mono"><%= r.kaizen_no %></a></p>
+        <% } else if (r.gorev_atanan_ad) { %><p class="bos-not"><%- ik('hourglass') %> Henüz kaizene dönüştürülmedi.</p><% } %>
     </div>
     <% } %>
 
@@ -200,7 +200,7 @@
     <% } %>
 
     <% if (tip == 'kaizen' && r.kaynak_oneri_no) { %>
-    <div class="detail-block"><h3>💡 Kaynak Öneri</h3>
+    <div class="detail-block"><h3><%- ik('lightbulb') %> Kaynak Öneri</h3>
         <p>Bu kaizen <a href="/detay?tip=oneri&no=<%= encodeURIComponent(r.kaynak_oneri_no) %>" class="mono"><%= r.kaynak_oneri_no %></a> önerisinden dönüştürüldü.</p>
     </div>
     <% } %>
@@ -211,7 +211,7 @@
 </div>
 
 <% if (!silinen && yetki('degerlendir')) { %>
-<h2 class="bolum-baslik" id="degerlendir">⚖ Değerlendirme</h2>
+<h2 class="bolum-baslik" id="degerlendir"><%- ik('scale') %> Değerlendirme</h2>
 <% if (!denetmenler.length) { %>
 <p class="uyari-kutu">Düzeltme veya görev atamak için önce <a href="/yonetici#denetmenler">Yönetim › Denetmenler</a>'den denetmen hesabı açın.</p>
 <% } %>
@@ -246,9 +246,9 @@
     <form method="post" action="/durum" class="panel degerlendir-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
         <input type="hidden" name="tip" value="<%= tip %>"><input type="hidden" name="no" value="<%= r.no %>">
         <input type="hidden" name="durum" value="Değerlendiriliyor"><input type="hidden" name="don" value="<%= bu_sayfa %>">
-        <h3>↩ Değerlendirmeye Geri Al</h3>
+        <h3><%- ik('undo-2') %> Değerlendirmeye Geri Al</h3>
         <p class="bos-not">Reddedilen kayıt yeniden "Değerlendiriliyor" durumuna alınır.</p>
-        <button type="submit" class="btn-mini edit">↩ Geri Al</button>
+        <button type="submit" class="btn-mini edit"><%- ik('undo-2') %> Geri Al</button>
     </form>
     <% } %>
 
@@ -256,17 +256,17 @@
     <form method="post" action="/durum" class="panel degerlendir-kart revize-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
         <input type="hidden" name="tip" value="<%= tip %>"><input type="hidden" name="no" value="<%= r.no %>">
         <input type="hidden" name="durum" value="Düzeltme İsteniyor"><input type="hidden" name="don" value="<%= bu_sayfa %>">
-        <h3>✏ Düzeltme İste<%= d == 'Düzeltme İsteniyor' ? ' (yeniden ata)' : '' %></h3>
+        <h3><%- ik('pencil') %> Düzeltme İste<%= d == 'Düzeltme İsteniyor' ? ' (yeniden ata)' : '' %></h3>
         <select name="revize_denetmen" required><option value="">— düzeltmeyi yapacak denetmen —</option><%- include('partials/denetmen_secenekleri', { denetmenler, secili: r.revize_atanan_id }) %></select>
         <textarea name="revize_notu" rows="3" required placeholder="Neyin düzeltilmesi gerekiyor — zorunlu"><%= d == 'Düzeltme İsteniyor' ? (r.revize_notu || '') : '' %></textarea>
-        <button type="submit" class="btn-mini revize">✏ Düzeltme İste</button>
+        <button type="submit" class="btn-mini revize"><%- ik('pencil') %> Düzeltme İste</button>
     </form>
     <% } %>
     <% } else if (tip == 'oneri' && !r.kaizen_no) { %>
     <% if (!ud && denetmenler.length) { %>
     <form method="post" action="/gorev" class="panel degerlendir-kart onay-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
         <input type="hidden" name="no" value="<%= r.no %>"><input type="hidden" name="don" value="<%= bu_sayfa %>">
-        <h3>📌 <%= r.gorev_atanan_id ? 'Görevi Değiştir' : 'Uygulama Görevi Ata' %></h3>
+        <h3><%- ik('pin') %> <%= r.gorev_atanan_id ? 'Görevi Değiştir' : 'Uygulama Görevi Ata' %></h3>
         <p class="bos-not">Atanan kişi öneriyi uygular ve kaizene dönüştürür.</p>
         <select name="gorev_denetmen" required><option value="">— denetmen seçin —</option><%- include('partials/denetmen_secenekleri', { denetmenler, secili: r.gorev_atanan_id }) %></select>
         <%# Eski görevin termini geçmişte kaldıysa aynı tarih seçili kalabilsin diye min ona çekilir (sunucu: değişmeyen termin kabul) %>
@@ -274,7 +274,7 @@
                min="<%= r.gorev_termin && r.gorev_termin < bugun_iso ? r.gorev_termin : bugun_iso %>"
                title="Termin — zorunlu" placeholder="Termin — zorunlu">
         <textarea name="gorev_notu" rows="2" required placeholder="Görev açıklaması (ne yapılacak) — zorunlu"><%= r.gorev_notu || '' %></textarea>
-        <button type="submit" class="btn primary">📌 Kaydet</button>
+        <button type="submit" class="btn primary"><%- ik('pin') %> Kaydet</button>
         <% if (r.gorev_atanan_id) { %>
         <button type="submit" name="kaldir" value="1" class="btn-mini del" formnovalidate>Görevi Kaldır</button>
         <% } %>
@@ -324,9 +324,9 @@
     <form method="post" action="/oneri/havuz" class="panel degerlendir-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
         <input type="hidden" name="no" value="<%= r.no %>"><input type="hidden" name="don" value="<%= bu_sayfa %>">
         <input type="hidden" name="islem" value="yeniden_ac">
-        <h3>↩ Yeniden Aç</h3>
+        <h3><%- ik('undo-2') %> Yeniden Aç</h3>
         <p class="bos-not">"Uygulanamadı" kapanışı geri alınır; öneri yeniden uygulanabilir hâle gelir.</p>
-        <button type="submit" class="btn-mini edit">↩ Yeniden Aç</button>
+        <button type="submit" class="btn-mini edit"><%- ik('undo-2') %> Yeniden Aç</button>
     </form>
     <% } %>
     <% } %>
@@ -352,7 +352,7 @@ document.querySelectorAll('[data-gorev-sec]').forEach(function (sec) {
       onsubmit="return confirm('Bu kayıt silinsin mi? (Reddedilen &amp; Silinen arşivinden geri yüklenebilir)');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
     <input type="hidden" name="tip" value="<%= tip %>"><input type="hidden" name="no" value="<%= r.no %>">
     <input type="hidden" name="don" value="<%= geri %>">
-    <button type="submit" class="btn-mini del">🗑 Kaydı Sil</button>
+    <button type="submit" class="btn-mini del"><%- ik('trash-2') %> Kaydı Sil</button>
 </form>
 <% } %>
 <%- include('partials/footer') %>

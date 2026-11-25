@@ -51,7 +51,7 @@
         <!-- 2) ETKİ ODAĞI -->
         <fieldset class="puan-blok">
             <legend>2 · Etki Odağı <span class="blok-max">(<b class="blok-skor" data-block="etki">0</b> / <%= puan_max.etki %>)</span></legend>
-            <p class="blok-alt-not">⚠ Yalnızca <strong>tek bir odaktan tek bir seviyeye</strong> puan verilir. Başka bir maddeye puan girerseniz öncekiler sıfırlanır.</p>
+            <p class="blok-alt-not"><%- ik('triangle-alert') %> Yalnızca <strong>tek bir odaktan tek bir seviyeye</strong> puan verilir. Başka bir maddeye puan girerseniz öncekiler sıfırlanır.</p>
             <div class="puan-maddeler">
                 <% puan_etki.forEach(function (odak, oi) { %>
                 <div class="odak-grup">

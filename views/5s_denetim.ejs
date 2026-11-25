@@ -2,15 +2,15 @@
 
 <div class="list-head">
 <% const rv = (typeof revize !== 'undefined' && revize) ? revize : null; %>
-    <h1 class="page-title"><%= rv ? '✏ Denetim Revize' : '📋 5S Denetim' %> — <%= b.ad %></h1>
+    <h1 class="page-title"><%- ik(rv ? 'pencil' : 'clipboard-list') %> <%= rv ? 'Denetim Revize' : '5S Denetim' %> — <%= b.ad %></h1>
     <div class="list-actions">
         <a class="btn ghost" href="<%= rv ? '/5s/denetim/' + rv.d.id : '/5s#plan' %>">← Geri</a>
-        <a class="btn ghost" href="/5s/bolum/<%= b.id %>">🏭 Bölüm</a>
+        <a class="btn ghost" href="/5s/bolum/<%= b.id %>"><%- ik('factory') %> Bölüm</a>
     </div>
 </div>
 
 <% if (rv) { %>
-<div class="gorev-kutu"><strong>✏ Revize modu.</strong> Bu denetim <strong><%= rv.d.denetmen || '—' %></strong> tarafından
+<div class="gorev-kutu"><strong><%- ik('pencil') %> Revize modu.</strong> Bu denetim <strong><%= rv.d.denetmen || '—' %></strong> tarafından
     <strong><%= trdate(rv.d.denetim_tarihi || rv.d.tarih) %></strong> tarihinde yapıldı (skor <%= rv.d.puan %>/100).
     Kaydettiğinizde puan yeniden hesaplanır; denetmen ve tarih değişmez, revize eden olarak adınız kaydedilir.</div>
 <% } %>
@@ -30,7 +30,7 @@
         <% if (bekleyen && bekleyen.misafir_denetmen) { %>
         <div class="field small" style="max-width:240px">
             <label>Misafir Denetmen</label>
-            <input type="text" value="🎫 <%= bekleyen.misafir_denetmen %>" readonly tabindex="-1" class="otomatik-ad">
+            <input type="text" value="<%= bekleyen.misafir_denetmen %>" readonly tabindex="-1" class="otomatik-ad">
         </div>
         <% } %>
         <% if (!bekleyen && !rv) { %>
@@ -85,10 +85,10 @@
             <div class="kriter-aciklama-satir">
                 <textarea class="kriter-aciklama" name="aciklama_<%= kr.k %>" rows="2"
                           placeholder="Açıklama / bulgu..."><%= aciklamalar[kr.k] || '' %></textarea>
-                <button type="button" class="btn-mini aksiyon-ata-btn" data-k="<%= kr.k %>">⚑ Aksiyon Ata</button>
+                <button type="button" class="btn-mini aksiyon-ata-btn" data-k="<%= kr.k %>"><%- ik('flag') %> Aksiyon Ata</button>
             </div>
             <% if (rv && rv.acik_aksiyon[kr.k]) { %>
-            <p class="bos-not">⚑ Bu soruda <%= rv.acik_aksiyon[kr.k] %> açık aksiyon var (kriter başına en fazla 2 açık aksiyon).</p>
+            <p class="bos-not"><%- ik('flag') %> Bu soruda <%= rv.acik_aksiyon[kr.k] %> açık aksiyon var (kriter başına en fazla 2 açık aksiyon).</p>
             <% } %>
             <% for (const slot of [1, 2]) { %>
             <div class="aksiyon-alan" id="aksiyon-<%= kr.k %>-<%= slot %>" hidden>
@@ -105,7 +105,7 @@
             </div>
             <% } %>
             <div class="kriter-foto">
-                <span class="foto-label">📷 Fotoğraf (en fazla 3)</span>
+                <span class="foto-label"><%- ik('camera') %> Fotoğraf (en fazla 3)</span>
                 <div class="foto-butonlar">
                     <% for (const fn of varolan) { %>
                     <% if (rv) { %>
@@ -177,13 +177,15 @@
         return [document.getElementById('aksiyon-' + k + '-1'),
                 document.getElementById('aksiyon-' + k + '-2')];
     }
+    var BAYRAK = '<%- ik('flag') %>';
     function butonGuncelle(k) {
         var btn = form.querySelector('.aksiyon-ata-btn[data-k="' + k + '"]');
         if (!btn) return;
         var acikSayisi = slotlar(k).filter(function (s) { return s && !s.hasAttribute('hidden'); }).length;
         btn.disabled = acikSayisi >= 2;
-        btn.textContent = acikSayisi === 0 ? '⚑ Aksiyon Ata'
-                        : (acikSayisi === 1 ? '⚑ 2. Aksiyon Ekle' : '⚑ 2 aksiyon eklendi');
+        // Düğmedeki bayrak ikonu korunur, yalnız yazı değişir
+        var yazi = acikSayisi === 0 ? 'Aksiyon Ata' : (acikSayisi === 1 ? '2. Aksiyon Ekle' : '2 aksiyon eklendi');
+        btn.innerHTML = BAYRAK + ' ' + yazi;
         btn.classList.toggle('aktif', acikSayisi > 0);
     }
     form.querySelectorAll('.aksiyon-ata-btn').forEach(function (btn) {

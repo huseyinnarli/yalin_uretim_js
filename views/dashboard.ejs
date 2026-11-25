@@ -1,13 +1,12 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">🛠 Yönetim</h1>
+    <h1 class="page-title"><%- ik('settings') %> Yönetim</h1>
     <div class="list-actions">
-        <a class="btn ghost" href="/panel">📊 Panel</a>
-        <% if (yetki('bes_plan')) { %><a class="btn ghost" href="/yonetici/bolumler">🏭 Bölümler ve Görevler</a><% } %>
-        <% if (yetki('odul')) { %><a class="btn ghost" href="/isimler">🔗 İsim Birleştirme</a><% } %>
-        <% if (ana_yonetici) { %><a class="btn ghost" href="/yonetici/puan-ayarlari">🏆 Puan ve Ödül Ayarları</a>
-        <a class="btn ghost" href="/yonetici/gunluk">📜 İşlem Günlüğü</a><% } %>
+        <% if (yetki('bes_plan')) { %><a class="btn ghost" href="/yonetici/bolumler"><%- ik('factory') %> Bölümler ve Görevler</a><% } %>
+        <% if (yetki('odul')) { %><a class="btn ghost" href="/isimler"><%- ik('link') %> İsim Birleştirme</a><% } %>
+        <% if (ana_yonetici) { %><a class="btn ghost" href="/yonetici/puan-ayarlari"><%- ik('trophy') %> Puan ve Ödül Ayarları</a>
+        <a class="btn ghost" href="/yonetici/gunluk"><%- ik('history') %> İşlem Günlüğü</a><% } %>
     </div>
 </div>
 
@@ -15,9 +14,26 @@
 <div class="empty">Bu sayfada yönetebileceğiniz bir alan yok. İstatistikler için <a href="/panel">Panel</a>'e gidin.</div>
 <% } %>
 
+<%# Sekmeler: her bölüm ayrı sekmede; betik yoksa hepsi alt alta görünür. Adres #denetmenler / #misafirler /
+    #yoneticiler / #sifre ile istenen sekme açılır (işlem sonrası yönlendirmeler de bu çapaları kullanır). %>
+<% const sekmeler = [
+     yetki('kullanici') && ['denetmenler', 'users', 'Denetmenler'],
+     yetki('bes_plan') && ['misafirler', 'ticket', 'Misafir Denetmenler'],
+     ana_yonetici && ['yoneticiler', 'user', 'Yöneticiler'],
+     ana_yonetici && ['sifre', 'key-round', 'Şifre Değiştir'],
+   ].filter(Boolean); %>
+<% if (sekmeler.length > 1) { %>
+<nav class="sekme-cubugu" role="tablist" aria-label="Yönetim bölümleri">
+    <% for (const [id, ikonAd, ad] of sekmeler) { %>
+    <a href="#<%= id %>" role="tab" data-sekme-git="<%= id %>"><%- ik(ikonAd) %> <%= ad %></a>
+    <% } %>
+</nav>
+<% } %>
+
 <% if (yetki('kullanici')) { %>
+<section class="ysekme" data-sekme="denetmenler">
 <!-- Denetmenler -->
-<h2 class="bolum-baslik" id="denetmenler">👥 Denetmenler</h2>
+<h2 class="bolum-baslik" id="denetmenler"><%- ik('users') %> Denetmenler</h2>
 <div class="form-card">
     <p class="subtitle" style="margin-bottom:14px"><strong>Denetmen</strong> şifresiyle giriş yapan saha hesabıdır:
         kendisine planlanan <strong>5S denetimini</strong> yapar, ekip lideri olduğu bölümün <strong>aksiyonlarını</strong> kapatır,
@@ -28,7 +44,7 @@
     <div class="denetmen-liste">
         <% for (const d of denetmenler) { %>
         <div class="denetmen-satir">
-            <span class="ds-ad">👤 <strong><%= d.ad %></strong>
+            <span class="ds-ad"><%- ik('user') %> <strong><%= d.ad %></strong>
                 <% if (d.lider) { %><span class="durum-badge onay">bölüm lideri</span><% } %></span>
             <form method="post" action="/yonetici/denetmen/sifre" class="denetmen-form" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="id" value="<%= d.id %>">
@@ -52,7 +68,7 @@
     <div class="denetmen-liste">
         <% for (const ad of lider_adaylari) { %>
         <div class="denetmen-satir">
-            <span class="ds-ad">👤 <strong><%= ad %></strong> <span class="durum-badge bekle">şifre yok</span></span>
+            <span class="ds-ad"><%- ik('user') %> <strong><%= ad %></strong> <span class="durum-badge bekle">şifre yok</span></span>
             <form method="post" action="/yonetici/denetmen/ekle" class="denetmen-form" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="ad" value="<%= ad %>">
                 <input type="text" name="sifre" placeholder="Şifre belirle" minlength="6" required>
@@ -71,11 +87,13 @@
         <button type="submit" class="btn primary">+ Denetmen Ekle</button>
     </form>
 </div>
+</section>
 <% } %>
 
 <% if (yetki('bes_plan')) { %>
+<section class="ysekme" data-sekme="misafirler">
 <!-- Misafir denetmenler -->
-<h2 class="bolum-baslik" id="misafirler">🎫 Misafir Denetmenler</h2>
+<h2 class="bolum-baslik" id="misafirler"><%- ik('ticket') %> Misafir Denetmenler</h2>
 <div class="form-card">
     <p class="subtitle" style="margin-bottom:14px">Misafir denetmenler giriş yapmaz; denetim planında her bölüme
         <strong>misafir denetmen</strong> olarak atanır ve denetim formunda adı görünür.</p>
@@ -88,7 +106,7 @@
     <div class="denetmen-liste">
         <% for (const m of misafirler) { %>
         <div class="denetmen-satir">
-            <span class="ds-ad">🎫 <strong><%= m.ad %></strong></span>
+            <span class="ds-ad"><%- ik('ticket') %> <strong><%= m.ad %></strong></span>
             <form method="post" action="/yonetici/misafir/sil" style="display:inline"
                   onsubmit="return confirm('Bu misafir denetmen silinsin mi?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="id" value="<%= m.id %>">
@@ -101,6 +119,7 @@
     <p class="bos-not">Henüz misafir denetmen yok.</p>
     <% } %>
 </div>
+</section>
 <% } %>
 
 <% if (ana_yonetici) { %>
@@ -120,8 +139,9 @@
     </div>
     <% } %>
 <% } %>
+<section class="ysekme" data-sekme="yoneticiler">
 <!-- Yöneticiler -->
-<h2 class="bolum-baslik" id="yoneticiler">👤 Yöneticiler</h2>
+<h2 class="bolum-baslik" id="yoneticiler"><%- ik('user') %> Yöneticiler</h2>
 <div class="form-card">
     <p class="subtitle" style="margin-bottom:14px"><strong>Ana yönetici</strong> sabittir ve tek tam yetkili hesaptır:
         ek yönetici ekleme/silme ve işlem günlüğü yalnızca ondadır. Buradan <strong>ek yönetici</strong> ekleyip yetki
@@ -134,7 +154,7 @@
             <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <input type="hidden" name="id" value="<%= y.id %>">
             <div class="yonetici-ust">
-                <span class="ds-ad">👤 <strong><%= y.ad %></strong></span>
+                <span class="ds-ad"><%- ik('user') %> <strong><%= y.ad %></strong></span>
                 <div class="yonetici-islem">
                     <input type="password" name="sifre" placeholder="Yeni şifre (boş=değişmez)" minlength="6"
                            class="yonetici-sifre" autocomplete="new-password">
@@ -171,10 +191,12 @@
         </div>
     </form>
 </div>
+</section>
 <% } %>
 
 <% if (ana_yonetici) { %>
-<h2 class="bolum-baslik">🔑 Şifre Değiştir <small class="bos-not">(ana yönetici)</small></h2>
+<section class="ysekme" data-sekme="sifre">
+<h2 class="bolum-baslik" id="sifre"><%- ik('key-round') %> Şifre Değiştir <small class="bos-not">(ana yönetici)</small></h2>
 <form class="form-card sifre-form" method="post" action="/yonetici/sifre" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
     <div class="row">
         <div class="field"><label>Mevcut Şifre</label><input type="password" name="eski" required></div>
@@ -183,5 +205,31 @@
     </div>
     <div class="form-actions"><button type="submit" class="btn primary">Şifreyi Güncelle</button></div>
 </form>
+</section>
 <% } %>
+<script>
+// Yönetim sekmeleri: adresteki #çapa (ya da ilk sekme) açık, diğerleri gizli
+(function () {
+    var bolumler = document.querySelectorAll('.ysekme');
+    var linkler = document.querySelectorAll('[data-sekme-git]');
+    if (bolumler.length < 2) return;
+    document.body.classList.add('sekmeli');
+    function goster(id, kaydir) {
+        var var_mi = false;
+        bolumler.forEach(function (b) { if (b.dataset.sekme === id) var_mi = true; });
+        if (!var_mi) id = bolumler[0].dataset.sekme;
+        bolumler.forEach(function (b) { b.hidden = b.dataset.sekme !== id; });
+        linkler.forEach(function (a) { var on = a.dataset.sekmeGit === id; a.classList.toggle('aktif', on); a.setAttribute('aria-selected', on); });
+        if (kaydir) window.scrollTo(0, 0);
+    }
+    linkler.forEach(function (a) {
+        a.addEventListener('click', function (e) {
+            e.preventDefault();
+            history.replaceState(null, '', '#' + a.dataset.sekmeGit);
+            goster(a.dataset.sekmeGit, false);
+        });
+    });
+    goster((location.hash || '').slice(1), true);
+})();
+</script>
 <%- include('partials/footer') %>

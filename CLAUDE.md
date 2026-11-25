@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 259 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 265 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -194,7 +194,7 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
 24. **Kontrol formu Excel'i yalnız seçilen ay** (25 Kasım): `rotalar/kontrol.js` excel rotası tek ay gönderir; dosya adı
     `5S_Kontrol_Formu_<Bölüm>_<ay>.xlsx`; `generateKontrolExcel` önce form sayfası(ları), sonra ÖZET (üretici hâlâ çok ayı
     destekler). Düğme "⬇ Excel (seçilen ay)". Veritabanı değişmedi. e2e 237/237.
-25. **Mobil menü + 5S menüde + liste bölüm filtresi** (25 Kasım): `style.css` ≤1160 px düğme düzeni, 1161–1380 px
+25. **Mobil menü + 5S menüde + liste bölüm filtresi** (25 Kasım): `style.css` ≤1160 px düğme düzeni (sonra ≤1220, madde 29), 1161–1380 px
     `.brand-logo + span` gizli; üst menüde `/5s` (yalnız girişli); `kayitlar.filtrele(..., bolum)` (`L.anahtar` ile, `BOLUMSUZ = "-"`),
     `listeBolumleri(records, bolumAdlari)`; listede Bölüm sütunu. e2e 241/241.
 26. **Kaizen maliyet hesabı (€)** (25 Kasım): `kaizenler.onceki_maliyet/sonraki_maliyet` DECIMAL(14,2) (EK_KOLONLAR → 39 kolon;
@@ -207,6 +207,13 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     e2e 257/257.
 28. **5S Aksiyonlar grupları** (25 Kasım): `aksiyon.aksiyonGruplari` artık yalnız `tur_adi` ile gruplar (aksiyon `tarih`'i denetimin
     yapıldığı gün — tarihle gruplayınca aynı turu bölüyordu); başlıkta bölüm çipleri (`.bolum-cip`), en yeni açık grup `open`. e2e 259/259.
+29. **Görsel düzen** (25 Kasım): emoji yerine **Lucide çizgi ikonları** — `src/ikonlar.js` (yalnız kullanılan ~56 ikon, ISC lisans
+    başlıkta; yeni ikon: lucide-static `icons/<ad>.svg` gövdesini ekle), şablonda `<%- ik('ad') %>` (`res.locals.ik`; bilinmeyen ad
+    boş döner + uyarı). Madalyalar `.madalya.m1/m2/m3`. **Yeni şablon metninde emoji kullanma** (e2e üst menüde emoji arar).
+    Liste telefonda `.liste-tablo` grid kartı (`c-tur/c-no/c-tarih/c-konu/c-kisi/c-bolum/c-durum/c-puan/c-islem`). Yönetim sekmeleri
+    (`.ysekme[data-sekme]`, `#denetmenler|#misafirler|#yoneticiler|#sifre`; betiksiz hepsi görünür). Üst menüde Puan Listesi (girişli);
+    menü kırılımları ≤1220 px düğme, 1221–1440 px marka yazısı gizli. `GET /yonetici/gunluk/excel` (ana yönetici, `tumGunluk`,
+    `generateGunlukExcel`). Bölüm sayfasında tek denetim tablosu. e2e 265/265.
 
 ## Açık konular
 

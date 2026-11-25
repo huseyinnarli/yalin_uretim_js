@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
-<h1 class="page-title">💡 <%= duzenle ? "Öneri Düzenle" : "Yeni Öneri Formu" %></h1>
+<h1 class="page-title"><%- ik('lightbulb') %> <%= duzenle ? "Öneri Düzenle" : "Yeni Öneri Formu" %></h1>
 <% if (duzenle && kayit.durum == 'Düzeltme İsteniyor' && kayit.revize_notu) { %>
-<div class="gorev-kutu"><strong>✏ İstenen düzeltme:</strong> <%= kayit.revize_notu %>
+<div class="gorev-kutu"><strong><%- ik('pencil') %> İstenen düzeltme:</strong> <%= kayit.revize_notu %>
     <small>Kaydettiğinizde öneri yeniden değerlendirmeye gönderilir.</small></div>
 <% } %>
 <% if (duzenle) { %>

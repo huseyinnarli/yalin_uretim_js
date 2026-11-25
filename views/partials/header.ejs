@@ -10,34 +10,35 @@
 <body>
     <header class="topbar">
         <a class="brand" href="/">
-            <% if (marka_logo) { %><img class="brand-logo" src="/static/<%= marka_logo %>?v=<%= sv %>" alt="<%= marka_adi %>"><% } else { %>🏭<% } %>
+            <% if (marka_logo) { %><img class="brand-logo" src="/static/<%= marka_logo %>?v=<%= sv %>" alt="<%= marka_adi %>"><% } else { %><%- ik('factory') %><% } %>
             <span><%= marka_adi %></span>
         </a>
         <nav>
             <% if (girisli) { %>
-                <a href="/panel">📊 Panel</a>
-                <a href="/liste">💡🔧 Öneri &amp; Kaizen</a>
-                <a href="/5s">🧹 5S</a>
+                <a href="/panel"><%- ik('layout-dashboard') %> Panel</a>
+                <a href="/liste"><%- ik('lightbulb') %> Öneri &amp; Kaizen</a>
+                <a href="/5s"><%- ik('brush-cleaning') %> 5S</a>
+                <a href="/puan-durumu"><%- ik('trophy') %> Puan Listesi</a>
             <% } %>
             <% if (girisli && (denetmen_adi || yetki('degerlendir'))) { %>
-                <a href="/gorevlerim">📋 Görevlerim<% if (gorev_sayisi) { %> <span class="nav-rozet"><%= gorev_sayisi %></span><% } %></a>
+                <a href="/gorevlerim"><%- ik('clipboard-list') %> Görevlerim<% if (gorev_sayisi) { %> <span class="nav-rozet"><%= gorev_sayisi %></span><% } %></a>
             <% } %>
-            <a href="/yardim">📖 Kılavuz</a>
+            <a href="/yardim"><%- ik('book-open') %> Kılavuz</a>
             <% if (admin) { %>
-                <span class="nav-kisi">👤 <% if (yonetici_adi) { %><%= yonetici_adi %> <small>yönetici</small><% } else { %>Ana Yönetici<% } %></span>
-                <a class="nav-admin" href="/yonetici">🛠 Yönetim</a>
-                <a href="/yonetici/cikis">Çıkış</a>
+                <span class="nav-kisi"><%- ik('user') %> <% if (yonetici_adi) { %><%= yonetici_adi %> <small>yönetici</small><% } else { %>Ana Yönetici<% } %></span>
+                <a class="nav-admin" href="/yonetici"><%- ik('settings') %> Yönetim</a>
+                <a href="/yonetici/cikis"><%- ik('log-out') %> Çıkış</a>
             <% } else if (denetmen_adi) { %>
-                <span class="nav-kisi">👤 <%= denetmen_adi %> <small>denetmen</small></span>
-                <a href="/yonetici/cikis">Çıkış</a>
+                <span class="nav-kisi"><%- ik('user') %> <%= denetmen_adi %> <small>denetmen</small></span>
+                <a href="/yonetici/cikis"><%- ik('log-out') %> Çıkış</a>
             <% } else { %>
-                <a class="nav-admin" href="/yonetici/giris">Giriş</a>
+                <a class="nav-admin" href="/yonetici/giris"><%- ik('log-in') %> Giriş</a>
             <% } %>
         </nav>
     </header>
 
     <% if (demo) { %>
-    <div class="demo-serit">🧪 <strong>Demo sürümü</strong> — örnek verilerle tasarım önizlemesi; her yeniden başlatmada sıfırlanır.
+    <div class="demo-serit"><%- ik('flask-conical') %> <strong>Demo sürümü</strong> — örnek verilerle tasarım önizlemesi; her yeniden başlatmada sıfırlanır.
         Giriş şifreleri: ana yönetici <code>admin123</code> · ek yönetici <code>zeynep1234</code> ·
         denetmen <code>ali1234</code> (Abkant Pres lideri) · <code>mehmet1234</code></div>
     <% } %>

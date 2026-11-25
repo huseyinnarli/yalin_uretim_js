@@ -145,7 +145,8 @@ async function main() {
     csrf = csrfFrom(html);
     await post("/yonetici/giris", { csrf_token: csrf, sifre: "admin123" });
     html = await getText("/");
-    ok("admin girişi", html.includes("🛠 Yönetim"));
+    ok("admin girişi", /href="\/yonetici"><svg class="ikon"[^>]*>[\s\S]*?<\/svg> Yönetim<\/a>/.test(html));
+    ok("üst menü ve sayfalarda emoji yerine çizgi ikon", !/[\u{1F300}-\u{1FAFF}]/u.test(html.split("<main")[0]) && html.includes('<svg class="ikon"'));
 
     // Open redirect koruması: //host hedefi ana sayfaya düşmeli
     await get("/yonetici/cikis");
@@ -352,7 +353,7 @@ async function main() {
 
     // Panele girebilir ama Yöneticiler/Denetmen bölümlerini görmez
     const dash = await getText("/yonetici");
-    ok("ek yönetici yönetim sayfasına girebildi", dash.includes("🛠 Yönetim"));
+    ok("ek yönetici yönetim sayfasına girebildi", dash.includes("Yönetim</h1>"));
     ok("ek yönetici Yöneticiler bölümünü görmüyor", !dash.includes('id="yoneticiler"'));
     ok("ek yönetici Denetmenler bölümünü görmüyor", !dash.includes('id="denetmenler"'));
 
@@ -383,6 +384,20 @@ async function main() {
     ok("ek yöneticinin işlemi günlükte (kim)", gunluk.includes("Kısıtlı Yönetici"));
     ok("ek yöneticinin onayı günlükte (mesaj)", gunluk.includes(kno) && gunluk.includes("Onaylandı"));
     ok("ana yöneticinin işlemi günlükte", gunluk.includes("Ana Yönetici"));
+    const rGunluk = await get("/yonetici/gunluk/excel");
+    {
+      const ExcelJSg = require("exceljs");
+      const wbG = new ExcelJSg.Workbook();
+      await wbG.xlsx.load(Buffer.from(await rGunluk.arrayBuffer()));
+      const wsG = wbG.worksheets[0];
+      const metinG = []; wsG.eachRow((row) => metinG.push(row.values.join(" | ")));
+      ok("işlem günlüğü Excel olarak iner (başlıklar + kayıtlar)", rGunluk.status === 200
+        && wsG.getRow(1).values.slice(1).join("|") === "Zaman|Kim|Rol|İşlem|Sayfa|IP"
+        && metinG.some((t) => t.includes("Kısıtlı Yönetici")) && metinG.some((t) => t.includes("Ana Yönetici"))
+        && gunluk.includes('href="/yonetici/gunluk/excel"'));
+    }
+    ok("Yönetim sayfası sekmeli (Denetmenler, Misafirler, Yöneticiler, Şifre)", dash2.includes('class="sekme-cubugu"')
+      && ["denetmenler", "misafirler", "yoneticiler", "sifre"].every((k) => dash2.includes(`data-sekme="${k}"`)));
 
     // --- Silinen kayıtlar + geri yükleme ---
     csrf = csrfFrom(await getText("/liste"));
@@ -435,6 +450,8 @@ async function main() {
         [`ÖNFR9901-${String(i).padStart(2, "0")}`, "2025-01-15", "Toplu Test", `Toplu ${i}`, "d", "Değerlendiriliyor"]);
     }
     html = await getText("/liste");
+    ok("listede telefon için kısa kart sınıfları", html.includes('class="data-table liste-tablo"') && html.includes('class="c-konu"')
+      && html.includes("c-islem"));
     ok("liste 20 kayıtla sınırlı", (html.match(/class="title-link"/g) || []).length === 20);
     ok("sayfalama bağlantıları var", html.includes('class="sayfalama"') && html.includes("s=2"));
     html = await getText("/liste?s=2");
@@ -705,6 +722,8 @@ async function main() {
     ok("ek yönetici yönetici silemez", halaVar.n === 1);
     r = await get("/yonetici/gunluk");
     ok("ek yönetici işlem günlüğünü göremez", konum(r) === "/");
+    r = await get("/yonetici/gunluk/excel");
+    ok("ek yönetici işlem günlüğü Excel'ini indiremez", r.status === 302 && konum(r) === "/");
     r = await get("/5s/denetim-excel");
     ok("eski 'tam' kaydı 10 yetki alanına açıldı", r.status === 200);
     html = await getText("/yonetici");
@@ -742,6 +761,7 @@ async function main() {
     ok("bölümler tablo görünümü (personel, açık aksiyon)", html.includes("bolum-tablo") && html.includes("Açık Aksiyon"));
     html = await getText(`/5s/bolum/${bidler[0]}`);
     ok("bölüm sayfasında trend + S kırılımı", html.includes("5S Skor Trendi") && html.includes("S1 <small>") && html.includes("Personel"));
+    ok("bölüm sayfasında denetimler tek tabloda (ayrı Denetim Geçmişi yok)", !html.includes("Denetim Geçmişi") && html.includes("</svg> Denetimler</h2>"));
 
     // --- 5S Periyodik Kontrol Formu ---
     const K = require("../src/kontrol");
@@ -927,7 +947,7 @@ async function main() {
       konum(r) === "/" && !(await bolumleriOku())["Yetkisiz Liste"]);
     csrf = await girisYap("planci12");
     html = await getText(BOL);
-    ok("bes_plan yetkili ek yönetici bölüm listesini açar", html.includes("🏭 Bölümler") && html.includes('name="ad_'));
+    ok("bes_plan yetkili ek yönetici bölüm listesini açar", html.includes("Bölümler ve Görevler</h1>") && html.includes('name="ad_'));
     // Toplu ekleme (5S kutusu işaretsiz): mükerrer (harf farkıyla) atlanır, boşluk düzeltilir; eskiler 5S'te kalır
     r = await post(BOL + "/ekle", { csrf_token: csrf, adlar: "İdari İşler\nmontaj\n  Satın   Alma  \n\n<b>Xss</b>" });
     let bol = await bolumleriOku();
@@ -941,11 +961,13 @@ async function main() {
     ok("5S bölüm tablosunda 5S dışı bölüm yok", !html.includes("İdari İşler") && html.includes("3 bölüm 5S dışında"));
     // Üst menüde 5S yalnız girişliye; girişsiz ziyaretçi ana sayfadaki kutudan ulaşır
     html = await getText("/");
-    ok("girişli üst menüde 5S var", html.includes('<a href="/5s">🧹 5S</a>'));
+    const menu5S = /<a href="\/5s"><svg class="ikon"[^>]*>[\s\S]*?<\/svg> 5S<\/a>/;
+    const menuPuan = /<a href="\/puan-durumu"><svg class="ikon"[^>]*>[\s\S]*?<\/svg> Puan Listesi<\/a>/;
+    ok("girişli üst menüde 5S ve Puan Listesi var", menu5S.test(html) && menuPuan.test(html));
     // Öneri formu: açılır liste + sunucu doğrulaması (girişsiz)
     await get("/yonetici/cikis");
     html = await getText("/");
-    ok("girişsiz üst menüde 5S yok, ana sayfa kutusu duruyor", !html.includes('<a href="/5s">🧹 5S</a>') && html.includes('class="hub-box" href="/5s"'));
+    ok("girişsiz üst menüde 5S yok, ana sayfa kutusu duruyor", !menu5S.test(html) && !menuPuan.test(html) && html.includes('class="hub-box" href="/5s"'));
     html = await getText("/oneri/yeni");
     const anonCsrf = csrfFrom(html);
     ok("öneri formunda bölüm açılır listesi (5S dışı bölümler de)",
@@ -1055,7 +1077,7 @@ async function main() {
     const montajId = bol.Montaj.id, satinId = bol["Satın Alma"].id;
     const kisileriOku = async (id) => JSON.parse((await db.query("SELECT kisiler FROM bolumler WHERE id = ?", [id]))[0][0].kisiler);
     html = await getText(`${BOL}/${satinId}`);
-    ok("bölüm personel sayfası açılır", html.includes("👥 Satın Alma") && html.includes('name="kisiler"'));
+    ok("bölüm personel sayfası açılır", /<\/svg> Satın Alma<\/h1>/.test(html) && html.includes('name="kisiler"'));
     await post(`${BOL}/${montajId}/personel`, { csrf_token: csrf, kisiler: "Deniz Kaya" });
     await post(`${BOL}/${satinId}/personel`, { csrf_token: csrf,
       kisiler: "ahmet  YILMAZ\r\nAyşe Nur Çelik\r\nTekkelime\r\nahmet yılmaz\r\ndeniz kaya\r\n" });
@@ -1070,7 +1092,7 @@ async function main() {
     await post(`${BOL}/${satinId}/personel/sil`, { csrf_token: csrf, ad: "Deniz Kaya" });
     ok("personel bölümden çıkarıldı", !(await kisileriOku(satinId)).includes("Deniz Kaya"));
     html = await getText(BOL);
-    ok("bölüm listesinde personel sayısı ve bağlantısı", html.includes(`href="/yonetici/bolumler/${satinId}"`) && html.includes("👥 2 kişi"));
+    ok("bölüm listesinde personel sayısı ve bağlantısı", html.includes(`href="/yonetici/bolumler/${satinId}"`) && /<\/svg> 2 kişi/.test(html));
     csrf = await girisYap("kisitli123");
     await post(`${BOL}/${satinId}/personel`, { csrf_token: csrf, kisiler: "Yetkisiz Kişi" });
     ok("yetkisiz kullanıcı personel ekleyemez", !(await kisileriOku(satinId)).includes("Yetkisiz Kişi"));

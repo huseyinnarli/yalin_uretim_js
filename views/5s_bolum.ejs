@@ -3,10 +3,10 @@
    const l1 = adBol(lider1), l2 = adBol(lider2); %>
 
 <div class="list-head">
-    <h1 class="page-title">🧹 <%= b.ad %></h1>
+    <h1 class="page-title"><%- ik('brush-cleaning') %> <%= b.ad %></h1>
     <div class="list-actions">
         <a class="btn ghost" href="/5s#bolumler">← Bölümler</a>
-        <% if (b.bes_dahil) { %><a class="btn primary" href="/5s/bolum/<%= b.id %>/kontrol">✅ Periyodik Kontrol Formu</a><% } %>
+        <% if (b.bes_dahil) { %><a class="btn primary" href="/5s/bolum/<%= b.id %>/kontrol"><%- ik('circle-check') %> Periyodik Kontrol Formu</a><% } %>
     </div>
 </div>
 <% if (!b.bes_dahil) { %>
@@ -21,12 +21,19 @@
     <div class="ozet-kutu"><span class="ok-deger"><%= trend.length %></span><span class="ok-etiket">Tamamlanan denetim</span></div>
 </div>
 
+<% const bekleyenDenetim = denetimler.filter((d) => d.puan === null); %>
+<% if (bekleyenDenetim.length) { %>
+<div class="gorev-kutu"><%- ik('calendar') %> <strong>Yapılacak denetim:</strong>
+    <%= bekleyenDenetim.map((d) => (d.tur_adi ? d.tur_adi + ' · ' : '') + trdate(d.tarih)).join(', ') %>
+    <% if (yetki('bes_denetim')) { %> <a class="btn-mini edit" href="/5s/bolum/<%= b.id %>/denetim">Denetimi Doldur</a><% } %></div>
+<% } %>
+
 <div class="iki-kolon">
     <!-- Ekip -->
     <div class="panel">
         <h3>Ekip</h3>
         <div class="kisi-satir lider">
-            <span>👤 <strong><%= b.sorumlu || '—' %></strong> <span class="rol">ekip lideri</span></span>
+            <span><%- ik('user') %> <strong><%= b.sorumlu || '—' %></strong> <span class="rol">ekip lideri</span></span>
         </div>
         <% if (yetki('bes_plan')) { %>
         <form method="post" action="/5s/bolum/<%= b.id %>/lider" class="satir-form lider-form"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
@@ -59,53 +66,20 @@
             <input type="text" name="kisi_soyad" placeholder="Soyad" required>
             <button type="submit" class="btn primary">+ Ekle</button>
         </form>
-        <p class="bos-not"><a href="/yonetici/bolumler/<%= b.id %>">👥 Toplu personel ekleme (her satıra Ad Soyad) →</a></p>
+        <p class="bos-not"><a href="/yonetici/bolumler/<%= b.id %>"><%- ik('users') %> Toplu personel ekleme (her satıra Ad Soyad) →</a></p>
         <% } %>
     </div>
 
-    <!-- Denetim geçmişi -->
+    <!-- 5S skor trendi (denetimlerin listesi aşağıdaki tabloda — tek yerde) -->
     <div class="panel">
-        <h3>Denetim Geçmişi</h3>
-        <% if (denetimler.length) { %>
-        <table class="data-table mini-tablo">
-            <thead><tr><th>Tarih</th><th>Skor</th><th></th></tr></thead>
-            <tbody>
-                <% for (const d of denetimler) { %>
-                <tr>
-                    <td data-label="Tarih"><%= trdate(d.denetim_tarihi || d.tarih) %></td>
-                    <td data-label="Skor">
-                        <% if (d.puan !== null) { %>
-                            <span class="skor-rozet <%= d.puan >= 80 ? 'iyi' : (d.puan >= 60 ? 'orta' : 'dusuk') %>"><%= d.puan %>/100</span>
-                        <% } else { %>
-                            <span class="skor-rozet bekle">Yapılacak</span>
-                        <% } %>
-                    </td>
-                    <td data-label="" class="nowrap">
-                        <% if (d.puan !== null) { %>
-                        <a class="btn-mini eval" href="/5s/denetim/<%= d.id %>">Formu Gör</a>
-                        <% } else if (yetki('bes_denetim')) { %>
-                        <a class="btn-mini edit" href="/5s/bolum/<%= b.id %>/denetim">Doldur</a>
-                        <% } %>
-                    </td>
-                </tr>
-                <% } %>
-            </tbody>
-        </table>
-        <% } else { %>
-        <p class="bos-not">Bu bölüm için henüz denetim yapılmamış.</p>
-        <% } %>
-    </div>
-</div>
-
-<!-- 5S skor trendi + S1–S5 kırılımı -->
-<h2 class="bolum-baslik" style="margin-top:24px">📈 5S Skor Trendi</h2>
-<% if (trend.length) {
-   const W = 720, H = 220, SOL = 34, SAG = 16, UST = 14, ALT = 28;
+        <h3><%- ik('trending-up') %> 5S Skor Trendi</h3>
+        <% if (trend.length) {
+   const W = 460, H = 250, SOL = 34, SAG = 16, UST = 18, ALT = 28;
    const n = trend.length;
    const x = (i) => n === 1 ? (SOL + W - SAG) / 2 : SOL + 10 + i * (W - SOL - SAG - 20) / (n - 1);
    const y = (v) => UST + (H - UST - ALT) * (1 - v / 100);
    const yol = trend.map((t, i) => (i ? 'L' : 'M') + x(i) + ',' + y(t.puan)).join(' '); %>
-<div class="grafik-kart">
+<div class="grafik-kart grafik-panel">
     <svg class="trend-svg" viewBox="0 0 <%= W %> <%= H %>" role="img" aria-label="<%= b.ad %> 5S skor trendi">
         <% for (const t of [0, 25, 50, 75, 100]) { %>
         <line x1="<%= SOL %>" x2="<%= W - SAG %>" y1="<%= y(t) %>" y2="<%= y(t) %>" class="grafik-grid"/>
@@ -124,7 +98,15 @@
         <% }); %>
     </svg>
 </div>
+        <% } else { %>
+        <p class="bos-not">Tamamlanmış denetim olunca skor trendi burada görünür.</p>
+        <% } %>
+    </div>
+</div>
 
+<!-- Denetimler: S1–S5 kırılımı (bölümün tüm tamamlanan denetimleri) -->
+<h2 class="bolum-baslik" style="margin-top:24px"><%- ik('clipboard-list') %> Denetimler</h2>
+<% if (trend.length) { %>
 <div class="table-wrap" style="margin-top:10px">
 <table class="data-table mini-tablo s-kirilim">
     <thead>
@@ -149,7 +131,7 @@
 </div>
 <p class="bos-not">S sütunları o bölümün aldığı puandır (sütun başlığında en fazla puan); %80 ve üzeri yeşil, %60 altı kırmızı.</p>
 <% } else { %>
-<div class="empty">Tamamlanmış denetim olunca skor trendi burada görünür.</div>
+<div class="empty">Bu bölüm için henüz tamamlanmış denetim yok.</div>
 <% } %>
 
 <script>

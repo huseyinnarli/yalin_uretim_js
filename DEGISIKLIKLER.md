@@ -1,5 +1,23 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — Görsel düzen: çizgi ikonlar, kısa mobil liste, sekmeli Yönetim, menüde Puan Listesi
+
+- **Tek tip çizgi ikonlar:** sitedeki emojiler (menü, sayfa başlıkları, düğmeler, bilgi satırları) her cihazda aynı görünen
+  sade çizgi ikonlarla değişti (Lucide ikon seti, ISC lisansı; dış bağlantı yok, sunucudan gelir). 1./2./3. sıra madalyaları
+  renkli numaralı rozet oldu. Ana sayfa kartlarında ikonlar yuvarlak zeminde.
+- **Telefonda kısa liste kartı:** Öneri & Kaizen listesinde her kayıt artık ~5 satırlık kart (tür · no · tarih, konu,
+  kişi · bölüm, durum · puan, işlem düğmeleri) — önceki "her alan ayrı satır" kartının yarısından az yer kaplar.
+- **Tekrarlar kaldırıldı:** Panel, Puan Listesi, Görevlerim ve Yönetim başlıklarındaki üst menüyü tekrarlayan kısayollar
+  çıkarıldı. Bölüm sayfasındaki "Denetim Geçmişi" tablosu kaldırıldı — denetimler tek tabloda (S1–S5 kırılımı + Formu Gör);
+  skor trendi Ekip'in yanına taşındı; yapılacak denetim varsa üstte "Denetimi Doldur" notu çıkar.
+- **Yönetim sayfası sekmeli:** Denetmenler · Misafir Denetmenler · Yöneticiler · Şifre Değiştir. İşlem sonrası doğru
+  sekmeye dönülür (şifre değişikliği dahil).
+- **Üst menüye 🏆 Puan Listesi** (giriş yapınca; 5S gibi). Menü 1220 px ve altında düğme düzeninde, 1221–1440 px'te tek
+  satır (logonun yanındaki şirket adı gizlenir), daha genişte tam.
+- **İşlem günlüğü Excel'i:** İşlem Günlüğü sayfasında **Günlük Excel (tümü)** — bütün kayıtlar (Zaman, Kim, Rol, İşlem,
+  Sayfa, IP; başlık sabit, filtreli). Yalnız ana yönetici. Temizle onayında önce indirme önerilir.
+- Veritabanı değişikliği yok. e2e testi: **265/265**.
+
 ## 25 Kasım 2026 (devam) — Arayüz incelemesi: küçük düzeltmeler
 
 - Üst menüde ana yönetici rozetinde "Ana Yönetici yönetici" tekrarı kaldırıldı (ek yöneticide ad + "yönetici" kalır).

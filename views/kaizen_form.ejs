@@ -1,11 +1,11 @@
 <%- include('partials/header') %>
-<h1 class="page-title">🔧 <%= duzenle ? "Kaizen Düzenle" : "Yeni Kaizen Formu" %></h1>
+<h1 class="page-title"><%- ik('wrench') %> <%= duzenle ? "Kaizen Düzenle" : "Yeni Kaizen Formu" %></h1>
 <% if (kayit.kaynak_oneri_no && !duzenle) { %>
-<div class="gorev-kutu"><strong>💡 <%= kayit.kaynak_oneri_no %> önerisi kaizene dönüştürülüyor.</strong>
+<div class="gorev-kutu"><strong><%- ik('lightbulb') %> <%= kayit.kaynak_oneri_no %> önerisi kaizene dönüştürülüyor.</strong>
     <small>Konu ve açıklamalar öneriden aktarıldı; uygulamaya göre düzenleyip fotoğrafları ekleyin.</small></div>
 <% } %>
 <% if (duzenle && kayit.durum == 'Düzeltme İsteniyor' && kayit.revize_notu) { %>
-<div class="gorev-kutu"><strong>✏ İstenen düzeltme:</strong> <%= kayit.revize_notu %>
+<div class="gorev-kutu"><strong><%- ik('pencil') %> İstenen düzeltme:</strong> <%= kayit.revize_notu %>
     <small>Kaydettiğinizde kaizen yeniden değerlendirmeye gönderilir.</small></div>
 <% } %>
 <% if (duzenle) { %>
@@ -114,12 +114,13 @@
         </div>
     </div>
     <p class="maliyet-sonuc" id="maliyet-sonuc" aria-live="polite"></p>
-    <p class="bos-not maliyet-not">💶 Maliyet hesabı: iki durumu <strong>aynı dönem</strong> için girin (ör. yıllık). Fark
+    <p class="bos-not maliyet-not"><%- ik('euro') %> Maliyet hesabı: iki durumu <strong>aynı dönem</strong> için girin (ör. yıllık). Fark
         (önceki − sonraki) kazancı ya da zararı gösterir. Maliyet yoksa 0 yazın.</p>
     <script>
     // Maliyet farkının canlı gösterimi (sunucu da aynı kuralla doğrular: yardimci.js paraOku)
     (function () {
         var kutular = document.querySelectorAll('[data-maliyet]'), sonuc = document.getElementById('maliyet-sonuc');
+        var EURO = '<%- ik('euro') %>';
         function oku(v) {
             var s = String(v || '').replace(/[\s€]/g, '');
             if (!s) return null;
@@ -133,7 +134,8 @@
             if (o === null || s === null) { sonuc.textContent = ''; return; }
             if (isNaN(o) || isNaN(s)) { sonuc.textContent = 'Maliyet sayı olmalı (ör. 1250,50).'; sonuc.className += ' zarar'; return; }
             var f = Math.round((o - s) * 100) / 100;
-            sonuc.textContent = f > 0 ? '💶 Kazanç: ' + fmt(f) : (f < 0 ? '💶 Zarar: ' + fmt(-f) : '💶 Maliyet farkı yok (0,00 €)');
+            // Metin yalnız sayılardan üretilir (kullanıcı metni yok) → innerHTML güvenli
+            sonuc.innerHTML = EURO + ' ' + (f > 0 ? 'Kazanç: ' + fmt(f) : (f < 0 ? 'Zarar: ' + fmt(-f) : 'Maliyet farkı yok (0,00 €)'));
             sonuc.className += f > 0 ? ' kazanc' : (f < 0 ? ' zarar' : '');
         }
         for (var i = 0; i < kutular.length; i++) kutular[i].addEventListener('input', guncelle);

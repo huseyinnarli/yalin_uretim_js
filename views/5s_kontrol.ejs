@@ -15,7 +15,7 @@
    } %>
 
 <div class="list-head">
-    <h1 class="page-title">✅ 5S ve Güvenlik Kontrol Formu — <%= b.ad %></h1>
+    <h1 class="page-title"><%- ik('circle-check') %> 5S ve Güvenlik Kontrol Formu — <%= b.ad %></h1>
     <div class="list-actions">
         <a class="btn ghost" href="/5s/bolum/<%= b.id %>">← Bölüm</a>
         <a class="btn ghost" href="/5s/bolum/<%= b.id %>/kontrol?ay=<%= onceki_ay %>">‹ Önceki Ay</a>
@@ -28,7 +28,7 @@
                 <option value="<%= e.ay %>" <%= e.ay === excel_ay ? 'selected' : '' %>><%= e.etiket %></option>
                 <% } %>
             </select>
-            <button type="submit" class="btn ghost">⬇ Excel (seçilen ay)</button>
+            <button type="submit" class="btn ghost"><%- ik('download') %> Excel (seçilen ay)</button>
         </form>
         <% } %>
     </div>
@@ -40,7 +40,7 @@
 <!-- Günün kontrolü (takım lideri) -->
 <div class="form-card kontrol-doldur">
     <form method="get" action="/5s/bolum/<%= b.id %>/kontrol" class="satir-form tarih-sec">
-        <label class="inline-label" for="kontrol-tarih">📅 Kontrol tarihi:</label>
+        <label class="inline-label" for="kontrol-tarih"><%- ik('calendar') %> Kontrol tarihi:</label>
         <input type="date" id="kontrol-tarih" class="kontrol-tarih" name="tarih" value="<%= tarih %>" max="<%= bugun %>" min="2020-01-01" required>
         <button type="submit" class="btn-mini edit">Aç</button>
         <span class="bos-not"><%= ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'][haftaGunu(gun)] %><%= tarih === bugun ? ' · bugün' : '' %></span>
@@ -77,7 +77,7 @@
 <% } %>
 
 <!-- Aylık tablo (kâğıt formdaki gibi) -->
-<h2 class="bolum-baslik">📅 <%= ay_etiketi %> — Aylık Tablo</h2>
+<h2 class="bolum-baslik"><%- ik('calendar') %> <%= ay_etiketi %> — Aylık Tablo</h2>
 <div class="table-wrap">
 <table class="data-table kontrol-tablo">
     <thead>
@@ -107,18 +107,18 @@
 <p class="bos-not">G: Günlük · H: Haftalık · A: Aylık · ✓ uygun · ✗ uygun değil · hücrenin üzerine gelince ayrıntı görünür.</p>
 
 <!-- Kontrol imzaları -->
-<h2 class="bolum-baslik" id="imzalar">✍ Kontrol İmzaları</h2>
+<h2 class="bolum-baslik" id="imzalar"><%- ik('pen-line') %> Kontrol İmzaları</h2>
 <div class="imza-grid">
     <% for (const h of haftalar) { const o = onaylar['hafta-' + h.no]; %>
     <div class="imza-kutu <%= o ? 'imzali' : '' %>">
         <strong><%= h.no %>. hafta</strong> <small>(<%= h.bas %>–<%= h.son %>)</small>
         <span class="bos-not">Grup lideri kontrolü</span>
-        <% if (o) { %><span>✔ <%= o.onaylayan %><br><small><%= o.zaman %><%= o.notu ? ' · ' + o.notu : '' %></small></span>
+        <% if (o) { %><span><%- ik('check') %> <%= o.onaylayan %><br><small><%= o.zaman %><%= o.notu ? ' · ' + o.notu : '' %></small></span>
         <% } else if (imzalayabilir && h.bas <= son_gun) { %>
         <form method="post" action="/5s/bolum/<%= b.id %>/kontrol/imza"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <input type="hidden" name="ay" value="<%= ay %>"><input type="hidden" name="tip" value="hafta"><input type="hidden" name="sira" value="<%= h.no %>">
             <input type="text" name="notu" placeholder="Not (isteğe bağlı)">
-            <button type="submit" class="btn-mini onay">✍ Kontrol Ettim</button>
+            <button type="submit" class="btn-mini onay"><%- ik('pen-line') %> Kontrol Ettim</button>
         </form>
         <% } else { %><span class="bos-not">— imza yok</span><% } %>
     </div>
@@ -127,19 +127,19 @@
     <div class="imza-kutu aylik <%= ao ? 'imzali' : '' %>">
         <strong>Aylık</strong>
         <span class="bos-not">Yetkili bölüm sorumlusu kontrolü</span>
-        <% if (ao) { %><span>✔ <%= ao.onaylayan %><br><small><%= ao.zaman %><%= ao.notu ? ' · ' + ao.notu : '' %></small></span>
+        <% if (ao) { %><span><%- ik('check') %> <%= ao.onaylayan %><br><small><%= ao.zaman %><%= ao.notu ? ' · ' + ao.notu : '' %></small></span>
         <% } else if (imzalayabilir && son_gun > 0) { %>
         <form method="post" action="/5s/bolum/<%= b.id %>/kontrol/imza"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <input type="hidden" name="ay" value="<%= ay %>"><input type="hidden" name="tip" value="ay">
             <input type="text" name="notu" placeholder="Not (isteğe bağlı)">
-            <button type="submit" class="btn-mini onay">✍ Kontrol Ettim</button>
+            <button type="submit" class="btn-mini onay"><%- ik('pen-line') %> Kontrol Ettim</button>
         </form>
         <% } else { %><span class="bos-not">— imza yok</span><% } %>
     </div>
 </div>
 
 <!-- Uygunsuzluklar (önlem planı) -->
-<h2 class="bolum-baslik">⚠ Uygunsuzluklar <span class="rozet-acik"><%= uygunsuzlar.length %></span></h2>
+<h2 class="bolum-baslik"><%- ik('triangle-alert') %> Uygunsuzluklar <span class="rozet-acik"><%= uygunsuzlar.length %></span></h2>
 <% if (uygunsuzlar.length) { %>
 <div class="gorev-liste">
     <% for (const u of uygunsuzlar) { %>

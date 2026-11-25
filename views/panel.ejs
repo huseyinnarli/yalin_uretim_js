@@ -1,18 +1,15 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">📊 Panel</h1>
+    <h1 class="page-title"><%- ik('layout-dashboard') %> Panel</h1>
     <div class="list-actions">
-        <a class="btn ghost" href="/puan-durumu">🏆 Puan Listesi</a>
-        <a class="btn ghost" href="/liste">💡🔧 Öneri &amp; Kaizen</a>
-        <a class="btn ghost" href="/5s">🧹 5S</a>
-        <% if (ana_yonetici) { %><a class="btn ghost" href="/yonetici/gunluk">📜 İşlem Günlüğü</a><% } %>
+        <% if (ana_yonetici) { %><a class="btn ghost" href="/yonetici/gunluk"><%- ik('history') %> İşlem Günlüğü</a><% } %>
     </div>
 </div>
 
 <!-- Öneri & Kaizen istatistikleri: tek tablo, dönem butonları -->
 <div class="list-head" style="margin-bottom:10px">
-    <h2 class="bolum-baslik" style="margin:0">💡🔧 Öneri &amp; Kaizen</h2>
+    <h2 class="bolum-baslik" style="margin:0"><%- ik('lightbulb') %> Öneri &amp; Kaizen</h2>
     <div class="donem-butonlar" role="group" aria-label="Dönem">
         <% ist.donemler.forEach(function (dn, i) { %>
         <button type="button" class="btn-mini donem-btn<%= i === 0 ? ' aktif' : '' %>" data-donem="<%= dn.k %>"><%= dn.ad %></button>
@@ -22,14 +19,14 @@
 <div class="table-wrap">
 <table class="data-table istatistik-tablo">
     <thead>
-        <tr><th></th><th>Gelen</th><th>⏳ Değerlendiriliyor</th><th>✏ Düzeltme</th><th>✓ Onaylandı</th>
+        <tr><th></th><th>Gelen</th><th><%- ik('hourglass') %> Değerlendiriliyor</th><th><%- ik('pencil') %> Düzeltme</th><th>✓ Onaylandı</th>
             <th>★ Puan Alan</th><th>✕ Reddedildi</th></tr>
     </thead>
     <% ist.donemler.forEach(function (dn, i) { %>
     <tbody class="donem-govde" data-donem="<%= dn.k %>"<%= i === 0 ? '' : ' hidden' %>>
-        <% for (const [etiket, x, sinif] of [['💡 Öneri', dn.oneri, ''], ['🔧 Kaizen', dn.kaizen, ''], ['Toplam', dn.toplam, 'toplam-satir']]) { %>
+        <% for (const [etiket, x, sinif, ikonAd] of [['Öneri', dn.oneri, '', 'lightbulb'], ['Kaizen', dn.kaizen, '', 'wrench'], ['Toplam', dn.toplam, 'toplam-satir', '']]) { %>
         <tr class="<%= sinif %>">
-            <th scope="row"><%= etiket %></th>
+            <th scope="row"><% if (ikonAd) { %><%- ik(ikonAd) %> <% } %><%= etiket %></th>
             <td data-label="Gelen"><strong><%= x.toplam %></strong></td>
             <td data-label="Değerlendiriliyor"><%= x.bekle %></td>
             <td data-label="Düzeltme"><%= x.revize %></td>
@@ -43,7 +40,7 @@
     <tfoot>
         <tr class="sabit-toplam">
             <th scope="row">Tüm zamanlar</th>
-            <td colspan="6">💡 <strong><%= ist.tum.oneri.toplam %></strong> öneri · 🔧 <strong><%= ist.tum.kaizen.toplam %></strong> kaizen ·
+            <td colspan="6"><%- ik('lightbulb') %> <strong><%= ist.tum.oneri.toplam %></strong> öneri · <%- ik('wrench') %> <strong><%= ist.tum.kaizen.toplam %></strong> kaizen ·
                 toplam <strong><%= ist.tum.toplam.toplam %></strong> kayıt
                 <span class="bos-not">— puan alan: <%= ist.tum.oneri.puanli %> öneri, <%= ist.tum.kaizen.puanli %> kaizen</span></td>
         </tr>
@@ -77,7 +74,7 @@
        return 'M' + x + ',' + taban + 'V' + (ust + r) + 'Q' + x + ',' + ust + ' ' + (x + r) + ',' + ust +
               'H' + (x + bar - r) + 'Q' + (x + bar) + ',' + ust + ' ' + (x + bar) + ',' + (ust + r) + 'V' + taban + 'Z'; };
    const ticks = []; for (let v = 0; v <= yMax; v += adim) ticks.push(v); %>
-<h2 class="bolum-baslik" style="margin-top:26px">📈 Son 12 Ay — Gelen ve Puan Alan</h2>
+<h2 class="bolum-baslik" style="margin-top:26px"><%- ik('trending-up') %> Son 12 Ay — Gelen ve Puan Alan</h2>
 <p class="bos-not" style="margin-top:-6px">Her ay o ay gelen öneri+kaizen ile bunlardan onaylanıp puan alanlar (gerçekleşen). Çubuğun üzerine gelince ayrıntı görünür.</p>
 <div class="grafik-kart">
     <div class="grafik-lejant">
@@ -124,9 +121,9 @@
 
 <!-- 5S trendi -->
 <div class="list-head" style="margin-top:26px">
-    <h2 class="bolum-baslik" style="margin:0">🧹 Bölümlerin 5S Trendi</h2>
+    <h2 class="bolum-baslik" style="margin:0"><%- ik('brush-cleaning') %> Bölümlerin 5S Trendi</h2>
     <% if (trend_basliklar.length && yetki('bes_odul')) { %>
-    <a class="btn ghost" href="/yonetici/5s-trend/excel">⬇ Trend Excel</a>
+    <a class="btn ghost" href="/yonetici/5s-trend/excel"><%- ik('download') %> Trend Excel</a>
     <% } %>
 </div>
 <% if (trend_basliklar.length) { %>

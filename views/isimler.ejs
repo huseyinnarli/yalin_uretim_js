@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">🔗 İsim Birleştirme</h1>
+    <h1 class="page-title"><%- ik('link') %> İsim Birleştirme</h1>
     <div class="list-actions"><a class="btn ghost" href="/puan-durumu">← Puan Listesi</a></div>
 </div>
 
@@ -24,7 +24,7 @@
         <option value="">— doğru kişi —</option>
         <% for (const s of secenekler) { %><option value="<%= s.v %>"><%= s.ad %></option><% } %>
     </select>
-    <button type="submit" class="btn primary">🔗 Birleştir</button>
+    <button type="submit" class="btn primary"><%- ik('link') %> Birleştir</button>
 </form>
 
 <% if (oneriler.length) { %>
@@ -37,7 +37,7 @@
         <input type="hidden" name="hedef" value="<%= o.hedef.anahtar %>"><input type="hidden" name="hedef_ad" value="<%= o.hedef.ad %>">
         <span class="gs-govde"><strong><%= o.kaynak.ad %></strong> <small>(<%= o.kaynak.toplam %> kayıt)</small>
             → <strong><%= o.hedef.ad %></strong> <small>(<%= o.hedef.toplam %> kayıt)</small></span>
-        <button type="submit" class="btn-mini onay">🔗 Birleştir</button>
+        <button type="submit" class="btn-mini onay"><%- ik('link') %> Birleştir</button>
     </form>
     <% } %>
 </div>

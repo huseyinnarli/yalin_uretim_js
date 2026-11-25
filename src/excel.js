@@ -428,7 +428,26 @@ function kontrolAySayfasi(wb, b, ay, veri) {
   ws.views = [{ state: "frozen", xSplit: 3, ySplit: 3 }];
 }
 
+// İşlem günlüğü: tüm kayıtlar (Zaman, Kim, Rol, İşlem, Sayfa, IP)
+const ROL_ADI = { super: "Ana Yönetici", yonetici: "Yönetici", denetmen: "Denetmen" };
+async function generateGunlukExcel(kayitlar) {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("İşlem Günlüğü");
+  const headers = ["Zaman", "Kim", "Rol", "İşlem", "Sayfa", "IP"];
+  ws.addRow(headers);
+  styleHeader(ws, headers.length);
+  [18, 24, 14, 80, 30, 16].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  for (const k of kayitlar) {
+    ws.addRow([k.zaman || "", k.kim || "", ROL_ADI[k.rol] || k.rol || "", k.mesaj || "", k.yol || "", k.ip || ""]);
+  }
+  govdeStil(ws, headers.length);
+  ws.views = [{ state: "frozen", ySplit: 1 }];
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: headers.length } };
+  return wb.xlsx.writeBuffer();
+}
+
 module.exports = {
+  generateGunlukExcel,
   generateOneriExcel, generateKaizenExcel, generate5sExcel, generate5sFormExcel,
   generateAksiyonExcel, generatePuanExcel, generateOdulExcel, generateTrendExcel, generateKontrolExcel,
 };

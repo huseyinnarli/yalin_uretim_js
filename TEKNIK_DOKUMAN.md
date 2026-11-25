@@ -92,6 +92,7 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | `src/puanlama.js` | `PUAN_TEMEL/ETKI/MALIYET/YAYGIN/EFOR` rubrik tanımları, `PUAN_MAX`, `BESS` (şirket 5S formu: 5 bölüm / 23 soru, soru başına maksimum + kesme kuralı), `BESS_KRITER_MAX`, `bessKriterPuanla(k, bulgu)` (kuraldan puan), `bessKuralMetni(kr)`, `bessBulguTahmin` (eski kayıtta puandan bulgu), `bessBolumToplamlari` (S1–S5 toplamları), `hesaplaPuanlama(form)`, `puanlamaOzet(p)` |
 | `src/db.js` | mysql2 bağlantı havuzu, `CREATE TABLE IF NOT EXISTS` şeması + `EK_KOLONLAR` (sonradan eklenen kolonların tek listesi; `init()` ve `scripts/gecis-kontrol.js` ortak kullanır), `sorgu/tek/calistir/transaction` yardımcıları, JSON kolon yardımcıları (`j`/`js`), satır dönüştürücüler (`oneriRow`, `denetimRow`…), `configGet/Set`, `yedekle()` (tüm tablolar + görseller → ZIP) + `baslatYedekleme()` |
 | `src/cekirdek.js` | Cephe: `src/servis/*` modüllerini tek nesnede toplar (yukarıdaki tablo) |
+| `src/ikonlar.js` | Arayüz ikonları: Lucide (ISC lisansı dosya başında) çizimlerinden yalnız kullanılanlar; `ik(ad)` → satır içi `<svg class="ikon">` (metin renginde, 1em). Şablonlarda `<%- ik('ad') %>`; emoji kullanılmaz |
 | `src/web.js` | `flash` (+ işlem günlüğü), `hizLimitAsildi`, `alan` (kırp + 5000 sınır), `adSoyadOku`/`kisiOku` (ad + soyad kutuları, eski tek kutu da kabul), `guvenliYol` (site içi dönüş adresi), `ortakLocals` (yetki çözümü, `req.denetmen`, görev rozeti, şablon değişkenleri, flash, CSRF), `csrfDogrula` (sabit zamanlı karşılaştırma), `dosyaYukleyici`, `guvenlikBasliklari`, `xlsxGonder`, `zipGonder`, yetki middleware'leri: `girisRequired`, `adminRequired`, `yetkiGerek(alan)`, `anaYoneticiRequired`, `denetciRequired` |
 | `src/excel.js` | 9 rapor üreticisi: öneri, kaizen (görsel gömülü), 5S toplu, 5S tek form, aksiyonlar, puan listesi, ödül alanlar, 5S trend (renkli fark), periyodik kontrol formu (seçilen ayın form sayfası + ÖZET) — hepsi buffer döner |
 | `src/rotalar/genel.js` | Anasayfa, kılavuz, **panel**, liste (giriş + sayfalama), detay, **arşiv** (reddedilen + silinen, silinen detayı), **görevlerim**, puan durumu, ödül ver/sil, kişi gizle, **isim birleştirme**, Excel'ler |
@@ -423,5 +424,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 259 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 265 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

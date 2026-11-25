@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">📖 Kullanım Kılavuzu</h1>
+    <h1 class="page-title"><%- ik('book-open') %> Kullanım Kılavuzu</h1>
     <div class="list-actions">
         <a class="btn ghost" href="/">← Anasayfa</a>
     </div>
@@ -15,10 +15,10 @@
     <p class="blok-alt-not">Genel akış: <strong>Çalışan öneri/kaizen girer → Yönetici onaylar ve puanlar</strong> ·
        <strong>5S: bölümler denetlenir → ilk 3 bölüm ödül alır</strong> → tüm puanlar
        <strong>Puan Listesi</strong>'nde toplanır → net puanı <strong><%= puanfmt(esik) %></strong> puana ulaşana ödül verilir.</p>
-    <p class="blok-alt-not">Anasayfada üç kutu vardır: <strong>🏆 Puan Listesi</strong> ·
-       <strong>💡🔧 Öneri &amp; Kaizen</strong> · <strong>🧹 5S</strong>.</p>
+    <p class="blok-alt-not">Anasayfada üç kutu vardır: <strong><%- ik('trophy') %> Puan Listesi</strong> ·
+       <strong><%- ik('lightbulb') %> Öneri &amp; Kaizen</strong> · <strong><%- ik('brush-cleaning') %> 5S</strong>.</p>
 
-    <h2 class="bolum-baslik">🔐 Giriş ve Roller</h2>
+    <h2 class="bolum-baslik"><%- ik('key-round') %> Giriş ve Roller</h2>
     <ul>
         <li><strong>Herkes</strong> (giriş gerekmez): öneri/kaizen formu doldurur; puan listesini, 5S sonuçlarını,
             aksiyonları ve kontrol formlarını görüntüler. Öneri/kaizen <em>listesi ve detayları</em> girişe kapalıdır.</li>
@@ -26,7 +26,7 @@
         <li><strong>Denetmen:</strong> kendisine planlanan 5S denetimini yapar; ekip lideri olduğu bölümün aksiyonlarını
             kapatır ve <strong>periyodik kontrol formunu</strong> doldurur; öneri/kaizenleri <em>görüntüler</em>; kendisine
             atanan <strong>düzeltmeleri</strong> ve <strong>kaizene dönüştürme görevlerini</strong> yapar
-            (📋 Görevlerim). Bölüm lideri olması gerekmez.</li>
+            (<%- ik('clipboard-list') %> Görevlerim). Bölüm lideri olması gerekmez.</li>
         <li><strong>Ana yönetici:</strong> sabittir, tüm yetkilere sahiptir.</li>
         <li><strong>Ek yönetici:</strong> verilen yetki alanlarıyla sınırlıdır — Değerlendirme · Puanlama · Kayıt
             düzenle-sil · Bölüm &amp; plan · Denetim yapma · Denetim revize · Aksiyon yönetimi · 5S ödül &amp; raporlar ·
@@ -34,7 +34,7 @@
             <strong>ana yöneticidedir</strong>; ek yöneticiye tam yetki verilemez.</li>
     </ul>
 
-    <h2 class="bolum-baslik">💡 Öneri Ekleme</h2>
+    <h2 class="bolum-baslik"><%- ik('lightbulb') %> Öneri Ekleme</h2>
     <ul>
         <li>Listede <strong>+ Öneri</strong> ile açılır; numara kayıtta otomatik atanır (örn.
             <span class="mono">ÖNFR2607-01</span>) ve her ay <span class="mono">01</span>'den başlar.</li>
@@ -44,20 +44,20 @@
             Ayrıca görev, tarih, çözüm önerisi ve 4 katkı sorusu (Kalite / Verimlilik / İSG / Maliyet) doldurulabilir.</li>
     </ul>
 
-    <h2 class="bolum-baslik">🔧 Kaizen Ekleme</h2>
+    <h2 class="bolum-baslik"><%- ik('wrench') %> Kaizen Ekleme</h2>
     <ul>
         <li>Listede <strong>+ Kaizen</strong> ile açılır; numara otomatik (örn. <span class="mono">ÖSKFR2607-01</span>).</li>
         <li><strong>Ekip en fazla 3 kişidir:</strong> 1 lider + en fazla 2 üye; her kişinin adı ve soyadı ayrı yazılır. Başlangıç–bitiş tarihi, kazanç başlıkları
             (Makine, İşçilik, Kalite, İSG… çoklu seçim) ve <strong>önce/sonra</strong> açıklaması girilir; her biri için
             birer fotoğraf eklenebilir. Yapıldığı bölüm ve ekipteki her kişinin görevi açılır listeden seçilir.</li>
-        <li><strong>💶 Maliyet hesabı (zorunlu):</strong> önceki ve sonraki durumun altına o durumun maliyeti
+        <li><strong><%- ik('euro') %> Maliyet hesabı (zorunlu):</strong> önceki ve sonraki durumun altına o durumun maliyeti
             <strong>€</strong> olarak yazılır (ör. <span class="mono">1250,50</span>; maliyet yoksa 0). İki durum aynı dönem
             için girilmeli (ör. yıllık). Fark (önceki − sonraki) formda ve detayda <strong>kazanç</strong> (yeşil) ya da
             <strong>zarar</strong> (kırmızı) olarak görünür; Kaizen Excel'inin son 3 sütunundadır. Maliyeti olmayan eski kaizen
             düzenlenirken maliyet girilmesi istenir.</li>
     </ul>
 
-    <h2 class="bolum-baslik">📋 Liste ve Değerlendirme</h2>
+    <h2 class="bolum-baslik"><%- ik('clipboard-list') %> Liste ve Değerlendirme</h2>
     <ul>
         <li>Liste <strong>20'şerli sayfalanır</strong>; tür / durum / <strong>bölüm</strong> / dönem / arama filtreleri vardır
             (bölüm filtresinde "Bölüm belirtilmemiş" bölümü boş eski kayıtları gösterir). Reddedilenler listede görünmez.</li>
@@ -66,30 +66,30 @@
                 <li><strong>✓ Onayla</strong> — öneride isteğe bağlı olarak uygulayıp kaizene dönüştürecek <strong>denetmen</strong> atanır;
                     atanırsa <strong>termin ve açıklama zorunludur</strong> (termin bugünden önce olamaz).</li>
                 <li><strong>✕ Reddet</strong> — <strong>red nedeni zorunlu</strong>. Onaylanmış kayıt reddedilemez.</li>
-                <li><strong>✏ Düzeltme İste</strong> — düzeltmeyi yapacak <strong>denetmen seçilir</strong> ve ne düzeltileceği
+                <li><strong><%- ik('pencil') %> Düzeltme İste</strong> — düzeltmeyi yapacak <strong>denetmen seçilir</strong> ve ne düzeltileceği
                     yazılır. Yalnızca o denetmen düzenleyebilir; kaydedince kayıt yeniden "Değerlendiriliyor" olur.</li>
             </ul></li>
         <li><strong>★ Puanla</strong> (onaylı kayıtta): Temel 10 · Etki 40 · Maliyet 20 · Yaygınlaştırma 15 · Efor 15.
             Kaydedince kayda dönülür; "← Listeye Dön" kaldığınız sayfaya götürür.</li>
-        <li><strong>🔧 Kaizene Dönüştür:</strong> görev atanan denetmen öneriden doldurulmuş kaizen formunu açar; kaydedince
+        <li><strong><%- ik('wrench') %> Kaizene Dönüştür:</strong> görev atanan denetmen öneriden doldurulmuş kaizen formunu açar; kaydedince
             öneri ve kaizen birbirine bağlanır.</li>
-        <li><strong>🗃 Öneri Havuzu</strong> (onaylı, henüz uygulanamayan öneriler): detay sayfasında <strong>Beklemeye Al</strong> —
+        <li><strong><%- ik('inbox') %> Öneri Havuzu</strong> (onaylı, henüz uygulanamayan öneriler): detay sayfasında <strong>Beklemeye Al</strong> —
             <strong>neden türü + açıklama + gözden geçirme tarihi</strong> zorunludur. Öneri onaylı kalır ve
             <strong>puanı korunur</strong>; havuzdayken görev atanmaz, kaizene dönüştürülmez (varsa görev kaldırılır).
             Engel kalkınca <strong>Havuzdan Çıkar</strong>; hiç yapılamayacaksa <strong>Uygulanamadı Olarak Kapat</strong>
-            (gerekçeyle; gerekirse <strong>↩ Yeniden Aç</strong>). Havuzdakiler ana listede görünmez; liste sayfasındaki
-            <strong>🗃 Öneri Havuzu</strong> düğmesiyle açılan sayfada <em>Beklemede</em> (gözden geçirme tarihine göre) ve
-            <em>Uygulanamadı</em> olarak ayrı ayrı toplanır. Tarihi gelenler Panel'de ve 📋 Görevlerim takip listesinde de görünür.</li>
-        <li><strong>🗂 Reddedilen &amp; Silinen:</strong> reddedilenler (gerekçesiyle) ve silinenler burada toplanır. Denetmenler
+            (gerekçeyle; gerekirse <strong><%- ik('undo-2') %> Yeniden Aç</strong>). Havuzdakiler ana listede görünmez; liste sayfasındaki
+            <strong><%- ik('inbox') %> Öneri Havuzu</strong> düğmesiyle açılan sayfada <em>Beklemede</em> (gözden geçirme tarihine göre) ve
+            <em>Uygulanamadı</em> olarak ayrı ayrı toplanır. Tarihi gelenler Panel'de ve <%- ik('clipboard-list') %> Görevlerim takip listesinde de görünür.</li>
+        <li><strong><%- ik('archive') %> Reddedilen &amp; Silinen:</strong> reddedilenler (gerekçesiyle) ve silinenler burada toplanır. Denetmenler
             görüntüler; kayıt yetkisi olan geri yükler veya kalıcı siler.</li>
     </ul>
 
-    <h2 class="bolum-baslik">🧹 5S — Bölümler</h2>
+    <h2 class="bolum-baslik"><%- ik('brush-cleaning') %> 5S — Bölümler</h2>
     <ul>
         <li><strong>Tek bölüm listesi:</strong> öneri ve kaizen formlarındaki açılır liste ile 5S aynı listeyi kullanır.
-            Liste <strong>Yönetim › 🏭 Bölümler ve Görevler</strong>'de tutulur (yetki: Bölüm/görev listeleri &amp; denetim planı):
+            Liste <strong>Yönetim › <%- ik('factory') %> Bölümler ve Görevler</strong>'de tutulur (yetki: Bölüm/görev listeleri &amp; denetim planı):
             her satıra bir ad yazarak toplu ekleme, ad değiştirme ve her bölüm için <strong>5S'e dahil</strong> kutusu.
-            <strong>👥</strong> düğmesi bölüm sayfasını açar: ekip lideri ve personel (her satıra Ad Soyad, toplu).
+            <strong><%- ik('users') %></strong> düğmesi bölüm sayfasını açar: ekip lideri ve personel (her satıra Ad Soyad, toplu).
             Aynı sayfada öneri ve kaizen formları için ortak <strong>görev tanımları</strong> listesi tutulur. 5S'e dahil
             olmayan bölüm (ör. ofis birimleri) yalnız formlarda seçilir; denetim planına ve kontrol formuna girmez.
             5S'ten çıkarmak için bölümü silmeyin, kutuyu kaldırın — geçmiş denetimler korunur.</li>
@@ -98,20 +98,20 @@
         <li><strong>Bölüm sayfası:</strong> skor trend grafiği ve her denetimin <strong>S1–S5 kırılımı</strong>.</li>
     </ul>
 
-    <h2 class="bolum-baslik">✅ 5S — Periyodik Kontrol Formu</h2>
+    <h2 class="bolum-baslik"><%- ik('circle-check') %> 5S — Periyodik Kontrol Formu</h2>
     <ul>
-        <li>Bölüm sayfasındaki <strong>✅ Periyodik Kontrol Formu</strong> ile açılır: 10 günlük, 3 haftalık, 2 aylık madde.</li>
-        <li>Formu <strong>bölümün ekip lideri</strong> (denetmen girişiyle) doldurur: <strong>📅 Kontrol tarihi</strong>
+        <li>Bölüm sayfasındaki <strong><%- ik('circle-check') %> Periyodik Kontrol Formu</strong> ile açılır: 10 günlük, 3 haftalık, 2 aylık madde.</li>
+        <li>Formu <strong>bölümün ekip lideri</strong> (denetmen girişiyle) doldurur: <strong><%- ik('calendar') %> Kontrol tarihi</strong>
             alanına tıklayınca takvim açılır, gün seçilince o günün formu gelir (ileri tarih seçilemez). Maddeler
             <strong>Uygun / Uygun Değil</strong> işaretlenir; uygun değilde açıklama zorunludur. Uygunsuzluklar formun
             altında ve Excel'de listelenir.</li>
         <li>Haftalık <strong>grup lideri</strong> ve aylık <strong>bölüm sorumlusu</strong> kontrolü "Kontrol Ettim" ile imzalanır
             (bölümün lideri dışındaki denetmen veya yetkili yönetici). Aylık tablo herkese açıktır.</li>
-        <li><strong>⬇ Excel (seçilen ay):</strong> yanındaki listeden ay seçilir; yalnız o ayın formu iner — kâğıt formdaki
+        <li><strong><%- ik('download') %> Excel (seçilen ay):</strong> yanındaki listeden ay seçilir; yalnız o ayın formu iner — kâğıt formdaki
             düzende form sayfası (uygunsuzluklar altında) ve özet sayfası (kontrol günü, uygunluk %, imzalar).</li>
     </ul>
 
-    <h2 class="bolum-baslik">🗓️ 5S — Denetim Planı</h2>
+    <h2 class="bolum-baslik"><%- ik('calendar') %> 5S — Denetim Planı</h2>
     <ul>
         <li><strong>Tarih aralığı</strong> seçilince tüm bölümler için o turun denetimi açılır; tur adı aydan otomatik
             gelir (örn. "Temmuz 2026 Denetimi").</li>
@@ -125,7 +125,7 @@
         <li>Aynı başlangıç tarihiyle ikinci bir tur açılamaz (turlar tarihle ayrılır).</li>
     </ul>
 
-    <h2 class="bolum-baslik">✅ 5S — Denetim Formu</h2>
+    <h2 class="bolum-baslik"><%- ik('circle-check') %> 5S — Denetim Formu</h2>
     <p>Form, şirketin <strong>5S Denetim Raporu</strong> şablonudur — 5 bölüm, 23 soru, toplam <strong>100 puan</strong>:</p>
     <ul>
         <li><strong>S1 · Ayıklama (25)</strong> · <strong>S2 · Düzenleme (35)</strong> · <strong>S3 · Temizlik (20)</strong>
@@ -145,7 +145,7 @@
             yazılır.</li>
     </ul>
 
-    <h2 class="bolum-baslik">🏅 5S — Ödüllendirme ve Sonuçlar</h2>
+    <h2 class="bolum-baslik"><%- ik('award') %> 5S — Ödüllendirme ve Sonuçlar</h2>
     <ul>
         <li>Bir tur <strong>tüm bölümlerde tamamlanınca</strong> yönetici <strong>Ödülleri İşle</strong> der:
             1./2./3. bölümün <strong>tüm ekibine 100 / 75 / 50 puan</strong> kalıcı eklenir.</li>
@@ -153,11 +153,11 @@
             <strong>Geçmiş Denetimler</strong> sayfasında görünür.</li>
         <li>Geçmiş bir denetim formu açıldığında yetkili yönetici tüm fotoğrafları <strong>ZIP</strong>, formu
             <strong>Excel</strong> olarak indirebilir.</li>
-        <li><strong>✏ Revize Et:</strong> yetkili yönetici yapılmış denetimi düzeltebilir (skor yeniden hesaplanır, fotoğraf
+        <li><strong><%- ik('pencil') %> Revize Et:</strong> yetkili yönetici yapılmış denetimi düzeltebilir (skor yeniden hesaplanır, fotoğraf
             eklenip silinebilir). Ödülleri işlenmiş turdaki denetim revize edilemez.</li>
     </ul>
 
-    <h2 class="bolum-baslik">⚑ 5S — Aksiyonlar</h2>
+    <h2 class="bolum-baslik"><%- ik('flag') %> 5S — Aksiyonlar</h2>
     <ul>
         <li>Denetimde bir soruya atanan <strong>düzeltici aksiyonlar</strong> Aksiyonlar sayfasında
             <strong>Açık / Kapalı</strong> olarak, tur → bölüm kırılımıyla listelenir.</li>
@@ -166,32 +166,35 @@
         <li>Yönetici aksiyonları Excel, fotoğrafları ZIP olarak indirebilir.</li>
     </ul>
 
-    <h2 class="bolum-baslik">🏆 Puan Listesi &amp; Ödül</h2>
+    <h2 class="bolum-baslik"><%- ik('trophy') %> Puan Listesi &amp; Ödül</h2>
     <ul>
         <li>Puanlar şu şekilde dağılır (bugünkü ayar): <strong><%= kural_metni %></strong> ·
             <strong>5S</strong> → turda ilk 3 bölümün ekibine <strong><%= odul.bes.map(puanfmt).join('/') %></strong>.
             Bu değerleri ve önerinin puanlama tablosuyla mı yoksa onaylanınca sabit puanla mı değerlendirileceğini
-            <strong>ana yönetici</strong> Yönetim › 🏆 Puan ve Ödül Ayarları'ndan değiştirir; her kayda onaylandığı günün
+            <strong>ana yönetici</strong> Yönetim › <%- ik('trophy') %> Puan ve Ödül Ayarları'ndan değiştirir; her kayda onaylandığı günün
             kuralı uygulanır.</li>
         <li>Kişi satırına tıklayınca puanının hangi kayıtlardan geldiği açılır.</li>
         <li>Aynı kişinin farklı yazılışları (ALİ YILMAZ / ali yilmaz) otomatik <strong>tek kişi</strong> sayılır. Yazım
-            hataları <strong>🔗 İsim Birleştirme</strong> sayfasından elle birleştirilir (kayıtlar değişmez, geri ayrılabilir).</li>
-        <li>Net puanı <strong><%= puanfmt(esik) %></strong> puana ulaşan kişiye yönetici <strong>🎁 Ödül Ver</strong> der;
+            hataları <strong><%- ik('link') %> İsim Birleştirme</strong> sayfasından elle birleştirilir (kayıtlar değişmez, geri ayrılabilir).</li>
+        <li>Net puanı <strong><%= puanfmt(esik) %></strong> puana ulaşan kişiye yönetici <strong><%- ik('gift') %> Ödül Ver</strong> der;
             <%= puanfmt(esik) %> puan düşülür ve kişi <strong>Ödül Alanlar</strong> listesine geçer. Ödül kaydı silinirse düşülen
             puan geri döner.</li>
     </ul>
 
-    <h2 class="bolum-baslik">📊 Panel · 🛠 Yönetim · 📋 Görevlerim</h2>
+    <h2 class="bolum-baslik"><%- ik('layout-dashboard') %> Panel · <%- ik('settings') %> Yönetim · <%- ik('clipboard-list') %> Görevlerim</h2>
     <ul>
-        <li><strong>📊 Panel</strong> (denetmen ve tüm yöneticiler): üstteki butonlarla Bu Ay / Son 6 Ay / Bu Yıl / Tüm
+        <li><strong><%- ik('layout-dashboard') %> Panel</strong> (denetmen ve tüm yöneticiler): üstteki butonlarla Bu Ay / Son 6 Ay / Bu Yıl / Tüm
             Zamanlar arasında geçilen tek tablo, en altta sabit tüm zamanlar toplamı, son 12 ayın gelen ve puan alan
             öneri/kaizen grafiği, bölümlerin 5S trendi.</li>
-        <li><strong>🛠 Yönetim:</strong> denetmen hesapları, misafir denetmenler, ek yöneticiler (yetki kutucukları;
-            yalnız ana yönetici görür) ve ana yönetici şifresi — her bölüm yalnızca yetkisi olana görünür. İlk kurulumdaki
+        <li><strong><%- ik('settings') %> Yönetim:</strong> sekmeler halinde — Denetmenler, Misafir Denetmenler, Yöneticiler (ek yönetici
+            ve yetki kutucukları; yalnız ana yönetici görür) ve Şifre Değiştir. Her sekme yalnızca yetkisi olana görünür. İlk kurulumdaki
             varsayılan şifre ilk girişte hemen değiştirilmelidir.</li>
-        <li><strong>📋 Görevlerim:</strong> size atanan düzeltmeler, kaizene dönüştürme görevleri, planlanan denetimler,
+        <li><strong><%- ik('clipboard-list') %> Görevlerim:</strong> size atanan düzeltmeler, kaizene dönüştürme görevleri, planlanan denetimler,
             kapatmanız gereken aksiyonlar ve bugünkü kontrol formu. Menüdeki sayı bekleyen işleri gösterir.</li>
-        <li><strong>📜 İşlem Günlüğü</strong> (ana yönetici): yöneticilerin ve denetmenlerin işlemleri (kim, ne zaman, ne yaptı).</li>
+        <li><strong><%- ik('history') %> İşlem Günlüğü</strong> (ana yönetici): yöneticilerin ve denetmenlerin işlemleri (kim, ne zaman, ne yaptı).
+            Sayfada son 500 kayıt görünür; <strong>Günlük Excel (tümü)</strong> bütün kayıtları indirir (temizlemeden önce arşiv için).</li>
+        <li><strong>Üst menü</strong> (giriş yapınca): Panel · Öneri &amp; Kaizen · 5S · Puan Listesi · Görevlerim · Kılavuz · Yönetim — hangi
+            sayfada olursanız olun bu sayfalar arasında tek tıkla geçilir.</li>
     </ul>
 </div>
 <%- include('partials/footer') %>

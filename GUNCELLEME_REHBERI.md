@@ -463,7 +463,7 @@ yöneticiler, denetmenler, ödül defteri ve form numaraları bulunuyordu.
 | **25 Kasım — onaylı öneri havuzu:** yeni sürüm eski veritabanında | Eski onaylı öneri havuza alınıyor; havuz filtresi, panel özeti, öneri Excel'i |
 | **25 Kasım — onaylı öneri havuzu:** geri dönüş (eski sürüm) | Havuzdaki öneri normal onaylı öneri gibi açılıyor; liste, Excel, öneri gönderme, onay, puan listesi çalışıyor |
 | **25 Kasım — kaizen maliyet hesabı:** ön kontrol / yeni sürüm / geri dönüş | `CHECKSUM` aynı, 3 tablo + 39 kolon; maliyetli kaizen kaydı; eski sürümde detay, kayıt, Excel çalışıyor |
-| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **259/259** |
+| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **265/265** |
 
 ---
 

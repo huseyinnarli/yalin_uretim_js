@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 <div class="login-wrap">
     <div class="login-card">
-        <div class="login-icon">🔒</div>
+        <div class="login-icon"><%- ik('lock') %></div>
         <h1>Giriş</h1>
         <p class="subtitle">Yönetici veya denetmen şifrenizi girin — sistem sizi otomatik tanır.</p>
         <form method="post"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">

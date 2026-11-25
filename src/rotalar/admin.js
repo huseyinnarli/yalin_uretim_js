@@ -224,6 +224,11 @@ module.exports = function register(app) {
     res.render("gunluk", { title: "İşlem Günlüğü", kayitlar: await C.loadGunluk(500) });
   }));
 
+  // Günlüğün tamamı Excel olarak (yalnız ana yönetici — günlüğü görebilen tek hesap)
+  app.get("/yonetici/gunluk/excel", anaYoneticiRequired, sar(async (req, res) => {
+    xlsxGonder(res, await X.generateGunlukExcel(await C.tumGunluk()), `islem_gunlugu_${S.bugunIso()}.xlsx`);
+  }));
+
   app.post("/yonetici/gunluk/temizle", anaYoneticiRequired, sar(async (req, res) => {
     await C.gunlukTemizle();
     flash(req, "success", "İşlem günlüğü temizlendi.");
@@ -324,7 +329,7 @@ module.exports = function register(app) {
       await C.setAdminPassword(yeni);
       flash(req, "success", "Şifre güncellendi.");
     }
-    res.redirect("/yonetici");
+    res.redirect("/yonetici#sifre");
   }));
 
   app.get("/yonetici/5s-trend/excel", yetkiGerek("bes_odul"), sar(async (req, res) => {

@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">🗂 Reddedilen &amp; Silinen Kayıtlar</h1>
+    <h1 class="page-title"><%- ik('archive') %> Reddedilen &amp; Silinen Kayıtlar</h1>
     <div class="list-actions">
         <a class="btn ghost" href="/liste">← Öneri &amp; Kaizen</a>
     </div>
@@ -33,7 +33,7 @@
 <div class="empty">Reddedilmiş kayıt yok.</div>
 <% } %>
 
-<h2 class="bolum-baslik" id="silinenler">🗑 Silinenler <span class="rozet-kapali"><%= silinenler.length %></span></h2>
+<h2 class="bolum-baslik" id="silinenler"><%- ik('trash-2') %> Silinenler <span class="rozet-kapali"><%= silinenler.length %></span></h2>
 <% if (silinenler.length) { %>
 <div class="table-wrap">
 <table class="data-table">
@@ -57,7 +57,7 @@
                 <form method="post" action="/silinenler/geri" style="display:inline">
                     <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                     <input type="hidden" name="id" value="<%= k.id %>">
-                    <button type="submit" class="btn-mini onay" title="Listeye geri al">↩ Geri Yükle</button>
+                    <button type="submit" class="btn-mini onay" title="Listeye geri al"><%- ik('undo-2') %> Geri Yükle</button>
                 </form>
                 <form method="post" action="/silinenler/sil" style="display:inline"
                       onsubmit="return confirm('Bu kayıt KALICI olarak silinsin mi? Bu işlem geri alınamaz.');">

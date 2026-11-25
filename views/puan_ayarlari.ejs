@@ -4,7 +4,7 @@
 
 <div class="ayar-sayfa">
 <div class="list-head">
-    <h1 class="page-title">🏆 Puan ve Ödül Ayarları</h1>
+    <h1 class="page-title"><%- ik('trophy') %> Puan ve Ödül Ayarları</h1>
     <div class="list-actions">
         <a class="btn ghost" href="/yonetici">← Yönetim</a>
         <a class="btn ghost" href="/puan-durumu">Puan Listesi</a>
@@ -14,13 +14,13 @@
     5S → <%= odul.bes.map(puanfmt).join(' / ') %> · ödül eşiği <strong><%= puanfmt(odul.esik) %></strong> puan.</p>
 
 <% if (hatalar.length) { %>
-<div class="uyari-kutu ayar-hata"><% for (const h of hatalar) { %><div>⚠ <%= h %></div><% } %></div>
+<div class="uyari-kutu ayar-hata"><% for (const h of hatalar) { %><div><%- ik('triangle-alert') %> <%= h %></div><% } %></div>
 <% } %>
 
 <form method="post" action="/yonetici/puan-ayarlari" class="form-card ayar-form" autocomplete="off">
     <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
 
-    <h3 class="ayar-baslik">🎁 Ödül</h3>
+    <h3 class="ayar-baslik"><%- ik('gift') %> Ödül</h3>
     <div class="ayar-satir">
         <div class="ayar-ad"><label for="esik">Ödül eşiği</label>
             <small>Net puanı bu değere ulaşan kişiye ödül verilebilir; ödülde bu kadar puan düşülür.
@@ -41,7 +41,7 @@
         </div>
     </div>
 
-    <h3 class="ayar-baslik">💡 Öneri</h3>
+    <h3 class="ayar-baslik"><%- ik('lightbulb') %> Öneri</h3>
     <div class="ayar-satir">
         <div class="ayar-ad"><span class="ayar-etiket">Değerlendirme şekli</span>
             <small>Puanlama tablosu: öneri kaizen gibi puanlanır. Sabit puan: tablo kullanılmaz, öneri onaylanınca puan yazılır.</small></div>
@@ -65,7 +65,7 @@
             <span class="birim">puan</span></div>
     </div>
 
-    <h3 class="ayar-baslik">🔧 Kaizen <small>(her zaman puanlama tablosuyla)</small></h3>
+    <h3 class="ayar-baslik"><%- ik('wrench') %> Kaizen <small>(her zaman puanlama tablosuyla)</small></h3>
     <div class="ayar-satir">
         <div class="ayar-ad"><label for="kaizen_lider_oran">Lidere yazılan pay</label>
             <small>Kaizen puanının yüzdesi.</small></div>
@@ -79,7 +79,7 @@
             <input type="number" id="kaizen_uye_oran" name="kaizen_uye_oran" min="0" max="100" step="0.5" value="<%= fk.kaizen_uye_oran ?? '' %>" required></div>
     </div>
 
-    <h3 class="ayar-baslik">📅 Öneri ve kaizen değişikliği hangi kayıtlara uygulansın?</h3>
+    <h3 class="ayar-baslik"><%- ik('calendar') %> Öneri ve kaizen değişikliği hangi kayıtlara uygulansın?</h3>
     <div class="secenek-liste">
         <label><input type="radio" name="uygulama" value="ileri" <%= !form.geriyeDonuk ? 'checked' : '' %>>
             <span><strong>Bugünden itibaren onaylananlara <em>(önerilen)</em></strong>
@@ -90,14 +90,14 @@
     </div>
 
     <div class="ayar-butonlar">
-        <button type="submit" name="islem" value="onizle" class="btn ghost">👁 Etkisini Önizle</button>
+        <button type="submit" name="islem" value="onizle" class="btn ghost"><%- ik('eye') %> Etkisini Önizle</button>
         <button type="submit" name="islem" value="kaydet" class="btn primary"
-                onclick="return confirm(this.dataset.onay)" data-onay="Puan ve ödül ayarları kaydedilecek. Devam?">💾 Kaydet</button>
+                onclick="return confirm(this.dataset.onay)" data-onay="Puan ve ödül ayarları kaydedilecek. Devam?"><%- ik('save') %> Kaydet</button>
     </div>
 </form>
 
 <% if (onizleme) { const o = onizleme; %>
-<h2 class="bolum-baslik" id="onizleme">👁 Önizleme — mevcut veride etkisi (henüz kaydedilmedi)</h2>
+<h2 class="bolum-baslik" id="onizleme"><%- ik('eye') %> Önizleme — mevcut veride etkisi (henüz kaydedilmedi)</h2>
 <% if (!o.kuralDegisti && !o.esikDegisti && !o.besDegisti) { %>
 <p class="bos-not">Değişiklik yok.</p>
 <% } else { %>
@@ -138,11 +138,11 @@
 </div>
 <% if (o.degisen_sayisi > o.degisen.length) { %><p class="bos-not">… ve <%= o.degisen_sayisi - o.degisen.length %> kişi daha.</p><% } %>
 <% } else { %><p class="bos-not">Hiçbir kişinin net puanı veya ödül durumu değişmiyor.</p><% } %>
-<p class="bos-not">Önizleme kaydedilmedi. Uygun görürseniz yukarıdaki <strong>💾 Kaydet</strong> ile kaydedin.</p>
+<p class="bos-not">Önizleme kaydedilmedi. Uygun görürseniz yukarıdaki <strong><%- ik('save') %> Kaydet</strong> ile kaydedin.</p>
 <% } %>
 <% } %>
 
-<h2 class="bolum-baslik">🗂 Öneri ve kaizen kuralı geçmişi</h2>
+<h2 class="bolum-baslik"><%- ik('archive') %> Öneri ve kaizen kuralı geçmişi</h2>
 <p class="bos-not">Her kayda, <strong>onaylandığı gün</strong> geçerli olan kural uygulanır (eski kayıtlarda onay tarihi yoksa kayıt tarihi).</p>
 <div class="table-wrap">
 <table class="data-table mini-tablo">

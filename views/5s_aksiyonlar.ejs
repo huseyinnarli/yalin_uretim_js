@@ -1,12 +1,12 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">⚑ 5S Aksiyonlar</h1>
+    <h1 class="page-title"><%- ik('flag') %> 5S Aksiyonlar</h1>
     <div class="list-actions">
         <a class="btn ghost" href="/5s">← 5S</a>
         <% if (yetki('bes_aksiyon')) { %>
-        <a class="btn ghost" href="/5s/aksiyonlar/excel">⬇ Aksiyon Excel</a>
-        <a class="btn ghost" href="/5s/aksiyonlar/fotolar.zip">⬇ Fotoğraflar (ZIP)</a>
+        <a class="btn ghost" href="/5s/aksiyonlar/excel"><%- ik('download') %> Aksiyon Excel</a>
+        <a class="btn ghost" href="/5s/aksiyonlar/fotolar.zip"><%- ik('download') %> Fotoğraflar (ZIP)</a>
         <% } %>
     </div>
 </div>
@@ -30,7 +30,7 @@
         <div class="aksiyon-grup-icerik">
             <% for (const bl of g.bolumler) { %>
             <div class="aksiyon-bolum">
-                <h4 class="aksiyon-bolum-ad">🏭 <%= bl.ad %> <span class="tur-bolum-sayisi"><%= bl.aksiyonlar.length %></span></h4>
+                <h4 class="aksiyon-bolum-ad"><%- ik('factory') %> <%= bl.ad %> <span class="tur-bolum-sayisi"><%= bl.aksiyonlar.length %></span></h4>
                 <% for (const a of bl.aksiyonlar) { %><%- include('partials/aksiyon_kart', { a: a }) %><% } %>
             </div>
             <% } %>
@@ -39,10 +39,10 @@
     <% }); %>
 </div>
 <% } else { %>
-<p class="bos-not">🎉 Açık aksiyon yok — tüm aksiyonlar kapatılmış.</p>
+<p class="bos-not"><%- ik('party-popper') %> Açık aksiyon yok — tüm aksiyonlar kapatılmış.</p>
 <% } %>
 
-<h2 class="bolum-baslik aksiyon-bolum-baslik kapali">✔ Kapalı Aksiyonlar
+<h2 class="bolum-baslik aksiyon-bolum-baslik kapali"><%- ik('check') %> Kapalı Aksiyonlar
     <span class="rozet-kapali"><%= toplam_kapali %></span></h2>
 <% if (kapali_gruplar.length) { %>
 <div class="aksiyon-gruplar">
@@ -58,7 +58,7 @@
         <div class="aksiyon-grup-icerik">
             <% for (const bl of g.bolumler) { %>
             <div class="aksiyon-bolum">
-                <h4 class="aksiyon-bolum-ad">🏭 <%= bl.ad %> <span class="tur-bolum-sayisi"><%= bl.aksiyonlar.length %></span></h4>
+                <h4 class="aksiyon-bolum-ad"><%- ik('factory') %> <%= bl.ad %> <span class="tur-bolum-sayisi"><%= bl.aksiyonlar.length %></span></h4>
                 <% for (const a of bl.aksiyonlar) { %><%- include('partials/aksiyon_kart', { a: a }) %><% } %>
             </div>
             <% } %>
@@ -71,7 +71,7 @@
 <% } %>
 
 <% } else { %>
-<div class="empty">Henüz atanmış aksiyon yok. Denetim formunda her madde için <strong>⚑ Aksiyon Ata</strong> ile aksiyon oluşturabilirsiniz.</div>
+<div class="empty">Henüz atanmış aksiyon yok. Denetim formunda her madde için <strong><%- ik('flag') %> Aksiyon Ata</strong> ile aksiyon oluşturabilirsiniz.</div>
 <% } %>
 
 <script>

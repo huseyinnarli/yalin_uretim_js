@@ -2,10 +2,10 @@
 <% const l1 = adBol(lider1), l2 = adBol(lider2); %>
 <div class="ayar-sayfa">
 <div class="list-head">
-    <h1 class="page-title">👥 <%= b.ad %></h1>
+    <h1 class="page-title"><%- ik('users') %> <%= b.ad %></h1>
     <div class="list-actions">
         <a class="btn ghost" href="/yonetici/bolumler">← Bölümler</a>
-        <% if (b.bes_dahil) { %><a class="btn ghost" href="/5s/bolum/<%= b.id %>">🧹 5S sayfası</a><% } %>
+        <% if (b.bes_dahil) { %><a class="btn ghost" href="/5s/bolum/<%= b.id %>"><%- ik('brush-cleaning') %> 5S sayfası</a><% } %>
     </div>
 </div>
 <p class="subtitle"><%= b.bes_dahil ? "5S'e dahil bölüm." : "5S dışı bölüm (yalnız öneri/kaizen formlarında seçilir)." %>
@@ -14,7 +14,7 @@
 
 <form method="post" action="/yonetici/bolumler/<%= b.id %>/lider" class="form-card ayar-form" autocomplete="off">
     <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-    <h3 class="ayar-baslik">⭐ Ekip lideri (en fazla 2)</h3>
+    <h3 class="ayar-baslik"><%- ik('star') %> Ekip lideri (en fazla 2)</h3>
     <div class="row">
         <div class="field"><label for="lider1_ad">1. lider — Ad</label><input type="text" id="lider1_ad" name="lider1_ad" value="<%= l1.ad %>"></div>
         <div class="field"><label for="lider1_soyad">Soyad</label><input type="text" id="lider1_soyad" name="lider1_soyad" value="<%= l1.soyad %>"></div>
@@ -23,12 +23,12 @@
         <div class="field"><label for="lider2_ad">2. lider — Ad</label><input type="text" id="lider2_ad" name="lider2_ad" value="<%= l2.ad %>" placeholder="Opsiyonel"></div>
         <div class="field"><label for="lider2_soyad">Soyad</label><input type="text" id="lider2_soyad" name="lider2_soyad" value="<%= l2.soyad %>" placeholder="Opsiyonel"></div>
     </div>
-    <div class="ayar-butonlar"><button type="submit" class="btn primary">💾 Ekip liderini kaydet</button></div>
+    <div class="ayar-butonlar"><button type="submit" class="btn primary"><%- ik('save') %> Ekip liderini kaydet</button></div>
 </form>
 
 <form method="post" action="/yonetici/bolumler/<%= b.id %>/personel" class="form-card ayar-form" autocomplete="off">
     <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-    <h3 class="ayar-baslik">➕ Personel ekle</h3>
+    <h3 class="ayar-baslik"><%- ik('plus') %> Personel ekle</h3>
     <div class="bolum-ekle">
         <textarea name="kisiler" rows="4" required aria-label="Eklenecek kişiler"
                   placeholder="Her satıra bir kişi: Ad Soyad&#10;Örn. Ahmet Yılmaz&#10;Ayşe Nur Çelik&#10;(Excel'den ad-soyad sütunu kopyalanıp yapıştırılabilir)"></textarea>
@@ -39,7 +39,7 @@
 </form>
 
 <div class="form-card ayar-form">
-    <h3 class="ayar-baslik">📋 Personel — <%= kisiler.length %> kişi</h3>
+    <h3 class="ayar-baslik"><%- ik('clipboard-list') %> Personel — <%= kisiler.length %> kişi</h3>
     <% if (kisiler.length) { %>
     <ul class="personel-liste">
         <% for (const k of kisiler) { %>

@@ -1,15 +1,15 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title">🧹 5S</h1>
+    <h1 class="page-title"><%- ik('brush-cleaning') %> 5S</h1>
     <div class="list-actions">
-        <button type="button" class="btn ghost tab-btn active" data-tab="sondenetim">🗓️ Son Denetimler</button>
-        <button type="button" class="btn ghost tab-btn" data-tab="bolumler">🏭 Bölümler</button>
-        <button type="button" class="btn ghost tab-btn" data-tab="plan">📋 Denetim Planı</button>
-        <a class="btn ghost" href="/5s/gecmis">📁 Geçmiş Denetimler</a>
-        <a class="btn ghost" href="/5s/aksiyonlar">⚑ Aksiyonlar</a>
+        <button type="button" class="btn ghost tab-btn active" data-tab="sondenetim"><%- ik('calendar') %> Son Denetimler</button>
+        <button type="button" class="btn ghost tab-btn" data-tab="bolumler"><%- ik('factory') %> Bölümler</button>
+        <button type="button" class="btn ghost tab-btn" data-tab="plan"><%- ik('clipboard-list') %> Denetim Planı</button>
+        <a class="btn ghost" href="/5s/gecmis"><%- ik('folder') %> Geçmiş Denetimler</a>
+        <a class="btn ghost" href="/5s/aksiyonlar"><%- ik('flag') %> Aksiyonlar</a>
         <% if (yetki('bes_odul')) { %>
-        <a class="btn ghost" href="/5s/denetim-excel">⬇ Denetim Excel</a>
+        <a class="btn ghost" href="/5s/denetim-excel"><%- ik('download') %> Denetim Excel</a>
         <% } %>
     </div>
 </div>
@@ -19,7 +19,7 @@
     <% if (sonuc_tur) { %>
     <div class="odul-kutu">
         <div class="sonuc-summary">
-            🏆 <% if (sonuc_tur_adi) { %><strong><%= sonuc_tur_adi %></strong> — <%= trdate(sonuc_tur) %><% } else { %>Son Denetim Sonuçları — <strong><%= trdate(sonuc_tur) %></strong><% } %>
+            <%- ik('trophy') %> <% if (sonuc_tur_adi) { %><strong><%= sonuc_tur_adi %></strong> — <%= trdate(sonuc_tur) %><% } else { %>Son Denetim Sonuçları — <strong><%= trdate(sonuc_tur) %></strong><% } %>
             <% if (sonuc_islendi) { %><span class="durum-badge onay">Ödüller işlendi</span><% } %>
         </div>
         <%- include('partials/odul_siralama', { siralama: sonuc_siralama, geri: '/5s',
@@ -30,10 +30,10 @@
             <form method="post" action="/5s/odul-isle" onsubmit="return confirm(this.dataset.onay)"
                   data-onay="Bu turun ödülleri (1./2./3. bölüme <%= bes_odul.map(puanfmt).join('/') %>) personellere KALICI eklenecek. Devam?"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="tarih" value="<%= sonuc_tur %>">
-                <button type="submit" class="btn primary">🏆 Ödülleri İşle ve Puanlara Ekle</button>
+                <button type="submit" class="btn primary"><%- ik('trophy') %> Ödülleri İşle ve Puanlara Ekle</button>
             </form>
             <% } else { %>
-            <div class="uyari-kutu">⚠ Tüm bölümler denetlenmeden ödül dağıtılamaz. Eksik: <strong><%= sonuc_eksikler.join(', ') %></strong></div>
+            <div class="uyari-kutu"><%- ik('triangle-alert') %> Tüm bölümler denetlenmeden ödül dağıtılamaz. Eksik: <strong><%= sonuc_eksikler.join(', ') %></strong></div>
             <% } %>
         <% } else if (sonuc_islendi) { %>
         <p class="bos-not">✓ Bu turun ödülleri Puan Listesi'ne eklendi.</p>
@@ -68,7 +68,7 @@
 <div class="tab-panel" id="tab-bolumler" style="display:none">
     <% if (yetki('bes_plan')) { %>
     <div class="yonetim-kutu bolum-yonlendir">
-        <a class="btn primary" href="/yonetici/bolumler">🏭 Bölüm listesini düzenle</a>
+        <a class="btn primary" href="/yonetici/bolumler"><%- ik('factory') %> Bölüm listesini düzenle</a>
         <small>Bölüm ekleme, ad değiştirme ve 5S'e dahil etme Yönetim › Bölümler'dedir; liste öneri ve kaizen
             formlarıyla ortaktır. Ekip lideri ve personel bölümün Detay sayfasından girilir.
             <% if (bes_disi_sayi) { %><strong><%= bes_disi_sayi %> bölüm 5S dışında</strong> (burada görünmez).<% } %></small>
@@ -96,14 +96,14 @@
                 </td>
                 <td class="nowrap" data-label="Son Denetim"><%= b._son ? trdate(b._son.denetim_tarihi || b._son.tarih) : '—' %></td>
                 <td data-label="Açık Aksiyon">
-                    <% if (b._acik_aksiyon) { %><a class="aksiyon-rozet acik" href="/5s/aksiyonlar">⚑ <%= b._acik_aksiyon %> açık</a>
+                    <% if (b._acik_aksiyon) { %><a class="aksiyon-rozet acik" href="/5s/aksiyonlar"><%- ik('flag') %> <%= b._acik_aksiyon %> açık</a>
                     <% } else { %><span class="bos-not">—</span><% } %>
                 </td>
                 <td class="nowrap" data-label="Bu Ay Kontrol">
                     <% const k = b._kontrol || { tam_gun: 0, uygunsuz: 0 }; %>
                     <a class="btn-mini <%= kontrol_gecen && k.tam_gun >= kontrol_gecen ? 'onay' : 'edit' %>" href="/5s/bolum/<%= b.id %>/kontrol"
-                       title="Kontrol formunu aç">✅ <%= k.tam_gun %>/<%= kontrol_gecen %> gün</a>
-                    <% if (k.uygunsuz) { %><span class="aksiyon-rozet acik" title="Bu ay uygun değil işaretlenen madde">⚠ <%= k.uygunsuz %></span><% } %>
+                       title="Kontrol formunu aç"><%- ik('circle-check') %> <%= k.tam_gun %>/<%= kontrol_gecen %> gün</a>
+                    <% if (k.uygunsuz) { %><span class="aksiyon-rozet acik" title="Bu ay uygun değil işaretlenen madde"><%- ik('triangle-alert') %> <%= k.uygunsuz %></span><% } %>
                 </td>
                 <td class="nowrap" data-label="">
                     <a class="btn-mini eval" href="/5s/bolum/<%= b.id %>">Detay →</a>
@@ -130,7 +130,7 @@
             <input type="date" name="bitis" value="<%= bugun %>" title="Bitiş">
             <input type="text" id="plan-ad" class="otomatik-ad" value="" readonly tabindex="-1"
                    title="Denetim adı (otomatik — başlangıç ayından)" placeholder="Denetim adı">
-            <button type="submit" class="btn primary">📋 Denetim Planı Oluştur</button>
+            <button type="submit" class="btn primary"><%- ik('clipboard-list') %> Denetim Planı Oluştur</button>
         </form>
     </div>
     <% } %>
@@ -146,18 +146,18 @@
                   onsubmit="return confirm('Denetmenler RASTGELE dağıtılacak — kimse kendi bölümüne denk gelmeyecek. Mevcut atamaların üzerine yazılır. Devam?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="tarih" value="<%= plan_tur %>">
                 <input type="hidden" name="mod" value="capraz">
-                <button type="submit" class="btn ghost">🔀 Çapraz Denetim</button>
+                <button type="submit" class="btn ghost"><%- ik('shuffle') %> Çapraz Denetim</button>
             </form>
             <form method="post" action="/5s/plan/dagit" style="display:inline"
                   onsubmit="return confirm('Herkes KENDİ bölümüne denetmen olarak atanacak. Mevcut atamaların üzerine yazılır. Devam?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="tarih" value="<%= plan_tur %>">
                 <input type="hidden" name="mod" value="kendi">
-                <button type="submit" class="btn ghost">🏠 Herkes Kendi Bölümüne</button>
+                <button type="submit" class="btn ghost"><%- ik('house') %> Herkes Kendi Bölümüne</button>
             </form>
             <form method="post" action="/5s/plan/sil" style="display:inline"
                   onsubmit="return confirm('Bu denetim planı silinecek (tamamlanmamış denetimler). Tamamlananlar korunur. Devam?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="tarih" value="<%= plan_tur %>">
-                <button type="submit" class="btn-mini del">🗑 Planı Sil</button>
+                <button type="submit" class="btn-mini del"><%- ik('trash-2') %> Planı Sil</button>
             </form>
         </div>
         <% } %>
@@ -193,7 +193,7 @@
                 </td>
                 <td data-label="Misafir">
                     <% if (p.misafir_denetmen) { %>
-                        <span class="planlanan-rozet">🎫 <%= p.misafir_denetmen %></span>
+                        <span class="planlanan-rozet"><%- ik('ticket') %> <%= p.misafir_denetmen %></span>
                     <% } else if (yetki('bes_plan') && !p.yapildi) { %>
                     <form method="post" action="/5s/plan/kaydet" class="denetmen-form"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                         <input type="hidden" name="denetim_id" value="<%= p.denetim_id %>">
@@ -223,9 +223,9 @@
                     <% if (p.yapildi) { %>
                         <span class="skor-rozet <%= p.puan >= 80 ? 'iyi' : (p.puan >= 60 ? 'orta' : 'dusuk') %>"><%= p.puan %>/100</span>
                         <a class="btn-mini eval" href="/5s/denetim/<%= p.denetim_id %>?geri=%2F5s%23plan">Formu Gör</a>
-                        <% if (yetki('bes_revize')) { %><a class="btn-mini revize" href="/5s/denetim/<%= p.denetim_id %>/revize">✏ Revize</a><% } %>
+                        <% if (yetki('bes_revize')) { %><a class="btn-mini revize" href="/5s/denetim/<%= p.denetim_id %>/revize"><%- ik('pencil') %> Revize</a><% } %>
                     <% } else if (yetki('bes_denetim') || p.benim) { %>
-                        <a class="btn-mini edit" href="/5s/bolum/<%= p.bolum_id %>/denetim">📋 Denetimi Yap</a>
+                        <a class="btn-mini edit" href="/5s/bolum/<%= p.bolum_id %>/denetim"><%- ik('clipboard-list') %> Denetimi Yap</a>
                     <% } else { %>
                         <span class="skor-rozet bekle">Bekliyor</span>
                     <% } %>

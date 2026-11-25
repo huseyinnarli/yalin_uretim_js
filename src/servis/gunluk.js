@@ -15,10 +15,15 @@ async function loadGunluk(limit = 500) {
   return sorgu("SELECT * FROM islem_gunlugu ORDER BY id DESC LIMIT ?", [limit]);
 }
 
+// Excel indirme: tüm kayıtlar (sayfada son 500 gösterilir), en yeni üstte
+async function tumGunluk() {
+  return sorgu("SELECT * FROM islem_gunlugu ORDER BY id DESC");
+}
+
 async function gunlukTemizle() {
   await calistir("DELETE FROM islem_gunlugu");
 }
 
 module.exports = {
-  gunlukEkle, loadGunluk, gunlukTemizle,
+  gunlukEkle, loadGunluk, tumGunluk, gunlukTemizle,
 };

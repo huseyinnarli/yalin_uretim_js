@@ -2,24 +2,23 @@
 <% const kayitLink = (r) => '/detay?tip=' + r.tip + '&no=' + encodeURIComponent(r.no) + '&geri=' + encodeURIComponent('/gorevlerim'); %>
 
 <div class="list-head">
-    <h1 class="page-title">📋 Görevlerim</h1>
-    <div class="list-actions"><a class="btn ghost" href="/liste">💡🔧 Öneri &amp; Kaizen</a></div>
+    <h1 class="page-title"><%- ik('clipboard-list') %> Görevlerim</h1>
 </div>
 
 <% if (benim) { %>
 <% if (benim.kontroller.length) { %>
-<h2 class="bolum-baslik">✅ Bugünkü periyodik kontrol</h2>
+<h2 class="bolum-baslik"><%- ik('circle-check') %> Bugünkü periyodik kontrol</h2>
 <div class="gorev-liste">
     <% for (const k of benim.kontroller) { %>
     <div class="gorev-satir">
         <span class="gs-govde"><strong><%= k.ad %></strong>
-            <small>Günlük maddeler: <%= k.isaretli %>/<%= k.toplam %> işaretli<%= k.isaretli >= k.toplam ? ' ✔' : '' %></small></span>
-        <a class="btn-mini <%= k.isaretli >= k.toplam ? 'onay' : 'edit' %>" href="/5s/bolum/<%= k.id %>/kontrol">✅ Formu Aç</a>
+            <small>Günlük maddeler: <%= k.isaretli %>/<%= k.toplam %> işaretli<% if (k.isaretli >= k.toplam) { %> <%- ik('check') %><% } %></small></span>
+        <a class="btn-mini <%= k.isaretli >= k.toplam ? 'onay' : 'edit' %>" href="/5s/bolum/<%= k.id %>/kontrol"><%- ik('circle-check') %> Formu Aç</a>
     </div>
     <% } %>
 </div>
 <% } %>
-<h2 class="bolum-baslik">✏ Düzeltmesi bana atanan kayıtlar <span class="rozet-acik"><%= benim.revizeler.length %></span></h2>
+<h2 class="bolum-baslik"><%- ik('pencil') %> Düzeltmesi bana atanan kayıtlar <span class="rozet-acik"><%= benim.revizeler.length %></span></h2>
 <% if (benim.revizeler.length) { %>
 <div class="gorev-liste">
     <% for (const r of benim.revizeler) { %>
@@ -33,7 +32,7 @@
 </div>
 <% } else { %><p class="bos-not">Size atanmış bekleyen düzeltme yok.</p><% } %>
 
-<h2 class="bolum-baslik">📌 Uygulama ve kaizene dönüştürme görevlerim <span class="rozet-acik"><%= benim.acikGorevler.length %></span></h2>
+<h2 class="bolum-baslik"><%- ik('pin') %> Uygulama ve kaizene dönüştürme görevlerim <span class="rozet-acik"><%= benim.acikGorevler.length %></span></h2>
 <% if (benim.acikGorevler.length) { %>
 <div class="gorev-liste">
     <% for (const r of benim.acikGorevler) { %>
@@ -41,7 +40,7 @@
         <span class="tip-badge oneri">ÖNERİ</span>
         <span class="gs-govde"><a class="title-link" href="<%= kayitLink(r) %>"><span class="mono"><%= r.no %></span> · <%= r.konu || '(başlıksız)' %></a>
             <small><% if (r.gorev_termin) { %><span class="<%= r.gorev_termin < bugun_iso ? 'termin-gecti' : '' %>">Termin: <%= trdate(r.gorev_termin) %><%= r.gorev_termin < bugun_iso ? ' — gecikti' : '' %></span> · <% } %><%= r.gorev_notu || '' %></small></span>
-        <a class="btn-mini onay" href="/kaizen/yeni?oneri=<%= encodeURIComponent(r.no) %>">🔧 Kaizene Dönüştür</a>
+        <a class="btn-mini onay" href="/kaizen/yeni?oneri=<%= encodeURIComponent(r.no) %>"><%- ik('wrench') %> Kaizene Dönüştür</a>
     </div>
     <% } %>
 </div>
@@ -58,20 +57,20 @@
 </details>
 <% } %>
 
-<h2 class="bolum-baslik">🧹 Bana planlanan 5S denetimleri <span class="rozet-acik"><%= benim.denetimler.length %></span></h2>
+<h2 class="bolum-baslik"><%- ik('brush-cleaning') %> Bana planlanan 5S denetimleri <span class="rozet-acik"><%= benim.denetimler.length %></span></h2>
 <% if (benim.denetimler.length) { %>
 <div class="gorev-liste">
     <% for (const d of benim.denetimler) { %>
     <div class="gorev-satir">
         <span class="gs-govde"><strong><%= d.bolum_ad %></strong> · <%= d.tur_adi || trdate(d.tarih) %>
             <small><% if (d.plan_gun) { %>Gün: <%= trdate(d.plan_gun) %><% if (d.plan_saat) { %> <%= d.plan_saat %><% } %><% } %></small></span>
-        <a class="btn-mini edit" href="/5s/bolum/<%= d.bolum_id %>/denetim">📋 Denetimi Yap</a>
+        <a class="btn-mini edit" href="/5s/bolum/<%= d.bolum_id %>/denetim"><%- ik('clipboard-list') %> Denetimi Yap</a>
     </div>
     <% } %>
 </div>
 <% } else { %><p class="bos-not">Size planlanmış bekleyen denetim yok.</p><% } %>
 
-<h2 class="bolum-baslik">⚑ Kapatmam gereken 5S aksiyonları <span class="rozet-acik"><%= benim.aksiyonlar.length %></span></h2>
+<h2 class="bolum-baslik"><%- ik('flag') %> Kapatmam gereken 5S aksiyonları <span class="rozet-acik"><%= benim.aksiyonlar.length %></span></h2>
 <% if (benim.aksiyonlar.length) { %>
 <div class="gorev-liste">
     <% for (const a of benim.aksiyonlar) { %>
@@ -86,20 +85,20 @@
 <% } %>
 
 <% if (tumu) { %>
-<h2 class="bolum-baslik">👥 Tüm açık atamalar (takip)</h2>
+<h2 class="bolum-baslik"><%- ik('users') %> Tüm açık atamalar (takip)</h2>
 <div class="iki-kolon">
     <div class="panel">
-        <h3>✏ Düzeltme bekleyenler (<%= tumu.revizeler.length %>)</h3>
+        <h3><%- ik('pencil') %> Düzeltme bekleyenler (<%= tumu.revizeler.length %>)</h3>
         <% if (tumu.revizeler.length) { for (const r of tumu.revizeler) { %>
         <div class="gorev-satir"><span class="gs-govde"><a class="title-link" href="<%= kayitLink(r) %>"><span class="mono"><%= r.no %></span> · <%= r.konu %></a>
-            <small>👤 <%= r.revize_atanan_ad || '—' %> · <%= r.revize_zamani || '' %></small></span></div>
+            <small><%- ik('user') %> <%= r.revize_atanan_ad || '—' %> · <%= r.revize_zamani || '' %></small></span></div>
         <% } } else { %><p class="bos-not">Yok.</p><% } %>
     </div>
     <div class="panel">
-        <h3>📌 Kaizene dönüştürülmeyi bekleyen görevler (<%= tumu.gorevler.length %>)</h3>
+        <h3><%- ik('pin') %> Kaizene dönüştürülmeyi bekleyen görevler (<%= tumu.gorevler.length %>)</h3>
         <% if (tumu.gorevler.length) { for (const r of tumu.gorevler) { %>
         <div class="gorev-satir"><span class="gs-govde"><a class="title-link" href="<%= kayitLink(r) %>"><span class="mono"><%= r.no %></span> · <%= r.konu %></a>
-            <small>👤 <%= r.gorev_atanan_ad %><% if (r.gorev_termin) { %> · <span class="<%= r.gorev_termin < bugun_iso ? 'termin-gecti' : '' %>">Termin: <%= trdate(r.gorev_termin) %><%= r.gorev_termin < bugun_iso ? ' — gecikti' : '' %></span><% } %></small></span></div>
+            <small><%- ik('user') %> <%= r.gorev_atanan_ad %><% if (r.gorev_termin) { %> · <span class="<%= r.gorev_termin < bugun_iso ? 'termin-gecti' : '' %>">Termin: <%= trdate(r.gorev_termin) %><%= r.gorev_termin < bugun_iso ? ' — gecikti' : '' %></span><% } %></small></span></div>
         <% } } else { %><p class="bos-not">Yok.</p><% } %>
     </div>
 </div>
