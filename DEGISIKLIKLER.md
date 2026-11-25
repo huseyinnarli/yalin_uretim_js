@@ -1,5 +1,13 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — Düzeltme: kontrol formunun aylık tablosu telefonda okunmuyordu
+
+- 5S periyodik kontrol formunun **aylık tablosu** telefonda bozuk görünüyordu: gün numaraları gizleniyor, her gün ayrı
+  satıra düşüyordu (sayfa ~12.000 px, hangi işaretin hangi güne ait olduğu anlaşılmıyordu). Artık tablo telefonda da
+  **ızgara** olarak kalır, sağa-sola kaydırılır, madde sütunu solda sabit durur ve açılışta **bugünün sütunu** görünür.
+- Düzeltme (bilgisayarda da): tablonun çift satırlarında ✓ / ✗ hücrelerinin yeşil / kırmızı zemini görünmüyordu.
+- Veritabanı değişikliği yok. e2e testi: **276/276**.
+
 ## 25 Kasım 2026 (devam) — Düzeltme: bölüm sayfasındaki "Açık aksiyon" bağlantısı
 
 - 5S bölüm sayfasındaki **Açık aksiyon** kutusu ve 5S Bölümler tablosundaki "N açık" etiketi, bir önceki güncellemede bozulan

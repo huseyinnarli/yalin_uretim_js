@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 275 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 276 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -220,6 +220,10 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
 31. **Düzeltme: bölüm sayfasındaki aksiyon bağlantısı 404** (25 Kasım): `<<%= koşul ? 'a href="…"' : 'div' %>` kalıbında `<%=` tırnakları
     `&#34;` yaptı → href bozuldu. Etiket parçası basarken `<%-` kullan (yalnız sabit metin). e2e'ye **bağlantı taraması** eklendi
     (ana yönetici + denetmen olarak siteyi gezer; bozuk href / 404 / 500 yakalar). e2e 275/275.
+32. **Düzeltme: kontrol formu aylık tablosu telefonda** (25 Kasım): ≤860 px'teki genel `.data-table` → kart kuralı ızgarayı bozuyordu;
+    `.kontrol-tablo` için tablo düzeni geri yüklenir, `.table-wrap.yatay-kaydir` yatay kayar, `.kt-madde` sticky; `th.kt-bugun`
+    sütununa otomatik kaydırma (satır içi betik). Zebra kuralı (`tr:nth-child(even) td`) `.kt-ok/.kt-x/.kt-pazar`'ı eziyordu →
+    daha özgül seçici. **Izgara tipi yeni tablolar** için de aynı sınıflar (kart düzeni yalnız kayıt-satırı tabloları için). e2e 276/276.
 
 ## Açık konular
 

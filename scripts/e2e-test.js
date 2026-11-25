@@ -816,6 +816,8 @@ async function main() {
       [aliBolum.id, ikiAyOnce, aliBolum.id, oncekiAy]);
     // Denetmen / bölüm lideri: Excel indiremez; aksiyonlarda yalnız kendi aksiyonları
     html = await getText(kUrl);
+    ok("aylık kontrol tablosu telefonda yatay kayan ızgara (kart düzenine çevrilmez), bugünün sütunu işaretli",
+      html.includes('class="table-wrap yatay-kaydir"') && html.includes("kt-bugun"));
     ok("denetmen kontrol formunda Excel düğmesi görmez", !html.includes("Excel (seçilen ay)"));
     r = await get(`${kUrl}/excel?ay=${kAy}`);
     ok("denetmen kontrol formu Excel'ini indiremez", r.status === 302 && !(r.headers.get("content-type") || "").includes("spreadsheet"));

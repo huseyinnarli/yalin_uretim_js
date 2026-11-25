@@ -78,11 +78,13 @@
 
 <!-- Aylık tablo (kâğıt formdaki gibi) -->
 <h2 class="bolum-baslik"><%- ik('calendar') %> <%= ay_etiketi %> — Aylık Tablo</h2>
-<div class="table-wrap">
+<p class="bos-not yalniz-mobil">Tabloyu sağa-sola kaydırarak günleri görün; madde sütunu sabit kalır.</p>
+<div class="table-wrap yatay-kaydir">
 <table class="data-table kontrol-tablo">
     <thead>
         <tr><th class="kt-madde">Yapılacak işlemler</th><th>P</th>
-            <% for (const g of gunler) { %><th class="<%= haftaGunu(g) === 0 ? 'kt-pazar' : '' %><%= g === gun && doldurabilir ? ' kt-secili' : '' %>"><%= g %></th><% } %></tr>
+            <% const bugunGun = bugun_iso.slice(0, 7) === ay ? Number(bugun_iso.slice(8, 10)) : 0; %>
+            <% for (const g of gunler) { %><th class="<%= haftaGunu(g) === 0 ? 'kt-pazar' : '' %><%= g === gun && doldurabilir ? ' kt-secili' : '' %><%= g === bugunGun ? ' kt-bugun' : '' %>"><%= g %></th><% } %></tr>
     </thead>
     <tbody>
         <% for (const m of form.maddeler) { %>
@@ -105,6 +107,15 @@
 </table>
 </div>
 <p class="bos-not">G: Günlük · H: Haftalık · A: Aylık · ✓ uygun · ✗ uygun değil · hücrenin üzerine gelince ayrıntı görünür.</p>
+<script>
+// Telefonda tablo yatay kayar: açılışta bugünün (ya da seçili günün) sütunu görünür olsun
+(function () {
+    var kap = document.querySelector('.table-wrap.yatay-kaydir');
+    if (!kap || kap.scrollWidth <= kap.clientWidth) return;
+    var th = kap.querySelector('th.kt-secili') || kap.querySelector('th.kt-bugun');
+    if (th) kap.scrollLeft = Math.max(0, th.offsetLeft - kap.clientWidth / 2);
+})();
+</script>
 
 <!-- Kontrol imzaları -->
 <h2 class="bolum-baslik" id="imzalar"><%- ik('pen-line') %> Kontrol İmzaları</h2>
