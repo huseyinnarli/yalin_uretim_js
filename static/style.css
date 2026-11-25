@@ -46,6 +46,19 @@ a { color: var(--primary); text-decoration: none; }
     color: #eef7e0; padding: 6px 12px; border-radius: 7px; font-size: .92rem;
 }
 .topbar nav a:hover { background: rgba(255,255,255,.15); }
+/* Telefon/tablet: marka ortada, menü kendi satır(lar)ında; düğmeler her satırı iki kenara kadar doldurur
+   (simetrik). Kullanıcı rozeti kendi satırında; dokunma hedefleri büyük. */
+@media (max-width: 860px) {
+    .topbar { justify-content: center; }
+    .topbar nav { width: 100%; justify-content: center; gap: 6px; }
+    .topbar nav a, .topbar nav .nav-kisi {
+        flex: 1 1 auto; text-align: center; padding: 8px 10px;
+        background: rgba(255,255,255,.10); border-radius: 8px;
+    }
+    .topbar nav a:hover { background: rgba(255,255,255,.18); }
+    .topbar nav a.nav-admin, .topbar nav .nav-kisi { background: rgba(255,255,255,.2); }
+    .topbar nav .nav-kisi { flex-basis: 100%; }
+}
 
 .container { max-width: 1180px; margin: 26px auto; padding: 0 20px; }
 .footer { text-align: center; color: var(--muted); padding: 28px; font-size: .85rem; }
@@ -667,8 +680,7 @@ tr.benim-satirim td { background: var(--primary-tint) !important; }
 
 @media (max-width: 640px) {
     .prepost-grid, .katki-grid { grid-template-columns: 1fr; }
-    .topbar { padding: 10px 16px; }
-    .topbar nav { width: 100%; }
+    .topbar { padding: 10px 12px; }
     .hub-boxes { grid-template-columns: 1fr; }
     .row { gap: 0; }
     .field.small { flex: 1 1 100%; }

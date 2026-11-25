@@ -1,5 +1,12 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — Mobilde üst menü simetrik
+
+- Telefon ve tablette (860 px ve altı) üst menü artık sola yaslı ve düzensiz satırlar hâlinde değil: marka ortada,
+  menü düğmeleri her satırı iki kenara kadar dolduruyor; kullanıcı rozeti (👤 ad · rol) kendi satırında. Düğmeler
+  dokunmaya uygun büyüklükte. Masaüstü görünümü değişmedi.
+- Yalnız `static/style.css`; veritabanı değişikliği yok. Önbellek sorunu olmaz (stil dosyası adresi içerik özetiyle değişir).
+
 ## 25 Kasım 2026 (devam) — Kontrol formu Excel'i yalnız seçilen ay
 
 - 5S ve Güvenlik Kontrol Formu sayfasındaki **⬇ Excel (seçilen ay)** artık **yalnız seçilen ayı** indirir (önceden o aya
