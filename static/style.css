@@ -46,9 +46,14 @@ a { color: var(--primary); text-decoration: none; }
     color: #eef7e0; padding: 6px 12px; border-radius: 7px; font-size: .92rem;
 }
 .topbar nav a:hover { background: rgba(255,255,255,.15); }
-/* Telefon/tablet: marka ortada, menü kendi satır(lar)ında; düğmeler her satırı iki kenara kadar doldurur
-   (simetrik). Kullanıcı rozeti kendi satırında; dokunma hedefleri büyük. */
-@media (max-width: 860px) {
+/* Orta genişlikte (ör. 1280 px dizüstü) menü markanın yanına sığsın: logo varsa yanındaki yazı gizlenir
+   (logo adı zaten taşır; img alt metni marka adıdır). Logo yoksa yazı her zaman görünür. */
+@media (min-width: 1161px) and (max-width: 1380px) {
+    .brand-logo + span { display: none; }
+}
+/* Telefon/tablet/dar ekran: marka ortada, menü kendi satır(lar)ında; düğmeler her satırı iki kenara kadar
+   doldurur (simetrik). Kullanıcı rozeti kendi satırında; dokunma hedefleri büyük. */
+@media (max-width: 1160px) {
     .topbar { justify-content: center; }
     .topbar nav { width: 100%; justify-content: center; gap: 6px; }
     .topbar nav a, .topbar nav .nav-kisi {

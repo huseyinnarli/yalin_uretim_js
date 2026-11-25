@@ -2,6 +2,7 @@
 const path = require("path");
 
 const S = require("../sabitler");
+const L = require("../liste");
 const { sorgu, tek, calistir, js, oneriRow, kaizenRow } = require("../db");
 const { allowedFile, ayEtiketi, gorselKaydet } = require("./yardimci");
 
@@ -40,9 +41,14 @@ async function combinedRecords() {
 
 // Liste filtresi. Reddedilen kayıtlar ana listede yer almaz ("Reddedilen & Silinen"
 // sayfasında toplanır). durum: "" (tümü) | "bekle" | "revize" | "onay" | "havuz" (onaylı–beklemede) | "uygulanamadi"
-function filtrele(records, tip, ay, q, durum = "") {
+// bolum: listedeki ad (büyük/küçük harf ve boşluk farkı önemsiz) · BOLUMSUZ = bölümü boş kayıtlar · "" = hepsi
+const BOLUMSUZ = "-";
+function filtrele(records, tip, ay, q, durum = "", bolum = "") {
   q = (q || "").trim().toLocaleLowerCase("tr");
+  const bolumK = bolum && bolum !== BOLUMSUZ ? L.anahtar(bolum) : "";
   return records.filter((r) => {
+    if (bolum === BOLUMSUZ && (r.bolum || "").trim()) return false;
+    if (bolumK && L.anahtar(r.bolum || "") !== bolumK) return false;
     if (r.durum === "Reddedildi") return false;
     if ((tip === "oneri" || tip === "kaizen") && r.tip !== tip) return false;
     if (ay && !r.sort_date.startsWith(ay)) return false;
@@ -67,6 +73,21 @@ function sayfala(liste, sayfa, boyut = S.SAYFA_BOYUTU) {
   const bas = (s - 1) * boyut;
   return { kayitlar: liste.slice(bas, bas + boyut), sayfa: s, sayfaSayisi, toplam,
     bas: toplam ? bas + 1 : 0, son: Math.min(bas + boyut, toplam) };
+}
+
+// Liste filtresindeki bölüm seçenekleri: ortak bölüm listesi + kayıtlarda geçen (listede olmayan / silinmiş) adlar.
+// Aynı ad tek seçenek (listedeki yazılış önce). Döner: { adlar: [...], bolumsuz: bölümü boş kayıt var mı }
+function listeBolumleri(records, listeAdlari) {
+  const gor = new Map();
+  for (const ad of listeAdlari) if (ad && !gor.has(L.anahtar(ad))) gor.set(L.anahtar(ad), ad);
+  let bolumsuz = false;
+  for (const r of records) {
+    if (r.durum === "Reddedildi") continue;
+    const ad = (r.bolum || "").trim();
+    if (!ad) { bolumsuz = true; continue; }
+    if (!gor.has(L.anahtar(ad))) gor.set(L.anahtar(ad), ad);
+  }
+  return { adlar: [...gor.values()].sort((a, b) => a.localeCompare(b, "tr")), bolumsuz };
 }
 
 function mevcutAylar(records) {
@@ -110,6 +131,6 @@ async function havuzOzeti(bugun) {
 }
 
 module.exports = {
-  getRecord, updateRecord, combinedRecords, filtrele, sayfala, mevcutAylar, kayitDuzenleyebilir,
+  getRecord, updateRecord, combinedRecords, filtrele, BOLUMSUZ, listeBolumleri, sayfala, mevcutAylar, kayitDuzenleyebilir,
   kaizeneDonusturebilir, kaizenKaydetGorsel, havuzOzeti,
 };

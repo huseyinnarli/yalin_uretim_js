@@ -17,9 +17,10 @@
             <% if (girisli) { %>
                 <a href="/panel">📊 Panel</a>
                 <a href="/liste">💡🔧 Öneri &amp; Kaizen</a>
-                <% if (denetmen_adi || yetki('degerlendir')) { %>
+            <% } %>
+            <a href="/5s">🧹 5S</a>
+            <% if (girisli && (denetmen_adi || yetki('degerlendir'))) { %>
                 <a href="/gorevlerim">📋 Görevlerim<% if (gorev_sayisi) { %> <span class="nav-rozet"><%= gorev_sayisi %></span><% } %></a>
-                <% } %>
             <% } %>
             <a href="/yardim">📖 Kılavuz</a>
             <% if (admin) { %>

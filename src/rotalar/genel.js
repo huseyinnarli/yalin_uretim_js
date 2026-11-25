@@ -44,18 +44,23 @@ module.exports = function register(app) {
     const ay = req.query.ay || "";
     const q = req.query.q || "";
     const durum = req.query.durum || "";
-    const liste = C.filtrele(records, tip, ay, q, durum);
+    const bolum = typeof req.query.bolum === "string" ? req.query.bolum : "";
+    const liste = C.filtrele(records, tip, ay, q, durum, bolum);
     // Havuz görünümü: gözden geçirme tarihi en yakın (ya da geçmiş) olan en üstte
     if (durum === "havuz") liste.sort((a, b) => String(a.bekleme_gozden || "9999").localeCompare(String(b.bekleme_gozden || "9999")));
     const sf = C.sayfala(liste, req.query.s);
-    const filtre = { tip, ay, q, durum };
+    const filtre = { tip, ay, q, durum, bolum };
+    const bolumSec = C.listeBolumleri(records, await C.bolumAdlari());
     const sayfaUrl = (n) => "/liste?" + new URLSearchParams(
       Object.fromEntries(Object.entries({ ...filtre, s: String(n) }).filter(([, v]) => v && v !== "hepsi"))).toString();
     res.render("liste", {
       title: "Öneri & Kaizen Listesi · Yalın Üretim",
       kayitlar: sf.kayitlar, sf, sayfaUrl,
       aylar: C.mevcutAylar(records),
-      tip, ay, q, durum,
+      bolum_secenekleri: bolumSec, bolumsuz_kod: C.BOLUMSUZ,
+      // Seçili bölüm seçenek listesindeki yazılışıyla (adres elle "montaj" yazılsa da "Montaj" seçili görünür)
+      bolum_secili: bolum === C.BOLUMSUZ ? bolum : (bolumSec.adlar.find((a) => C.bolumAnahtar(a) === C.bolumAnahtar(bolum)) || ""),
+      tip, ay, q, durum, bolum,
       toplam: records.filter((r) => r.durum !== "Reddedildi").length,
       tam_yol: req.originalUrl,
       kural_bul: await C.kuralCozucu(),

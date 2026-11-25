@@ -462,7 +462,7 @@ yöneticiler, denetmenler, ödül defteri ve form numaraları bulunuyordu.
 | **25 Kasım — onaylı öneri havuzu:** ön kontrol öncesi/sonrası `CHECKSUM TABLE` | Aynı; rapor 3 tablo + 37 kolon; açılıştan sonra 0 |
 | **25 Kasım — onaylı öneri havuzu:** yeni sürüm eski veritabanında | Eski onaylı öneri havuza alınıyor; havuz filtresi, panel özeti, öneri Excel'i |
 | **25 Kasım — onaylı öneri havuzu:** geri dönüş (eski sürüm) | Havuzdaki öneri normal onaylı öneri gibi açılıyor; liste, Excel, öneri gönderme, onay, puan listesi çalışıyor |
-| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **237/237** |
+| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **241/241** |
 
 ---
 

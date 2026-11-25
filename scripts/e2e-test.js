@@ -970,6 +970,18 @@ async function main() {
     const bolSutun = basliklarB.indexOf("Bölüm") + 1;
     ok("öneri Excel'inde Bölüm sütunu (eski sütunlardan sonra) ve değeri dolu",
       bolSutun === 23 && iciSatir && iciSatir.getCell(bolSutun).value === "İdari İşler");
+    // Liste: bölüm filtresi (büyük/küçük harf önemsiz) + Bölüm sütunu + bölümü belirtilmemiş kayıtlar
+    html = await getText("/liste?bolum=" + encodeURIComponent("İdari İşler"));
+    ok("liste bölüm filtresi: yalnız o bölümün kayıtları", html.includes(iciKayit.no) && !html.includes("Dönüşen kaizen")
+      && html.includes('<option value="İdari İşler" selected>') && html.includes("<th>Bölüm</th>"));
+    html = await getText("/liste?bolum=" + encodeURIComponent("montaj"));
+    ok("bölüm filtresi harf farkını önemsemez, seçenek listedeki yazılışla seçili", html.includes("Dönüşen kaizen")
+      && !html.includes(iciKayit.no) && html.includes('<option value="Montaj" selected>'));
+    html = await getText("/liste?tip=oneri&bolum=-&q=" + encodeURIComponent("Toplu 7"));
+    ok("bölüm belirtilmemiş kayıtlar ayrı seçenekle süzülür", html.includes(">Toplu 7<") && html.includes("Bölüm belirtilmemiş")
+      && !html.includes(iciKayit.no));
+    html = await getText("/liste?bolum=-");
+    ok("sayfa bağlantıları bölüm filtresini korur", html.includes('class="sayfalama"') && html.includes("bolum=-&amp;s=2"));
     // Silme: geçmişi olmayan bölüm silinir; öneri kaydındaki ad değişmez
     await post(BOL + "/sil", { csrf_token: csrf, id: (await bolumleriOku())["İdari İşler"].id });
     const [[iciSonra]] = await db.query("SELECT bolum FROM oneriler WHERE `no` = ?", [iciKayit.no]);

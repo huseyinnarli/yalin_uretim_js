@@ -62,7 +62,7 @@ Bölümler için ayrıca: 5S dışı bölüm (ör. ofis birimleri) yalnız forml
 saklar; ad değişikliği eski kayıtları değiştirmez, düzenlemede listeden kalkmış eski ad korunur.
 
 ### Liste, Değerlendirme, Görev (giriş gerekir)
-- Öneri + kaizen tek listede tarihe göre; **20'şerli sayfa**; **Tür / Durum / Dönem / arama** filtreleri.
+- Öneri + kaizen tek listede tarihe göre; **20'şerli sayfa**; **Tür / Durum / Bölüm / Dönem / arama** filtreleri.
   Reddedilenler listede yer almaz.
 - **Detay sayfasında değerlendirme kartları** (Değerlendirme yetkisi):
   - **✓ Onayla** — öneride isteğe bağlı **uygulama görevi** ataması.

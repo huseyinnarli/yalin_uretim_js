@@ -1,5 +1,16 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — Üst menüde 5S, listede bölüm filtresi
+
+- **Üst menüye 🧹 5S** eklendi (herkes görür; 5S sayfası girişsiz de açıktı, yalnız ana sayfadan ve Panel'den ulaşılıyordu).
+- Üst menü yerleşimi: 1160 px ve altında (telefon, tablet, dar ekran) düğme düzeni — marka ortada, düğmeler her satırı
+  doldurur. 1161–1380 px arasında (ör. 1280/1366 dizüstü) menü tek satıra sığsın diye logonun yanındaki marka yazısı
+  gizlenir (logo adı zaten taşır; logo yoksa yazı görünür). Daha geniş ekranda değişiklik yok.
+- **Öneri & Kaizen listesine Bölüm filtresi:** ortak bölüm listesi + kayıtlarda geçen eski/silinmiş bölüm adları; büyük/küçük
+  harf farkı önemsiz. "— Bölüm belirtilmemiş —" seçeneği bölümü boş eski kayıtları gösterir. Listeye **Bölüm** sütunu
+  eklendi. Filtre sayfa bağlantılarında korunur ve diğer filtrelerle (tür, durum, dönem, arama) birlikte çalışır.
+- Veritabanı değişikliği yok. e2e testi: **241/241**.
+
 ## 25 Kasım 2026 (devam) — Mobilde üst menü simetrik
 
 - Telefon ve tablette (860 px ve altı) üst menü artık sola yaslı ve düzensiz satırlar hâlinde değil: marka ortada,

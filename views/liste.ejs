@@ -42,6 +42,18 @@
             <% } %>
         </select>
     </div>
+    <div class="filter-group">
+        <label>Bölüm</label>
+        <select name="bolum" onchange="this.form.submit()">
+            <option value="">Tüm Bölümler</option>
+            <% for (const ad of bolum_secenekleri.adlar) { %>
+            <option value="<%= ad %>" <%= ad === bolum_secili ? 'selected' : '' %>><%= ad %></option>
+            <% } %>
+            <% if (bolum_secenekleri.bolumsuz) { %>
+            <option value="<%= bolumsuz_kod %>" <%= bolum_secili === bolumsuz_kod ? 'selected' : '' %>>— Bölüm belirtilmemiş —</option>
+            <% } %>
+        </select>
+    </div>
     <div class="filter-group grow">
         <label>Ara</label>
         <input type="text" name="q" value="<%= q %>" placeholder="No, form no, konu veya kişi...">
@@ -61,7 +73,7 @@
 <table class="data-table">
     <thead>
         <tr>
-            <th>Tür</th><th>No</th><th>Tarih</th><th>Konu / Başlık</th><th>Kişi</th>
+            <th>Tür</th><th>No</th><th>Tarih</th><th>Konu / Başlık</th><th>Kişi</th><th>Bölüm</th>
             <th>Durum</th><th>Puan</th>
             <% if (islemVar) { %><th>İşlem</th><% } %>
         </tr>
@@ -82,6 +94,7 @@
                 <% } else if (r.tip == 'oneri' && r.gorev_atanan_ad) { %><br><small class="bos-not">📌 Görev: <%= r.gorev_atanan_ad %></small><% } %>
             </td>
             <td data-label="Kişi"><%= r.kisi %></td>
+            <td data-label="Bölüm"><%= r.bolum || '—' %></td>
             <td class="nowrap" data-label="Durum">
                 <% if (du == 'Onaylandı') { %><span class="durum-badge onay"><%= du %></span>
                     <% if (r.uygulama_durumu == 'beklemede') { %><br><span class="durum-badge havuz">⏸ Beklemede</span>

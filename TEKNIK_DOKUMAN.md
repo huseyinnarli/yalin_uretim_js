@@ -249,7 +249,9 @@ aynı tur iki kez işlenemez. İlk 3 bölümün lider+üye tam listesi o günkü
   metinleri havuzdan çıkınca silinmez (yalnız `uygulama_durumu` NULL olur). Liste filtresi `durum=havuz|uygulanamadi`
   (havuz gözden geçirme tarihine göre sıralı), panel özeti `kayitlar.havuzOzeti(bugun)`, takip listesi
   `gorevler.acikAtamalar().gozden` (tarihi gelenler).
-- Liste: `filtrele` reddedilenleri çıkarır; `sayfala` 20'li (`S.SAYFA_BOYUTU`). Puanlama `geri` adresini taşır,
+- Liste: `filtrele` reddedilenleri çıkarır; tür / durum / dönem / arama / **bölüm** (`?bolum=` — `L.anahtar` ile harf
+  farkı önemsiz; `-` = bölümü boş kayıtlar; seçenekler `listeBolumleri`: ortak liste + kayıtlarda geçen adlar);
+  `sayfala` 20'li (`S.SAYFA_BOYUTU`). Puanlama `geri` adresini taşır,
   kaydedince detaya döner.
 
 ### İsim birleştirme
@@ -420,5 +422,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 237 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 241 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.
