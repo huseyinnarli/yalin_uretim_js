@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 276 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 282 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -224,6 +224,12 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     `.kontrol-tablo` için tablo düzeni geri yüklenir, `.table-wrap.yatay-kaydir` yatay kayar, `.kt-madde` sticky; `th.kt-bugun`
     sütununa otomatik kaydırma (satır içi betik). Zebra kuralı (`tr:nth-child(even) td`) `.kt-ok/.kt-x/.kt-pazar`'ı eziyordu →
     daha özgül seçici. **Izgara tipi yeni tablolar** için de aynı sınıflar (kart düzeni yalnız kayıt-satırı tabloları için). e2e 276/276.
+33. **5S kısayolları + aksiyon görünümleri + Geçmiş sekmesi** (25 Kasım): `/5s/aksiyonlar` denetmende `?gorunum=benim|tumu`
+    (varsayılan benim; tumu tüm bölümler, kapatma `_kapatabilir` ile yalnız kendi), `?bolum=<id>` (`aksiyonGruplari` 4. parametre);
+    `/5s` render'ına `lider_bolumleri` (kontrol formu düğmesi) ve `gecmis_turlar`; Geçmiş Denetimler `partials/gecmis_turlar.ejs` ile
+    `#tab-gecmis` sekmesi, `/5s/gecmis` → `/5s#gecmis` (`5s_gecmis.ejs` silindi). Sekme çubuğu `.sekme-cubugu.bes-sekmeler`
+    (`button.tab-btn`), seçili sekme `history.replaceState` ile adreste. Partial içinden partial: `include('odul_siralama')`
+    (göreli yol — `partials/` ÖNEKİ YOK). e2e 282/282.
 
 ## Açık konular
 

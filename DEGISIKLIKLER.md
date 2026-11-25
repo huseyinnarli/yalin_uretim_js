@@ -1,5 +1,17 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — 5S: bölüm liderine kısayollar, Benim Aksiyonlarım / Tüm Aksiyonlar, Geçmiş sekmesi
+
+- **5S sayfası:** girişli bölüm liderine **Periyodik Kontrol Formu** düğmesi (birden çok bölümün lideriyse her biri için).
+  Denetmen / bölüm lideri **Benim Aksiyonlarım** ve **Aksiyonlar** düğmelerini görür.
+- **Aksiyonlar iki sekme** (denetmen / bölüm lideri): **Benim Aksiyonlarım** — geçmiş ve güncel denetimlerden açık ve
+  kapattığı aksiyonlar (ekip lideri olduğu bölümler + sorumlusu olduğu); **Tüm Aksiyonlar** — bütün bölümler, yalnız
+  görüntüleme (kapatma düğmesi yalnız kendi aksiyonlarında). Tüm Aksiyonlar'da **bölüm süzgeci**. Excel/ZIP yine yalnız yöneticide.
+- **Geçmiş Denetimler artık 5S sayfasında sekme:** dört sekme (Son Denetimler · Bölümler · Denetim Planı · Geçmiş Denetimler)
+  aynı sekme çubuğunda, sayfa yenilenmeden geçer; ayrı sayfa açan düğmeler (kontrol formu, aksiyonlar, Excel) sağda.
+  Seçili sekme adreste kalır (yenileyince / geri gelince aynı sekme). Eski `/5s/gecmis` adresi sekmeye yönlenir.
+- Veritabanı değişikliği yok. e2e testi: **282/282**.
+
 ## 25 Kasım 2026 (devam) — Düzeltme: kontrol formunun aylık tablosu telefonda okunmuyordu
 
 - 5S periyodik kontrol formunun **aylık tablosu** telefonda bozuk görünüyordu: gün numaraları gizleniyor, her gün ayrı

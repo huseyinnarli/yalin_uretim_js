@@ -83,8 +83,10 @@ module.exports = function register(app) {
       planSatirlari.sort((a, b) => (a.benim === b.benim)
         ? a.bolum_ad.localeCompare(b.bolum_ad, "tr") : (a.benim ? -1 : 1));
     }
+    // Girişli denetmen bölüm lideriyse: periyodik kontrol formu kısayolu (5S'e dahil bölümleri)
+    const liderBolumleri = dHesap ? bolumler.filter((b) => I.isimIcerir(b.sorumlu, dHesap.ad)) : [];
     res.render("5s_liste", {
-      title: "5S", bolumler, bes_disi_sayi: tumBolumler.length - bolumler.length, bugun: S.bugunIso(), kontrol_gecen: kontrol.gecen, kontrol_ay: kontrolAyi,
+      title: "5S", bolumler, lider_bolumleri: liderBolumleri, gecmis_turlar: await C.besSGecmisTurlar(), bes_disi_sayi: tumBolumler.length - bolumler.length, bugun: S.bugunIso(), kontrol_gecen: kontrol.gecen, kontrol_ay: kontrolAyi,
       sonuc_tur: sonucTur, sonuc_siralama: sonucSiralama,
       sonuc_tur_adi: sonucTur ? await C.besSTurAdi(sonucTur) : "",
       sonuc_islendi: islenen.includes(sonucTur),
@@ -281,23 +283,33 @@ module.exports = function register(app) {
     res.redirect("/5s#plan");
   }));
 
-  app.get("/5s/gecmis", sar(async (req, res) => {
-    res.render("5s_gecmis", { title: "5S — Geçmiş Denetimler", turlar: await C.besSGecmisTurlar() });
-  }));
+  // Geçmiş Denetimler artık 5S sayfasında sekme; eski adres (yer imleri) oraya yönlenir
+  app.get("/5s/gecmis", (req, res) => res.redirect("/5s#gecmis"));
 
   app.get("/5s/onceki-aylar", sar(async (req, res) => {
     const [, gecmis] = await C.besSArsivAylar();
     res.render("5s_onceki_aylar", { title: "5S — Denetim Listesi", gecmis });
   }));
 
-  // Aksiyonlar girişe kapalı: yönetici hepsini, denetmen / bölüm lideri YALNIZ kendi aksiyonlarını görür
-  // (kapatabileceği ya da sorumlusu olduğu). Excel/ZIP indirme yalnız aksiyon yetkili yöneticide.
+  // Aksiyonlar girişe kapalı. Denetmen / bölüm lideri için iki görünüm: "Benim Aksiyonlarım" (varsayılan — kapatabileceği
+  // ya da sorumlusu olduğu, geçmiş + güncel turlar) ve "Tüm Aksiyonlar" (?gorunum=tumu — bütün bölümler, yalnız
+  // görüntüleme; kapatma düğmesi yalnız kendi aksiyonlarında). Yönetici her zaman tümünü görür. ?bolum=<id> bölüm süzgeci.
+  // Excel/ZIP indirme yalnız aksiyon yetkili yöneticide.
   app.get("/5s/aksiyonlar", girisRequired, sar(async (req, res) => {
-    const kisiAd = !req.yetkiBilgi.yonetici && req.denetmen ? req.denetmen.ad : null;
-    const acikGruplar = await C.aksiyonGruplari("acik", req.session, kisiAd);
-    const kapaliGruplar = await C.aksiyonGruplari("kapali", req.session, kisiAd);
+    const denetmenMi = Boolean(!req.yetkiBilgi.yonetici && req.denetmen);
+    const gorunum = denetmenMi && req.query.gorunum !== "tumu" ? "benim" : "tumu";
+    const kisiAd = gorunum === "benim" ? req.denetmen.ad : null;
+    const bolumMap = await C.bolumMap();
+    const bolumSecenek = (await sorgu("SELECT DISTINCT bolum_id, bolum_ad FROM aksiyonlar"))
+      .map((x) => ({ id: x.bolum_id, ad: (bolumMap[x.bolum_id] || {}).ad || x.bolum_ad || "?" }))
+      .filter((x, i, d) => d.findIndex((y) => y.id === x.id) === i)
+      .sort((a, b) => a.ad.localeCompare(b.ad, "tr"));
+    const bolumId = typeof req.query.bolum === "string" && bolumSecenek.some((b) => b.id === req.query.bolum) ? req.query.bolum : "";
+    const acikGruplar = await C.aksiyonGruplari("acik", req.session, kisiAd, bolumId);
+    const kapaliGruplar = await C.aksiyonGruplari("kapali", req.session, kisiAd, bolumId);
     res.render("5s_aksiyonlar", {
-      title: kisiAd ? "5S Aksiyonlarım" : "5S Aksiyonlar", kendi: Boolean(kisiAd),
+      title: gorunum === "benim" ? "Benim Aksiyonlarım" : "5S Aksiyonlar", kendi: gorunum === "benim",
+      denetmen_mi: denetmenMi, gorunum, bolum_secenek: bolumSecenek, bolum_id: bolumId,
       acik_gruplar: acikGruplar, kapali_gruplar: kapaliGruplar,
       toplam_acik: acikGruplar.reduce((a, g) => a + g.toplam, 0),
       toplam_kapali: kapaliGruplar.reduce((a, g) => a + g.toplam, 0),

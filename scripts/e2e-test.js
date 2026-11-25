@@ -829,9 +829,23 @@ async function main() {
         ('akbaska1', '', '2026-11-01', 'Kasım 2026 Denetimi', ?, ?, 's1_1', '1.1) Test', 'Başka bölüm aksiyonu', 'Zeki Başka', 'Zeki Başka', '2099-01-01', 'acik', '')`,
         [aliBolum.id, aliBolum.ad || "", baskaB.id, baskaB.ad]);
       html = await getText("/5s/aksiyonlar");
-      ok("bölüm lideri yalnız kendi aksiyonlarını görür (5S Aksiyonlarım)", html.includes("Kendi bölüm aksiyonu")
-        && !html.includes("Başka bölüm aksiyonu") && html.includes("5S Aksiyonlarım"));
+      ok("bölüm lideri varsayılan görünümde yalnız kendi aksiyonlarını görür (Benim Aksiyonlarım)", html.includes("Kendi bölüm aksiyonu")
+        && !html.includes("Başka bölüm aksiyonu") && html.includes("Benim Aksiyonlarım</h1>") && html.includes('href="/5s/aksiyonlar?gorunum=tumu"'));
       ok("bölüm liderinin aksiyon sayfasında Excel/ZIP düğmesi yok", !html.includes("/5s/aksiyonlar/excel") && !html.includes("fotolar.zip"));
+      html = await getText("/5s/aksiyonlar?gorunum=tumu");
+      const kart = (id) => { const i = html.indexOf(`id="a-${id}"`); const j = html.indexOf('class="aksiyon-kart', i + 5); return i < 0 ? "" : html.slice(i, j < 0 ? undefined : j); };
+      ok("bölüm lideri Tüm Aksiyonlar'da diğer bölümleri de görür", html.includes("Kendi bölüm aksiyonu") && html.includes("Başka bölüm aksiyonu")
+        && html.includes("5S Aksiyonlar</h1>") && !html.includes("/5s/aksiyonlar/excel"));
+      ok("Tüm Aksiyonlar'da kapatma yalnız kendi aksiyonunda", kart("akkendi1").includes("Aksiyonu Kapat") && !kart("akbaska1").includes("Aksiyonu Kapat"));
+      html = await getText(`/5s/aksiyonlar?gorunum=tumu&bolum=${encodeURIComponent(baskaB.id)}`);
+      ok("aksiyonlarda bölüm süzgeci", html.includes("Başka bölüm aksiyonu") && !html.includes("Kendi bölüm aksiyonu")
+        && html.includes(`value="${baskaB.id}" selected`));
+      html = await getText("/5s");
+      ok("5S sayfasında bölüm liderine kontrol formu + Benim Aksiyonlarım + Aksiyonlar", html.includes(`href="/5s/bolum/${aliBolum.id}/kontrol"`)
+        && html.includes("Periyodik Kontrol Formu") && html.includes("Benim Aksiyonlarım</a>") && html.includes('href="/5s/aksiyonlar?gorunum=tumu"'));
+      ok("5S'te Geçmiş Denetimler de sayfa içi sekme", html.includes('data-tab="gecmis"') && html.includes('id="tab-gecmis"'));
+      r = await get("/5s/gecmis");
+      ok("eski Geçmiş Denetimler adresi sekmeye yönlenir", r.status === 302 && konum(r) === "/5s#gecmis");
       r = await get("/5s/aksiyonlar/excel");
       ok("denetmen aksiyon Excel'ini indiremez", r.status === 302 && !(r.headers.get("content-type") || "").includes("spreadsheet"));
       r = await get("/5s/aksiyonlar/fotolar.zip");

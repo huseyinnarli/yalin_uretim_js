@@ -26,8 +26,9 @@
         <li><strong>Denetmen:</strong> kendisine planlanan 5S denetimini yapar; ekip lideri olduğu bölümün aksiyonlarını
             kapatır ve <strong>periyodik kontrol formunu</strong> doldurur; öneri/kaizenleri <em>görüntüler</em>; kendisine
             atanan <strong>düzeltmeleri</strong> ve <strong>kaizene dönüştürme görevlerini</strong> yapar
-            (<%- ik('clipboard-list') %> Görevlerim). Bölüm lideri olması gerekmez. Aksiyonlar sayfasında <strong>yalnız kendi
-            aksiyonlarını</strong> görür (ekip lideri olduğu bölümün aksiyonları ve sorumlusu olduğu aksiyonlar);
+            (<%- ik('clipboard-list') %> Görevlerim). Bölüm lideri olması gerekmez. 5S sayfasında bölüm lideriyse
+            <strong>Periyodik Kontrol Formu</strong> düğmesini, ayrıca <strong>Benim Aksiyonlarım</strong> (kendi aksiyonları —
+            geçmiş ve güncel, açık ve kapattıkları) ile <strong>Aksiyonlar</strong>'ı (bütün bölümler, görüntüleme) görür;
             <strong>Excel / ZIP dosyası indiremez</strong> — dosya indirme yalnız yetkili yöneticilerdedir.</li>
         <li><strong>Ana yönetici:</strong> sabittir, tüm yetkilere sahiptir.</li>
         <li><strong>Ek yönetici:</strong> verilen yetki alanlarıyla sınırlıdır — Değerlendirme · Puanlama · Kayıt
@@ -151,8 +152,9 @@
     <ul>
         <li>Bir tur <strong>tüm bölümlerde tamamlanınca</strong> yönetici <strong>Ödülleri İşle</strong> der:
             1./2./3. bölümün <strong>tüm ekibine 100 / 75 / 50 puan</strong> kalıcı eklenir.</li>
-        <li>Son turun sonuçları "Son Denetimler" sekmesinde, önceki turlar açılır listede ve
-            <strong>Geçmiş Denetimler</strong> sayfasında görünür.</li>
+        <li>Son turun sonuçları "Son Denetimler" sekmesinde, önceki turlar açılır listede ve <strong>Geçmiş Denetimler</strong>
+            sekmesinde görünür. 5S sayfasındaki dört sekme (Son Denetimler · Bölümler · Denetim Planı · Geçmiş Denetimler)
+            sayfa yenilenmeden geçer; sağdaki düğmeler (kontrol formu, aksiyonlar, Excel) ayrı sayfa açar.</li>
         <li>Geçmiş bir denetim formu açıldığında yetkili yönetici tüm fotoğrafları <strong>ZIP</strong>, formu
             <strong>Excel</strong> olarak indirebilir.</li>
         <li><strong><%- ik('pencil') %> Revize Et:</strong> yetkili yönetici yapılmış denetimi düzeltebilir (skor yeniden hesaplanır, fotoğraf
@@ -162,8 +164,10 @@
     <h2 class="bolum-baslik"><%- ik('flag') %> 5S — Aksiyonlar</h2>
     <ul>
         <li>Denetimde bir soruya atanan <strong>düzeltici aksiyonlar</strong> Aksiyonlar sayfasında
-            <strong>Açık / Kapalı</strong> olarak, tur → bölüm kırılımıyla listelenir. Sayfa girişe kapalıdır: yönetici
-            tüm aksiyonları, denetmen / bölüm lideri yalnız kendi aksiyonlarını ("5S Aksiyonlarım") görür.</li>
+            <strong>Açık / Kapalı</strong> olarak, tur → bölüm kırılımıyla listelenir; bölüm süzgeci vardır. Sayfa girişe
+            kapalıdır. Denetmen / bölüm lideri iki sekme görür: <strong>Benim Aksiyonlarım</strong> (ekip lideri olduğu
+            bölümlerin ve sorumlusu olduğu aksiyonlar) ve <strong>Tüm Aksiyonlar</strong> (bütün bölümler — yalnız görüntüleme,
+            kapatma düğmesi yalnız kendi aksiyonlarında). Yönetici tüm aksiyonları görür.</li>
         <li>Bir aksiyonu yalnızca <strong>açıldığı bölümün ekip lideri</strong> (denetmen olarak girişli) veya
             <strong>yönetici</strong> kapatabilir. Kapatırken <strong>açıklama + en az 1 fotoğraf zorunludur</strong>.</li>
         <li>Yönetici aksiyonları Excel, fotoğrafları ZIP olarak indirebilir.</li>

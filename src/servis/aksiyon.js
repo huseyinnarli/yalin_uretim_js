@@ -31,13 +31,14 @@ async function aksiyonKapatabilir(a, session, bolumlar = null, yetki = null) {
 
 // Aksiyonları iki seviyede gruplar: denetim TURU → BÖLÜM → aksiyonlar
 // kisiAd verilirse (denetmen / bölüm lideri) yalnız o kişinin aksiyonları: kapatabileceği (bölümün ekip lideri)
-// ya da sorumlusu olduğu aksiyonlar. Yöneticiler için null → hepsi.
-async function aksiyonGruplari(durum, session, kisiAd = null) {
+// ya da sorumlusu olduğu aksiyonlar. Yöneticiler için null → hepsi. bolumId verilirse yalnız o bölüm.
+async function aksiyonGruplari(durum, session, kisiAd = null, bolumId = "") {
   const bolumlar = await bolumMap();
   const yetki = await oturumYetkileri(session);
   const turlar = new Map();
   for (const a of await loadAksiyonlar()) {
     if (durum && a.durum !== durum) continue;
+    if (bolumId && a.bolum_id !== bolumId) continue;
     a._atanan = await aksiyonAtanan(a, bolumlar);
     if (kisiAd && !(I.isimIcerir(a._atanan, kisiAd) || I.isimEsit(a.sorumlu || "", kisiAd))) continue;
     a._kapatabilir = await aksiyonKapatabilir(a, session, bolumlar, yetki);

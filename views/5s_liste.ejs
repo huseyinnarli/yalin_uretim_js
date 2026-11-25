@@ -3,16 +3,23 @@
 <div class="list-head">
     <h1 class="page-title"><%- ik('brush-cleaning') %> 5S</h1>
     <div class="list-actions">
-        <button type="button" class="btn ghost tab-btn active" data-tab="sondenetim"><%- ik('calendar') %> Son Denetimler</button>
-        <button type="button" class="btn ghost tab-btn" data-tab="bolumler"><%- ik('factory') %> Bölümler</button>
-        <button type="button" class="btn ghost tab-btn" data-tab="plan"><%- ik('clipboard-list') %> Denetim Planı</button>
-        <a class="btn ghost" href="/5s/gecmis"><%- ik('folder') %> Geçmiş Denetimler</a>
-        <% if (girisli) { %><a class="btn ghost" href="/5s/aksiyonlar"><%- ik('flag') %> <%= admin ? 'Aksiyonlar' : 'Aksiyonlarım' %></a><% } %>
+        <% for (const lb of lider_bolumleri) { %>
+        <a class="btn primary" href="/5s/bolum/<%= lb.id %>/kontrol"><%- ik('circle-check') %> Periyodik Kontrol Formu<%= lider_bolumleri.length > 1 ? ' — ' + lb.ad : '' %></a>
+        <% } %>
+        <% if (girisli && !admin) { %><a class="btn ghost" href="/5s/aksiyonlar"><%- ik('flag') %> Benim Aksiyonlarım</a><% } %>
+        <% if (girisli) { %><a class="btn ghost" href="/5s/aksiyonlar?gorunum=tumu"><%- ik('flag') %> Aksiyonlar</a><% } %>
         <% if (yetki('bes_odul')) { %>
         <a class="btn ghost" href="/5s/denetim-excel"><%- ik('download') %> Denetim Excel</a>
         <% } %>
     </div>
 </div>
+<%# Sayfa içi sekmeler (yeniden yüklenmez; adres #sondenetim / #bolumler / #plan / #gecmis) — sağdaki düğmeler ayrı sayfadır %>
+<nav class="sekme-cubugu bes-sekmeler" role="tablist" aria-label="5S bölümleri">
+    <button type="button" class="tab-btn active" data-tab="sondenetim"><%- ik('calendar') %> Son Denetimler</button>
+    <button type="button" class="tab-btn" data-tab="bolumler"><%- ik('factory') %> Bölümler</button>
+    <button type="button" class="tab-btn" data-tab="plan"><%- ik('clipboard-list') %> Denetim Planı</button>
+    <button type="button" class="tab-btn" data-tab="gecmis"><%- ik('folder') %> Geçmiş Denetimler</button>
+</nav>
 
 <!-- ===== SON DENETİMLER (açılış) ===== -->
 <div class="tab-panel" id="tab-sondenetim">
@@ -240,6 +247,11 @@
     <% } %>
 </div>
 
+<!-- ===== GEÇMİŞ DENETİMLER (tüm turlar) ===== -->
+<div class="tab-panel" id="tab-gecmis" style="display:none">
+    <%- include('partials/gecmis_turlar', { turlar: gecmis_turlar, geri: '/5s#gecmis' }) %>
+</div>
+
 <script>
 (function () {
     var btns = document.querySelectorAll('.tab-btn');
@@ -249,9 +261,14 @@
         var el = document.getElementById('tab-' + tab);
         if (el) el.style.display = '';
     }
-    btns.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.tab); }); });
-    if (location.hash === '#plan') show('plan');
-    else if (location.hash === '#bolumler') show('bolumler');
+    btns.forEach(function (b) {
+        b.addEventListener('click', function () {
+            show(b.dataset.tab);
+            history.replaceState(null, '', '#' + b.dataset.tab); // yenileyince / geri gelince aynı sekme
+        });
+    });
+    var ilk = (location.hash || '').slice(1);
+    if (document.getElementById('tab-' + ilk)) show(ilk);
 
     var AYLAR = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz',
                  'Ağustos','Eylül','Ekim','Kasım','Aralık'];

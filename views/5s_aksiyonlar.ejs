@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title"><%- ik('flag') %> <%= kendi ? '5S Aksiyonlarım' : '5S Aksiyonlar' %></h1>
+    <h1 class="page-title"><%- ik('flag') %> <%= kendi ? 'Benim Aksiyonlarım' : '5S Aksiyonlar' %></h1>
     <div class="list-actions">
         <a class="btn ghost" href="/5s">← 5S</a>
         <% if (yetki('bes_aksiyon')) { %>
@@ -11,8 +11,30 @@
     </div>
 </div>
 
+<% if (denetmen_mi) { %>
+<nav class="sekme-cubugu" aria-label="Aksiyon görünümü">
+    <a href="/5s/aksiyonlar" class="<%= kendi ? 'aktif' : '' %>"><%- ik('user') %> Benim Aksiyonlarım</a>
+    <a href="/5s/aksiyonlar?gorunum=tumu" class="<%= kendi ? '' : 'aktif' %>"><%- ik('factory') %> Tüm Aksiyonlar</a>
+</nav>
+<% } %>
 <% if (kendi) { %>
-<p class="subtitle">Yalnız size atanan aksiyonlar görünür: ekip lideri olduğunuz bölümlerin aksiyonları ve sorumlusu olduğunuz aksiyonlar.</p>
+<p class="subtitle">Size atanan aksiyonlar — geçmiş ve güncel denetimlerden, açık ve kapattığınız: ekip lideri olduğunuz
+    bölümlerin aksiyonları ve sorumlusu olduğunuz aksiyonlar.</p>
+<% } else if (denetmen_mi) { %>
+<p class="subtitle">Bütün bölümlerin aksiyonları (görüntüleme). Kapatma düğmesi yalnız kapatabileceğiniz aksiyonlarda görünür.</p>
+<% } %>
+<% if (bolum_secenek.length > 1 && !kendi) { %>
+<form method="get" action="/5s/aksiyonlar" class="filter-bar aksiyon-suzgec">
+    <% if (denetmen_mi && !kendi) { %><input type="hidden" name="gorunum" value="tumu"><% } %>
+    <div class="filter-group">
+        <label for="aksiyon-bolum">Bölüm</label>
+        <select id="aksiyon-bolum" name="bolum" onchange="this.form.submit()">
+            <option value="">Tüm bölümler</option>
+            <% for (const b of bolum_secenek) { %><option value="<%= b.id %>"<%= b.id === bolum_id ? ' selected' : '' %>><%= b.ad %></option><% } %>
+        </select>
+    </div>
+    <% if (bolum_id) { %><a class="btn ghost" href="/5s/aksiyonlar<%= denetmen_mi && !kendi ? '?gorunum=tumu' : '' %>">Temizle</a><% } %>
+</form>
 <% } %>
 
 <% if (acik_gruplar.length || kapali_gruplar.length) { %>
@@ -43,7 +65,7 @@
     <% }); %>
 </div>
 <% } else { %>
-<p class="bos-not"><%- ik('party-popper') %> Açık aksiyon yok — tüm aksiyonlar kapatılmış.</p>
+<p class="bos-not"><%- ik('party-popper') %> <%= kendi ? 'Açık aksiyonunuz yok.' : 'Açık aksiyon yok — tüm aksiyonlar kapatılmış.' %></p>
 <% } %>
 
 <h2 class="bolum-baslik aksiyon-bolum-baslik kapali"><%- ik('check') %> Kapalı Aksiyonlar
