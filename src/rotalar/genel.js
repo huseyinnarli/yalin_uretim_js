@@ -32,6 +32,7 @@ module.exports = function register(app) {
     res.render("panel", {
       title: "Panel",
       ist: await C.dashboardIstatistik(),
+      havuz: await C.havuzOzeti(S.bugunIso()),
       trend_basliklar: trendBasliklar, trend_satirlar: trendSatirlar,
     });
   }));
@@ -43,7 +44,10 @@ module.exports = function register(app) {
     const ay = req.query.ay || "";
     const q = req.query.q || "";
     const durum = req.query.durum || "";
-    const sf = C.sayfala(C.filtrele(records, tip, ay, q, durum), req.query.s);
+    const liste = C.filtrele(records, tip, ay, q, durum);
+    // Havuz görünümü: gözden geçirme tarihi en yakın (ya da geçmiş) olan en üstte
+    if (durum === "havuz") liste.sort((a, b) => String(a.bekleme_gozden || "9999").localeCompare(String(b.bekleme_gozden || "9999")));
+    const sf = C.sayfala(liste, req.query.s);
     const filtre = { tip, ay, q, durum };
     const sayfaUrl = (n) => "/liste?" + new URLSearchParams(
       Object.fromEntries(Object.entries({ ...filtre, s: String(n) }).filter(([, v]) => v && v !== "hepsi"))).toString();
@@ -75,6 +79,7 @@ module.exports = function register(app) {
       denetmenler: yt.includes("degerlendir") ? await C.loadDenetmenler() : [],
       duzenleyebilir: C.kayitDuzenleyebilir(rec, yt, req.denetmen),
       donusturebilir: tip === "oneri" && C.kaizeneDonusturebilir(rec, yt, req.denetmen),
+      bekleme_kategorileri: S.BEKLEME_KATEGORILERI,
       silinen: null,
     });
   }));

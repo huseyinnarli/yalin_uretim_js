@@ -7,7 +7,7 @@ var. Yeni sürümü bu veritabanını bozmadan nasıl devreye alırım?
 > **[GUNCELLEME_REHBERI.md](GUNCELLEME_REHBERI.md)**. Bu belge veritabanı tarafının ayrıntısıdır.
 
 **Kısa cevap:** Mevcut veritabanı **olduğu gibi** kullanılır. Dışa aktarma, dönüştürme veya elle SQL gerekmez.
-Yeni sürüm ilk açılışta yalnızca **3 boş tablo ve 30 boş kolon ekler**; var olan hiçbir satır, kolon ya da isim
+Yeni sürüm ilk açılışta yalnızca **3 boş tablo ve 37 boş kolon ekler**; var olan hiçbir satır, kolon ya da isim
 değişmez, silinmez, yeniden adlandırılmaz. İsimler veritabanında yine tek alanda durur; ad/soyad ayrımı yalnız
 formdadır. Geri dönmek gerekirse eski kodu çalıştırmak yeterlidir. Bunların hepsi, eski sürümle üretilmiş bir
 veritabanı üzerinde denendi (§6).
@@ -23,7 +23,7 @@ Sunucu her açılışta `src/db.js:init()` çalıştırır. Bu fonksiyon iki şe
 
 | Tablo | Eklenen | Eski satırlarda değeri |
 |---|---|---|
-| `oneriler` | `red_nedeni`, `revize_notu`, `revize_atanan_id`, `revize_atanan_ad`, `revize_isteyen`, `revize_zamani`, `revize_tamamlandi`, `gorev_atanan_id`, `gorev_atanan_ad`, `gorev_termin`, `gorev_notu`, `gorev_atayan`, `gorev_zamani`, `kaizen_no`, `onay_zamani`, `bolum` | boş (NULL) |
+| `oneriler` | `red_nedeni`, `revize_notu`, `revize_atanan_id`, `revize_atanan_ad`, `revize_isteyen`, `revize_zamani`, `revize_tamamlandi`, `gorev_atanan_id`, `gorev_atanan_ad`, `gorev_termin`, `gorev_notu`, `gorev_atayan`, `gorev_zamani`, `kaizen_no`, `onay_zamani`, `bolum`, `uygulama_durumu`, `bekleme_kategori`, `bekleme_nedeni`, `bekleme_gozden`, `uygulanamadi_nedeni`, `uygulama_isleyen`, `uygulama_zamani` (onaylı öneri havuzu) | boş (NULL) — eski onaylı öneriler normal (havuzda değil) sayılır |
 | `bolumler` | `bes_dahil` (bölüm 5S'e dahil mi) | **1** — bütün eski bölümler 5S'e dahil kalır |
 | `kaizenler` | `red_nedeni`, 6 adet `revize_*` kolonu, `kaynak_oneri_no`, `onay_zamani`, `lider_gorevi`, `uye_gorevleri` | boş (NULL) |
 | `denetimler` | `revize_eden`, `revize_zamani` | boş (NULL) |
@@ -248,6 +248,9 @@ Ek yönetici: Kalite Müdürü — kayıtlı: degerlendirme, odul → Değerlend
 | **Geri dönüş:** eski sürüm 5S sayfası, öneri gönderme (bölüm boş kalır), bölüm ekleme (`bes_dahil` varsayılan 1), liste, detay | ✔ |
 | Görev tanımları ve personel (aynı gün): ön kontrol 3 tablo + **30 kolon**, önerilerdeki görev yazılışlarını listeliyor; yeni sürümde kayıt görevleri listeye öneri olarak çıkıyor, eski önerinin görevi ("operatör") düzenlemede listedeki "Operatör" ile seçili; görevli kaizen kaydı | ✔ |
 | Geri dönüş: eski sürümde görevli kaizenin detayı ve toplu eklenen personelli bölüm sayfası | ✔ |
+| **Onaylı öneri havuzu (25 Kasım):** ön kontrol öncesi/sonrası `CHECKSUM TABLE` aynı; rapor 3 tablo + **37 kolon** (7 yeni `oneriler.uygulama_*` / `bekleme_*` kolonu dahil), açılıştan sonra 0 | ✔ |
+| Yeni sürüm: eski onaylı öneri havuza alınıyor, liste havuz filtresi, panel özeti, öneri Excel'i | ✔ |
+| **Geri dönüş:** eski sürümde havuzdaki öneri normal onaylı öneri gibi açılıyor; liste, Excel, öneri gönderme, onay, puan listesi çalışıyor | ✔ |
 
 ---
 

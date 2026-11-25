@@ -244,6 +244,15 @@ async function main() {
     if (i === 0) await calistir("UPDATE oneriler SET kaizen_no = ? WHERE `no` = ?", [no, kaynak.no]);
   }
 
+  // --- Onaylı öneri havuzu örnekleri: biri beklemede (gözden geçirme tarihi geldi), biri uygulanamadı ---
+  await calistir(`UPDATE oneriler SET uygulama_durumu = 'beklemede', bekleme_kategori = ?, bekleme_nedeni = ?,
+      bekleme_gozden = ?, uygulama_isleyen = 'Zeynep Aydın', uygulama_zamani = ? WHERE \`no\` = ?`,
+    [S.BEKLEME_KATEGORILERI[0], "Yeni kalıp yatırımı gelecek yılın bütçesine alındı.", iso(gunOnce(2)), zaman(gunOnce(40)),
+      oneriler[4].no]);
+  await calistir(`UPDATE oneriler SET uygulama_durumu = 'uygulanamadi', uygulanamadi_nedeni = ?,
+      uygulama_isleyen = 'Zeynep Aydın', uygulama_zamani = ? WHERE \`no\` = ?`,
+    ["Müşteri şartnamesi malzeme değişikliğine izin vermiyor.", zaman(gunOnce(30)), oneriler[6].no]);
+
   // --- Periyodik kontrol formu: son iki ay (tam) + bu ay (bugüne kadar), iki bölüm ---
   const bugun = S.bugunIso();
   const buAy = bugun.slice(0, 7);

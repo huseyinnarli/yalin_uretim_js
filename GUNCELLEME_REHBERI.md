@@ -17,7 +17,7 @@ fotoğraflar korunur, kullanıcıların oturumu düşmez, sorun çıkarsa dakika
 
 **Ne değişiyor?**
 - **Kod:** yaklaşık 80 dosya değişti. Uygulama aynı: Node.js + Express + MySQL. Başlatma komutu (`node server.js`) ve port düzeni aynı.
-- **Veritabanı:** aynı veritabanı kullanılır. Yeni sürüm ilk açılışta **3 boş tablo ve 30 boş kolon ekler**. Var olan
+- **Veritabanı:** aynı veritabanı kullanılır. Yeni sürüm ilk açılışta **3 boş tablo ve 37 boş kolon ekler**. Var olan
   hiçbir satır, kolon veya isim değişmez ya da silinmez.
 - **Bağımlılıklar:** `multer` 1.4 → 2.4 (güvenlik güncellemesi). `sharp`, `mysql2` ve `express` küçük sürüm aldı. Bu
   yüzden `node_modules` **mutlaka yeniden kurulur**. Node.js **20.9 veya üstü** gerekir. Eski sürümdeki `sharp` 0.35
@@ -459,7 +459,10 @@ yöneticiler, denetmenler, ödül defteri ve form numaraları bulunuyordu.
 | **16 Kasım — bölüm/görev listeleri:** ön kontrol öncesi/sonrası `CHECKSUM TABLE` | Aynı; rapor 3 tablo + 30 kolon, aynı adlı bölüm uyarısı, önerilerdeki görev yazılışları |
 | **16 Kasım — bölüm/görev listeleri:** yeni sürüm eski veritabanında | Eski bölümler açılır listede ve 5S'te; serbest metin kaizen bölümü düzenlemede korunuyor; kayıt görevleri listeye öneri olarak çıkıyor; eski önerinin "operatör" görevi listedeki "Operatör" ile seçili; görevli kaizen ve toplu personel kaydı |
 | **16 Kasım — bölüm/görev listeleri:** geri dönüş (eski sürüm) | 5S, öneri gönderme, bölüm ekleme, liste, detay, görevli kaizen detayı, personelli bölüm sayfası çalışıyor |
-| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **203/203** |
+| **25 Kasım — onaylı öneri havuzu:** ön kontrol öncesi/sonrası `CHECKSUM TABLE` | Aynı; rapor 3 tablo + 37 kolon; açılıştan sonra 0 |
+| **25 Kasım — onaylı öneri havuzu:** yeni sürüm eski veritabanında | Eski onaylı öneri havuza alınıyor; havuz filtresi, panel özeti, öneri Excel'i |
+| **25 Kasım — onaylı öneri havuzu:** geri dönüş (eski sürüm) | Havuzdaki öneri normal onaylı öneri gibi açılıyor; liste, Excel, öneri gönderme, onay, puan listesi çalışıyor |
+| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **236/236** |
 
 ---
 

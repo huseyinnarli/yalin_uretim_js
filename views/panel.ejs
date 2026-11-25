@@ -51,6 +51,15 @@
 </table>
 </div>
 
+<% if (havuz.beklemede || havuz.uygulanamadi) { %>
+<p class="havuz-ozet">
+    <a href="/liste?tip=oneri&durum=havuz">⏸ Onaylı – Beklemede havuzu: <strong><%= havuz.beklemede %></strong> öneri</a><% if (havuz.gozden) { %>
+    <span class="gozden-geldi">(<%= havuz.gozden %> tanesinin gözden geçirme tarihi geldi)</span><% } %>
+    <% if (havuz.uygulanamadi) { %> · <a href="/liste?tip=oneri&durum=uygulanamadi">⛔ Uygulanamadı: <strong><%= havuz.uygulanamadi %></strong></a><% } %>
+    <span class="bos-not">— onaylı sayılır, puanları korunur</span>
+</p>
+<% } %>
+
 <!-- Son 12 ay: gelen vs onaylanıp puan alan -->
 <% const tr = ist.trend;
    const gelen = tr.map((t) => t.gelen_oneri + t.gelen_kaizen);

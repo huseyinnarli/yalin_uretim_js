@@ -236,6 +236,14 @@ const EK_KOLONLAR = [
   // Kaizen ekibinin görevleri (görev tanımları listesinden): lider + üyeler (uyeler ile aynı sırada JSON dizi)
   ["kaizenler", "lider_gorevi", "TEXT"],
   ["kaizenler", "uye_gorevleri", "TEXT"],
+  // Onaylı öneri havuzu: 'beklemede' (neden + gözden geçirme tarihi) | 'uygulanamadi' (gerekçe) | NULL (normal akış)
+  ["oneriler", "uygulama_durumu", "VARCHAR(20)"],
+  ["oneriler", "bekleme_kategori", "VARCHAR(80)"],
+  ["oneriler", "bekleme_nedeni", "TEXT"],
+  ["oneriler", "bekleme_gozden", "VARCHAR(10)"],
+  ["oneriler", "uygulanamadi_nedeni", "TEXT"],
+  ["oneriler", "uygulama_isleyen", "VARCHAR(191)"],
+  ["oneriler", "uygulama_zamani", "VARCHAR(20)"],
 ];
 
 // Şemanın tek tek CREATE TABLE IF NOT EXISTS komutları

@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 210 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 236 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -184,6 +184,13 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
 22. **Görev atamasında termin + açıklama zorunlu** (23 Kasım): `admin.js:gorevAlanlari` (/durum onay + /gorev ortak;
     termin geçerli tarih ve bugünden önce değil, değişmeyen eski termin kabul); onay kartında denetmen seçilince alanlar
     `required` (detay.ejs satır içi betik, takvimin görünen kutusu dahil); `res.locals.bugun_iso`. e2e 210/210.
+23. **Onaylı öneri havuzu** (25 Kasım): `POST /oneri/havuz` (`admin.js`, yetki `degerlendir`; islem `beklemeye_al` /
+    `havuzdan_cikar` / `uygulanamadi` / `yeniden_ac`); `oneriler.uygulama_durumu` ('beklemede' | 'uygulanamadi' | NULL) +
+    `bekleme_kategori/nedeni/gozden`, `uygulanamadi_nedeni`, `uygulama_isleyen/zamani` (EK_KOLONLAR → 37 kolon); türler
+    `S.BEKLEME_KATEGORILERI`. Kayıt "Onaylandı" kalır (puan değişmez); havuzda/kapalıyken `/gorev`, onayla görev ve
+    `kaizeneDonusturebilir` kapalı; havuza alınca/kapatınca görev temizlenir. Tarih denetimi `admin.js:ileriTarihHatasi`
+    (görev termini ile ortak). Liste filtresi `durum=havuz|uygulanamadi`, `C.havuzOzeti` (panel), `acikAtamalar().gozden`,
+    öneri Excel'inin son 4 sütunu. Eski DB ile geçiş + geri dönüş denendi. e2e 236/236.
 
 ## Açık konular
 

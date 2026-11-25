@@ -301,6 +301,16 @@ tr.benim-satirim td { background: var(--primary-tint) !important; }
 /* Düzeltme isteniyor rozeti */
 .durum-badge.revize { background: #fff5e0; color: #8a6300; border: 1px solid #f0dca6; }
 
+/* Onaylı öneri havuzu: beklemede / uygulanamadı */
+.durum-badge.havuz  { background: #eaf1fb; color: #2b5a8f; border: 1px solid #c3d6ef; }
+.durum-badge.kapali { background: #eef0f2; color: #555f6b; border: 1px solid #d3d8de; }
+.havuz-blok { background: #f4f8fd; border-left: 4px solid #8fb3df; border-radius: 8px; padding: 10px 14px; }
+.havuz-blok.kapali { background: #f5f6f7; border-left-color: #b3bac2; }
+.havuz-blok p + p { margin-top: 4px; }
+.gozden-geldi { color: #a4322a; font-weight: 700; }
+.havuz-ozet { background: var(--card); border-radius: 10px; padding: 10px 14px; box-shadow: var(--shadow); margin: 12px 0 0; }
+.havuz-kart { border-top: 3px solid #5b8cc8; }
+
 /* Değerlendirme kartı */
 .eval-card { background: var(--card); border-radius: 14px; padding: 26px; box-shadow: var(--shadow); }
 .eval-card .form-card { box-shadow: none; padding: 0; margin-top: 10px; }

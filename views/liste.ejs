@@ -29,6 +29,8 @@
             <option value="bekle" <%= durum=='bekle' ? 'selected' : '' %>>Değerlendiriliyor</option>
             <option value="revize" <%= durum=='revize' ? 'selected' : '' %>>Düzeltme İsteniyor</option>
             <option value="onay" <%= durum=='onay' ? 'selected' : '' %>>Onaylandı</option>
+            <option value="havuz" <%= durum=='havuz' ? 'selected' : '' %>>⏸ Onaylı – Beklemede (havuz)</option>
+            <option value="uygulanamadi" <%= durum=='uygulanamadi' ? 'selected' : '' %>>⛔ Uygulanamadı</option>
         </select>
     </div>
     <div class="filter-group">
@@ -82,6 +84,9 @@
             <td data-label="Kişi"><%= r.kisi %></td>
             <td class="nowrap" data-label="Durum">
                 <% if (du == 'Onaylandı') { %><span class="durum-badge onay"><%= du %></span>
+                    <% if (r.uygulama_durumu == 'beklemede') { %><br><span class="durum-badge havuz">⏸ Beklemede</span>
+                        <% if (r.bekleme_gozden) { %><br><small class="<%= r.bekleme_gozden <= bugun_iso ? 'gozden-geldi' : 'bos-not' %>">📅 <%= trdate(r.bekleme_gozden) %></small><% } %>
+                    <% } else if (r.uygulama_durumu == 'uygulanamadi') { %><br><span class="durum-badge kapali">⛔ Uygulanamadı</span><% } %>
                 <% } else if (du == 'Düzeltme İsteniyor') { %><span class="durum-badge revize"><%= du %></span>
                     <% if (r.revize_atanan_ad) { %><br><small class="bos-not">✏ <%= r.revize_atanan_ad %></small><% } %>
                 <% } else { %><span class="durum-badge bekle"><%= du %></span><% } %>

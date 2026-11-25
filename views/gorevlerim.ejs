@@ -103,6 +103,16 @@
         <% } } else { %><p class="bos-not">Yok.</p><% } %>
     </div>
 </div>
+<% if (tumu.gozden.length) { %>
+<div class="panel" style="margin-top:18px">
+    <h3>⏸ Gözden geçirme tarihi gelen havuz önerileri (<%= tumu.gozden.length %>)</h3>
+    <% for (const r of tumu.gozden) { %>
+    <div class="gorev-satir"><span class="gs-govde"><a class="title-link" href="<%= kayitLink(r) %>"><span class="mono"><%= r.no %></span> · <%= r.konu %></a>
+        <small class="gozden-geldi">📅 <%= trdate(r.bekleme_gozden) %></small> <small>· <%= r.bekleme_kategori || '' %></small></span></div>
+    <% } %>
+    <p class="bos-not"><a href="/liste?tip=oneri&durum=havuz">Tüm havuzu gör →</a></p>
+</div>
+<% } %>
 <% } %>
 
 <% if (!benim && !tumu) { %>

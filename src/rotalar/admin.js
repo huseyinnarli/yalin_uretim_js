@@ -48,17 +48,24 @@ function oturumuTemizle(session) {
 }
 
 module.exports = function register(app) {
+  // YYYY-AA-GG geçerli mi ve bugünden önce değil mi (değişmeyen eski tarih kabul). Döner: hata metni | null
+  function ileriTarihHatasi(tarih, eski, etiket) {
+    const t = new Date(tarih + "T00:00:00Z");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tarih) || isNaN(t) || t.toISOString().slice(0, 10) !== tarih) {
+      return `${etiket} geçerli bir tarih olmalı.`;
+    }
+    if (tarih !== eski && tarih < S.bugunIso()) return `${etiket} bugünden önce olamaz.`;
+    return null;
+  }
+
   // Uygulama/kaizene dönüştürme görevi: denetmen + termin + açıklama ZORUNLU. Termin bugünden önce olamaz
   // (görev değiştirilirken tarihi değişmeyen eski termin kalabilir). Döner: { alanlar } ya da { hata }
   function gorevAlanlari(req, denetmen, eskiTermin = "") {
     const termin = alan(req, "gorev_termin");
     const notu = alan(req, "gorev_notu");
     if (!termin || !notu) return { hata: "Görev atarken termin ve açıklama zorunludur." };
-    const t = new Date(termin + "T00:00:00Z");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(termin) || isNaN(t) || t.toISOString().slice(0, 10) !== termin) {
-      return { hata: "Termin geçerli bir tarih olmalı." };
-    }
-    if (termin !== eskiTermin && termin < S.bugunIso()) return { hata: "Termin bugünden önce olamaz." };
+    const tHata = ileriTarihHatasi(termin, eskiTermin, "Termin");
+    if (tHata) return { hata: tHata };
     return { alanlar: {
       gorev_atanan_id: denetmen.id, gorev_atanan_ad: denetmen.ad, gorev_termin: termin,
       gorev_notu: notu, gorev_atayan: yapanAd(req), gorev_zamani: S.zamanTr(),
@@ -384,6 +391,9 @@ module.exports = function register(app) {
       if (!mevcut.onay_zamani) alanlar.onay_zamani = S.zamanTr();
       // Öneride isteğe bağlı: onayla birlikte uygulama görevi ata (atanırsa termin + açıklama zorunlu)
       if (tip === "oneri" && req.body.gorev_denetmen) {
+        if (mevcut.uygulama_durumu || mevcut.kaizen_no) {
+          return hata("Öneri havuzda, kapatılmış ya da kaizene dönüştürülmüş; görev buradan atanamaz.");
+        }
         const g = await C.denetmenById(req.body.gorev_denetmen);
         if (!g) return hata("Görevi yapacak denetmen bulunamadı. Kayıt onaylanmadı.");
         const gorev = gorevAlanlari(req, g);
@@ -408,6 +418,12 @@ module.exports = function register(app) {
       flash(req, "error", "Görev yalnızca onaylanmış ve henüz kaizene dönüştürülmemiş öneriye atanabilir.");
       return res.redirect(don);
     }
+    if (oneri.uygulama_durumu) {
+      flash(req, "error", oneri.uygulama_durumu === "beklemede"
+        ? "Öneri onaylı – beklemede havuzunda; görev atamak için önce havuzdan çıkarın."
+        : "Öneri \"Uygulanamadı\" olarak kapatılmış; görev atamak için önce yeniden açın.");
+      return res.redirect(don);
+    }
     if (req.body.kaldir) {
       await C.updateRecord("oneri", no, { gorev_atanan_id: null, gorev_atanan_ad: null,
         gorev_termin: null, gorev_notu: null, gorev_atayan: null, gorev_zamani: null });
@@ -420,6 +436,61 @@ module.exports = function register(app) {
     if (gorev.hata) { flash(req, "error", gorev.hata); return res.redirect(don); }
     await C.updateRecord("oneri", no, gorev.alanlar);
     flash(req, "success", `${no} uygulama ve kaizene dönüştürme görevi ${g.ad} kişisine atandı (termin ${C.trdate(gorev.alanlar.gorev_termin)}).`);
+    res.redirect(don);
+  }));
+
+  // Onaylı öneri havuzu: beklemeye al (ya da bekleme bilgisini güncelle) / havuzdan çıkar / "Uygulanamadı" olarak
+  // kapat / yeniden aç. Kayıt "Onaylandı" kalır ve onay puanını korur; havuzda ya da kapalıyken görev atanmaz,
+  // kaizene dönüştürülmez. Beklemeye alınan ya da kapatılan öneride varsa uygulama görevi kaldırılır.
+  app.post("/oneri/havuz", yetkiGerek("degerlendir"), sar(async (req, res) => {
+    const no = req.body.no || "";
+    const don = guvenliYol(req.body.don, "/detay?tip=oneri&no=" + encodeURIComponent(no));
+    const hata = (m) => { flash(req, "error", m); return res.redirect(don); };
+    const oneri = await C.getRecord("oneri", no);
+    if (!oneri) return res.status(404).send("Kayıt bulunamadı.");
+    if (oneri.durum !== "Onaylandı" || oneri.kaizen_no) {
+      return hata("Yalnızca onaylanmış ve kaizene dönüştürülmemiş öneri havuza alınabilir ya da kapatılabilir.");
+    }
+    const iz = { uygulama_isleyen: yapanAd(req), uygulama_zamani: S.zamanTr() };
+    const gorevKaldir = oneri.gorev_atanan_id ? { gorev_atanan_id: null, gorev_atanan_ad: null, gorev_termin: null,
+      gorev_notu: null, gorev_atayan: null, gorev_zamani: null } : {};
+    const gorevNotu = oneri.gorev_atanan_ad ? ` · ${oneri.gorev_atanan_ad} kişisinin uygulama görevi kaldırıldı` : "";
+    const islem = req.body.islem || "";
+
+    if (islem === "beklemeye_al") {
+      if (oneri.uygulama_durumu === "uygulanamadi") return hata("Öneri \"Uygulanamadı\" olarak kapatılmış; önce yeniden açın.");
+      const kategori = alan(req, "bekleme_kategori");
+      const neden = alan(req, "bekleme_nedeni");
+      const gozden = alan(req, "bekleme_gozden");
+      if (!S.BEKLEME_KATEGORILERI.includes(kategori)) return hata("Bekleme nedeninin türünü seçin.");
+      if (!neden) return hata("Neden beklediğini yazın.");
+      if (!gozden) return hata("Gözden geçirme tarihini seçin.");
+      const tHata = ileriTarihHatasi(gozden, oneri.uygulama_durumu === "beklemede" ? oneri.bekleme_gozden : "",
+        "Gözden geçirme tarihi");
+      if (tHata) return hata(tHata);
+      const guncelleme = oneri.uygulama_durumu === "beklemede";
+      await C.updateRecord("oneri", no, { uygulama_durumu: "beklemede", bekleme_kategori: kategori,
+        bekleme_nedeni: neden, bekleme_gozden: gozden, ...iz, ...gorevKaldir });
+      flash(req, "success", guncelleme
+        ? `${no} bekleme bilgisi güncellendi: ${kategori} · gözden geçirme ${C.trdate(gozden)}`
+        : `${no} onaylı – beklemede havuzuna alındı: ${kategori} · gözden geçirme ${C.trdate(gozden)}${gorevNotu}`);
+    } else if (islem === "havuzdan_cikar") {
+      if (oneri.uygulama_durumu !== "beklemede") return hata("Öneri havuzda değil.");
+      await C.updateRecord("oneri", no, { uygulama_durumu: null, ...iz });
+      flash(req, "success", `${no} havuzdan çıkarıldı — uygulama görevi atanabilir.`);
+    } else if (islem === "uygulanamadi") {
+      if (oneri.uygulama_durumu === "uygulanamadi") return hata("Öneri zaten \"Uygulanamadı\" olarak kapatılmış.");
+      const neden = alan(req, "uygulanamadi_nedeni");
+      if (!neden) return hata("Neden uygulanamadığını yazın.");
+      await C.updateRecord("oneri", no, { uygulama_durumu: "uygulanamadi", uygulanamadi_nedeni: neden, ...iz, ...gorevKaldir });
+      flash(req, "success", `${no} "Uygulanamadı" olarak kapatıldı (onay puanı korunur)${gorevNotu}`);
+    } else if (islem === "yeniden_ac") {
+      if (oneri.uygulama_durumu !== "uygulanamadi") return hata("Öneri \"Uygulanamadı\" olarak kapatılmamış.");
+      await C.updateRecord("oneri", no, { uygulama_durumu: null, ...iz });
+      flash(req, "success", `${no} yeniden açıldı — uygulama görevi atanabilir.`);
+    } else {
+      return hata("Geçersiz işlem.");
+    }
     res.redirect(don);
   }));
 

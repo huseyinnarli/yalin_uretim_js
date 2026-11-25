@@ -1,4 +1,5 @@
 // Düzeltme (revize) ve görev atamaları: denetmenin Görevlerim sayfası, yönetici takip listesi, menü rozeti.
+const S = require("../sabitler");
 const I = require("../isim");
 const { sorgu, tek, oneriRow, kaizenRow, aksiyonRow } = require("../db");
 const { bolumMap } = require("./bolumler");
@@ -48,7 +49,11 @@ async function acikAtamalar() {
   const gorevler = (await sorgu(
     "SELECT * FROM oneriler WHERE gorev_atanan_id IS NOT NULL AND gorev_atanan_id != '' " +
     "AND (kaizen_no IS NULL OR kaizen_no = '') ORDER BY gorev_zamani DESC")).map(oneriRow);
-  return { revizeler, gorevler };
+  // Onaylı – beklemede havuzunda gözden geçirme tarihi gelmiş (ya da geçmiş) öneriler
+  const gozden = (await sorgu(
+    "SELECT * FROM oneriler WHERE durum = 'Onaylandı' AND uygulama_durumu = 'beklemede' " +
+    "AND bekleme_gozden IS NOT NULL AND bekleme_gozden <= ? ORDER BY bekleme_gozden", [S.bugunIso()])).map(oneriRow);
+  return { revizeler, gorevler, gozden };
 }
 
 // Üst menü rozeti: denetmene atanmış bekleyen düzeltme + kaizene dönüştürme görevi sayısı

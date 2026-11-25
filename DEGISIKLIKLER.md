@@ -1,5 +1,29 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 — Onaylı öneri havuzu (Onaylı – Beklemede / Uygulanamadı)
+
+- Onaylanmış ama şu an uygulanamayan öneri, detay sayfasından **⏸ Onaylı – Beklemede** havuzuna alınır.
+  - **Zorunlu:** neden türü (Bütçe / yatırım · Teknik imkân / altyapı · Tedarikçi / malzeme · Başka projeye / karara bağlı ·
+    Üretim yoğunluğu / zaman · Diğer), açıklama ve **gözden geçirme tarihi** (bugünden önce olamaz; bilgi güncellenirken
+    tarih aynı bırakılırsa geçmişte kalmış tarih kabul edilir).
+  - Öneri **"Onaylandı" kalır, onay puanı ve puan listesindeki karşılığı değişmez.**
+  - Havuzdayken uygulama görevi atanamaz ve kaizene dönüştürülemez; atanmış görev varsa havuza alınınca kaldırılır
+    (mesajda yazar).
+  - **▶ Havuzdan Çıkar:** öneri normale döner (görev atanabilir, kaizene dönüştürülebilir).
+  - **⛔ Uygulanamadı olarak kapat** (gerekçe zorunlu; normal durumdan ya da havuzdan): öneri onaylı kalır, puanı korunur,
+    uygulanmayacağı kayda geçer. **↩ Yeniden Aç** ile geri alınır.
+- Liste: durum filtresine **⏸ Onaylı – Beklemede (havuz)** ve **⛔ Uygulanamadı** eklendi. Havuz görünümü gözden geçirme
+  tarihine göre (en yakın/geçmiş en üstte) sıralanır; tarihi gelenler kırmızı yazar. Satırlarda rozet.
+- Panel: havuz özeti (kaç öneri, kaçının gözden geçirme tarihi geldi, kaç uygulanamadı). 📋 Görevlerim'deki yönetici takip
+  listesinde "gözden geçirme tarihi gelen havuz önerileri".
+- Öneri Excel'inin sonuna **Uygulama Durumu** (Uygulanacak / Görev atandı / Kaizene dönüştü / Onaylı – Beklemede /
+  Uygulanamadı), **Bekleme Türü**, **Bekleme / Kapanış Nedeni**, **Gözden Geçirme** sütunları eklendi (eski sütunların yeri aynı).
+- İşlemler (havuza alma, güncelleme, çıkarma, kapatma, yeniden açma) işlem günlüğüne yazılır. Yetki: Değerlendirme.
+- **Veritabanı (yalnız ekleme):** `oneriler` tablosuna 7 kolon — `uygulama_durumu`, `bekleme_kategori`, `bekleme_nedeni`,
+  `bekleme_gozden`, `uygulanamadi_nedeni`, `uygulama_isleyen`, `uygulama_zamani`. Eski sürüm genişletilmiş veritabanında
+  çalışmaya devam eder (denendi); eski sürüme dönülürse havuzdaki öneriler normal onaylı öneri gibi görünür.
+- e2e testi: **236/236** (26 yeni kontrol).
+
 ## 23 Kasım 2026 — Görev atamasında termin ve açıklama zorunlu
 
 - Öneriyi uygulayıp kaizene dönüştürme görevi atanırken **termin** ve **açıklama** artık zorunlu (önceden isteğe bağlıydı).

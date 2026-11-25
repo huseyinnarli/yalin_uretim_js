@@ -34,6 +34,14 @@ const TR_AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
 const DURUMLAR = ["Değerlendiriliyor", "Onaylandı", "Reddedildi", "Düzeltme İsteniyor"];
 const VARSAYILAN_DURUM = "Değerlendiriliyor";
 
+// Onaylı öneri havuzu (oneriler.uygulama_durumu): kayıt "Onaylandı" kalır, puanı korunur; bu süreçte görev atanmaz,
+// kaizene dönüştürülmez. NULL = normal akış (görev atanabilir).
+const UYGULAMA_DURUMLARI = { beklemede: "Beklemede", uygulanamadi: "Uygulanamadı" };
+const BEKLEME_KATEGORILERI = [
+  "Bütçe / yatırım gerekiyor", "Teknik imkân / altyapı yok", "Tedarikçi / malzeme bekleniyor",
+  "Başka projeye / karara bağlı", "Üretim yoğunluğu / zaman yok", "Diğer",
+];
+
 const ADMIN_PASSWORD = "admin123"; // ilk kurulum varsayılanı — panelden değiştirilir
 const MARKA_ADI = "Öztaş Global Soğutma";
 const ALAN_MAX = 5000;   // tek metin alanı üst sınırı
@@ -88,6 +96,6 @@ module.exports = {
   BASE_DIR, DATA_DIR, DB_PATH, KAIZEN_IMG_DIR, BESS_FOTO_DIR,
   BESS_AKSIYON_FOTO_DIR, YEDEK_DIR, STATIC_DIR, ensureDirs,
   ALLOWED_EXT, KAZANC_BASLIKLARI, TR_AYLAR, DURUMLAR,
-  VARSAYILAN_DURUM, ADMIN_PASSWORD, MARKA_ADI, ALAN_MAX, SAYFA_BOYUTU,
+  VARSAYILAN_DURUM, UYGULAMA_DURUMLARI, BEKLEME_KATEGORILERI, ADMIN_PASSWORD, MARKA_ADI, ALAN_MAX, SAYFA_BOYUTU,
   GORSEL_MAX_BAYT, GORSEL_MAX_KENAR, siteKonfig, nowTr, bugunIso, zamanTr,
 };

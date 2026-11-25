@@ -526,6 +526,99 @@ async function main() {
     html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(gorNo)}&geri=${encodeURIComponent("javascript:alert(1)")}`);
     ok("geri adresi javascript: kabul etmiyor", !html.includes('href="javascript:') && html.includes('href="/liste"'));
 
+    // --- Onaylı – Beklemede havuzu: neden + gözden geçirme tarihi zorunlu; puan korunur; görev/kaizen kapalı ---
+    const havNo = "ÖNFR9901-05", kapNo = "ÖNFR9901-06";
+    const havuzOku = async (no) => (await db.query("SELECT durum, puan, uygulama_durumu, bekleme_kategori, bekleme_nedeni, " +
+      "bekleme_gozden, uygulanamadi_nedeni, uygulama_isleyen, gorev_atanan_id FROM oneriler WHERE `no` = ?", [no]))[0][0];
+    const havuz = (no, alanlar) => post("/oneri/havuz", { csrf_token: csrf, no, ...alanlar });
+    const KAT = "Bütçe / yatırım gerekiyor", gozdenTarih = gunEkle(60);
+    await havuz(havNo, { islem: "beklemeye_al", bekleme_kategori: KAT, bekleme_nedeni: "Yatırım", bekleme_gozden: gozdenTarih });
+    ok("onaylanmamış öneri havuza alınamaz", !(await havuzOku(havNo)).uygulama_durumu);
+    await post("/durum", { csrf_token: csrf, tip: "oneri", no: havNo, durum: "Onaylandı", gorev_denetmen: dz.id,
+      gorev_termin: ileriTermin, gorev_notu: "Uygula" });
+    await post(`/degerlendir/puan?tip=oneri&no=${encodeURIComponent(havNo)}`, { csrf_token: csrf, tip: "oneri",
+      no: havNo, p_form: "5", p_komite: "5", p_etki_0_0: "10" });
+    const havPuan = (await havuzOku(havNo)).puan;
+    html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(havNo)}`);
+    ok("onaylı öneride havuz ve uygulanamadı kartları", html.includes('action="/oneri/havuz"') && html.includes("Havuza Al")
+      && html.includes("Uygulanamadı Olarak Kapat") && html.includes(KAT));
+    await havuz(havNo, { islem: "beklemeye_al", bekleme_kategori: "Uydurma tür", bekleme_nedeni: "x", bekleme_gozden: gozdenTarih });
+    ok("listede olmayan bekleme türü reddedildi", !(await havuzOku(havNo)).uygulama_durumu);
+    await havuz(havNo, { islem: "beklemeye_al", bekleme_kategori: KAT, bekleme_nedeni: "  ", bekleme_gozden: gozdenTarih });
+    ok("açıklamasız havuza alınmaz", !(await havuzOku(havNo)).uygulama_durumu);
+    await havuz(havNo, { islem: "beklemeye_al", bekleme_kategori: KAT, bekleme_nedeni: "Yatırım", bekleme_gozden: "" });
+    ok("gözden geçirme tarihsiz havuza alınmaz", !(await havuzOku(havNo)).uygulama_durumu);
+    await havuz(havNo, { islem: "beklemeye_al", bekleme_kategori: KAT, bekleme_nedeni: "Yatırım", bekleme_gozden: gunEkle(-1) });
+    html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(havNo)}`);
+    ok("geçmiş gözden geçirme tarihi reddedildi", !(await havuzOku(havNo)).uygulama_durumu
+      && html.includes("Gözden geçirme tarihi bugünden önce olamaz"));
+    await havuz(havNo, { islem: "beklemeye_al", bekleme_kategori: KAT, bekleme_nedeni: "2027 yatırım bütçesi bekleniyor",
+      bekleme_gozden: gozdenTarih });
+    let hv = await havuzOku(havNo);
+    ok("havuza alındı: tür, neden, tarih, işleyen kayıtlı", hv.uygulama_durumu === "beklemede" && hv.bekleme_kategori === KAT
+      && hv.bekleme_nedeni.startsWith("2027") && hv.bekleme_gozden === gozdenTarih && hv.uygulama_isleyen);
+    ok("havuza alınca durum Onaylandı ve puan aynı kaldı, görev kaldırıldı", hv.durum === "Onaylandı" && hv.puan === havPuan
+      && hv.puan > 0 && !hv.gorev_atanan_id);
+    html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(havNo)}`);
+    ok("detayda beklemede rozeti ve bilgisi; kaizene dönüştür yok", html.includes("⏸ Beklemede") && html.includes("2027 yatırım")
+      && html.includes("Havuzdan Çıkar") && !html.includes("Kaizene Dönüştür") && !html.includes('action="/gorev"'));
+    await post("/gorev", { csrf_token: csrf, no: havNo, gorev_denetmen: dz.id, gorev_termin: ileriTermin, gorev_notu: "Uygula" });
+    ok("havuzdaki öneriye görev atanamaz", !(await havuzOku(havNo)).gorev_atanan_id);
+    r = await get(`/kaizen/yeni?oneri=${encodeURIComponent(havNo)}`);
+    ok("havuzdaki öneri kaizene dönüştürülemez", r.status === 302);
+    // Bilgi güncelleme: tarih geçmişte kaldıysa aynı tarihle kaydedilebilir, yeni geçmiş tarih olmaz
+    await db.query("UPDATE oneriler SET bekleme_gozden = ? WHERE `no` = ?", [gunEkle(-3), havNo]);
+    await havuz(havNo, { islem: "beklemeye_al", bekleme_kategori: KAT, bekleme_nedeni: "Bütçe Ocak'ta", bekleme_gozden: gunEkle(-3) });
+    ok("değişmeyen eski gözden geçirme tarihiyle güncellenebilir", (await havuzOku(havNo)).bekleme_nedeni === "Bütçe Ocak'ta");
+    await havuz(havNo, { islem: "beklemeye_al", bekleme_kategori: KAT, bekleme_nedeni: "Yeni", bekleme_gozden: gunEkle(-5) });
+    ok("güncellerken yeni geçmiş tarih olmaz", (await havuzOku(havNo)).bekleme_nedeni === "Bütçe Ocak'ta");
+    html = await getText("/liste?tip=oneri&durum=havuz");
+    ok("liste havuz filtresi yalnız havuzdakini gösterir", html.includes(havNo) && !html.includes(kapNo) && html.includes("gozden-geldi"));
+    html = await getText("/panel");
+    ok("panelde havuz özeti (gözden geçirme tarihi gelen)", html.includes("Beklemede havuzu") && html.includes("gözden geçirme tarihi geldi"));
+    html = await getText("/gorevlerim");
+    ok("takip listesinde gözden geçirme tarihi gelen öneri", html.includes("Gözden geçirme tarihi gelen") && html.includes(havNo));
+    await havuz(havNo, { islem: "havuzdan_cikar" });
+    hv = await havuzOku(havNo);
+    ok("havuzdan çıkarıldı (puan aynı)", !hv.uygulama_durumu && hv.puan === havPuan);
+    html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(havNo)}`);
+    ok("havuzdan çıkınca görev atanabilir ve dönüştürülebilir", html.includes('action="/gorev"') && html.includes("Kaizene Dönüştür"));
+    // Uygulanamadı: gerekçe zorunlu; kapalıyken havuz/görev yok; yeniden açılabilir
+    await post("/durum", { csrf_token: csrf, tip: "oneri", no: kapNo, durum: "Onaylandı" });
+    await havuz(kapNo, { islem: "uygulanamadi", uygulanamadi_nedeni: "" });
+    ok("gerekçesiz uygulanamadı kapatılmaz", !(await havuzOku(kapNo)).uygulama_durumu);
+    await havuz(kapNo, { islem: "uygulanamadi", uygulanamadi_nedeni: "Tedarikçi parçayı üretmiyor" });
+    hv = await havuzOku(kapNo);
+    ok("uygulanamadı olarak kapatıldı (onaylı kaldı)", hv.uygulama_durumu === "uygulanamadi" && hv.durum === "Onaylandı"
+      && hv.uygulanamadi_nedeni === "Tedarikçi parçayı üretmiyor");
+    await havuz(kapNo, { islem: "beklemeye_al", bekleme_kategori: KAT, bekleme_nedeni: "x", bekleme_gozden: gozdenTarih });
+    ok("kapatılmış öneri doğrudan havuza alınamaz", (await havuzOku(kapNo)).uygulama_durumu === "uygulanamadi");
+    html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(kapNo)}`);
+    ok("detayda uygulanamadı rozeti, gerekçe ve yeniden aç", html.includes("⛔ Uygulanamadı") && html.includes("Tedarikçi parçayı")
+      && html.includes("Yeniden Aç") && !html.includes("Havuza Al"));
+    html = await getText("/liste?tip=oneri&durum=uygulanamadi");
+    ok("liste uygulanamadı filtresi", html.includes(kapNo) && !html.includes(havNo));
+    r = await get("/oneri/excel");
+    const ExcelJSh = require("exceljs");
+    const wbH = new ExcelJSh.Workbook();
+    await wbH.xlsx.load(Buffer.from(await r.arrayBuffer()));
+    const wsH = wbH.worksheets[0];
+    const bH = wsH.getRow(1).values.slice(1);
+    let kapSatir = null;
+    wsH.eachRow((row) => { if (row.getCell(1).value === kapNo) kapSatir = row; });
+    ok("öneri Excel'inde uygulama durumu sütunları (sonda)",
+      bH.slice(-4).join("|") === "Uygulama Durumu|Bekleme Türü|Bekleme / Kapanış Nedeni|Gözden Geçirme"
+      && kapSatir && kapSatir.getCell(bH.length - 3).value === "Uygulanamadı"
+      && kapSatir.getCell(bH.length - 1).value === "Tedarikçi parçayı üretmiyor");
+    await havuz(kapNo, { islem: "yeniden_ac" });
+    ok("uygulanamadı kapanışı yeniden açıldı", !(await havuzOku(kapNo)).uygulama_durumu);
+    // Yetki: değerlendirme yetkisi olmayan (denetmen) havuz işlemi yapamaz
+    csrf = await girisYap("deniz123");
+    r = await post("/oneri/havuz", { csrf_token: csrf, no: kapNo, islem: "uygulanamadi", uygulanamadi_nedeni: "x" });
+    ok("denetmen havuz işlemi yapamaz", r.status === 302 && konum(r).startsWith("/yonetici/giris")
+      && !(await havuzOku(kapNo)).uygulama_durumu);
+    csrf = await girisYap("admin123");
+
     // --- İsim birleştirme: otomatik + elle ---
     csrf = csrfFrom(await getText("/oneri/yeni"));
     for (const [ad, soyad, konu] of [["ALİ", "TEST", "Büyük harfli"], ["Ali", "Tset", "Yazım hatalı"]]) {
@@ -861,7 +954,7 @@ async function main() {
     const dahilIdler = Object.values(await bolumleriOku()).filter((b) => b.bes_dahil === 1).map((b) => b.id).sort();
     ok("yeni denetim turu yalnız 5S'e dahil bölümleri kapsar",
       turBolum.map((x) => x.bolum_id).sort().join() === dahilIdler.join() && !turBolum.some((x) => x.bolum_id === bol.Kaynakhane.id));
-    // Excel: öneri Excel'inin son sütunu Bölüm
+    // Excel: öneri Excel'inde Bölüm sütunu (22 eski sütunun ardından)
     r = await get("/oneri/excel");
     const ExcelJSm = require("exceljs");
     const wbB = new ExcelJSm.Workbook();
@@ -870,8 +963,9 @@ async function main() {
     const basliklarB = wsB.getRow(1).values.slice(1);
     let iciSatir = null;
     wsB.eachRow((row) => { if (row.getCell(1).value === iciKayit.no) iciSatir = row; });
-    ok("öneri Excel'inde son sütun Bölüm ve değeri dolu",
-      basliklarB[basliklarB.length - 1] === "Bölüm" && iciSatir && iciSatir.getCell(basliklarB.length).value === "İdari İşler");
+    const bolSutun = basliklarB.indexOf("Bölüm") + 1;
+    ok("öneri Excel'inde Bölüm sütunu (eski sütunlardan sonra) ve değeri dolu",
+      bolSutun === 23 && iciSatir && iciSatir.getCell(bolSutun).value === "İdari İşler");
     // Silme: geçmişi olmayan bölüm silinir; öneri kaydındaki ad değişmez
     await post(BOL + "/sil", { csrf_token: csrf, id: (await bolumleriOku())["İdari İşler"].id });
     const [[iciSonra]] = await db.query("SELECT bolum FROM oneriler WHERE `no` = ?", [iciKayit.no]);

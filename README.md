@@ -71,6 +71,10 @@ saklar; ad değişikliği eski kayıtları değiştirmez, düzenlemede listeden 
     kaydedince kayıt "Değerlendiriliyor"a döner.
 - **📌 Görev:** onaylanan öneri bir denetmene atanır; **termin ve açıklama zorunludur** (termin bugünden önce olamaz). Atanan kişi **🔧 Kaizene Dönüştür** ile
   kaizeni açar; öneri ↔ kaizen bağlantısı detaylarda görünür.
+- **⏸ Onaylı – Beklemede havuzu:** onaylı ama şu an uygulanamayan öneri; **neden türü + açıklama + gözden geçirme
+  tarihi** zorunlu. Onay puanı korunur; havuzdayken görev atanmaz, kaizene dönüştürülmez. **▶ Havuzdan Çıkar** ile
+  normale döner ya da **⛔ Uygulanamadı** olarak gerekçeyle kapatılır (**↩ Yeniden Aç** ile geri alınır). Listede ayrı
+  durum filtresi (gözden geçirme tarihine göre sıralı); tarihi gelenler Panel'de ve Görevlerim takip listesinde.
 - **★ Puanla** (Puanlama yetkisi) — 100 üzerinden rubrik: Temel 10 · Etki 40 · Maliyet 20 · Yaygınlaştırma 15 ·
   Efor 15. Kaydedince kaydın detayına dönülür; "← Listeye Dön" kaldığın sayfaya/filtreye götürür.
 - **🗂 Reddedilen & Silinen:** reddedilenler (gerekçesiyle) ve silinenler burada; denetmenler yalnızca görüntüler,
@@ -146,7 +150,7 @@ saklar; ad değişikliği eski kayıtları değiştirmez, düzenlemede listeden 
 
 | Grup | Yetki alanı | Kapsam |
 |---|---|---|
-| Öneri & Kaizen | **Değerlendirme** | Onay, gerekçeli red, düzeltme isteyip denetmene atama, görev atama |
+| Öneri & Kaizen | **Değerlendirme** | Onay, gerekçeli red, düzeltme isteyip denetmene atama, görev atama, onaylı öneriyi beklemeye alma / uygulanamadı kapatma |
 | | **Puanlama** | Onaylanan kayıtlara ★ puan |
 | | **Kayıt düzenle-sil & raporlar** | Düzenleme, silme, silinenleri geri yükleme, Excel |
 | 5S | **Bölüm/görev listeleri & denetim planı** | Ortak bölüm listesi (5S'e dahil), bölüm personeli ve ekip liderleri, görev tanımları, denetim tarihi planlama, denetmen/misafir dağıtımı |

@@ -48,10 +48,10 @@ async function generateOneriExcel() {
     "Puan Detayı", "Kayıt Zamanı", "Red Nedeni", "Düzeltme Talebi", "Görev Atanan",
     "Görev Termini", "Dönüştürülen Kaizen", "Sahibine Yazılan Puan",
     // Yeni sütunlar sona eklenir: Excel'i sabit sütunlu şablona yapıştıranların düzeni kaymasın
-    "Bölüm"];
+    "Bölüm", "Uygulama Durumu", "Bekleme Türü", "Bekleme / Kapanış Nedeni", "Gözden Geçirme"];
   ws.addRow(headers);
   styleHeader(ws, headers.length);
-  [16, 12, 22, 18, 30, 40, 40, 28, 28, 28, 28, 30, 16, 8, 50, 18, 30, 30, 20, 12, 16, 14, 22]
+  [16, 12, 22, 18, 30, 40, 40, 28, 28, 28, 28, 30, 16, 8, 50, 18, 30, 30, 20, 12, 16, 14, 22, 18, 26, 40, 14]
     .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   const kuralBul = await C.kuralCozucu();
   for (const r of (await sorgu("SELECT * FROM oneriler")).map(oneriRow)) {
@@ -61,10 +61,21 @@ async function generateOneriExcel() {
       P.puanlamaOzet(r.puanlama), r.kayit_zamani, r.red_nedeni || "",
       r.revize_notu ? `${r.revize_notu} (${r.revize_atanan_ad || ""})` : "",
       r.gorev_atanan_ad || "", r.gorev_termin || "", r.kaizen_no || "", PK.oneriKazanci(r, kuralBul(r)) || "",
-      r.bolum || ""]);
+      r.bolum || "", ...uygulamaSutunlari(r)]);
   }
   govdeStil(ws, headers.length);
   return wb.xlsx.writeBuffer();
+}
+
+// Onaylı öneri havuzu sütunları: [Uygulama Durumu, Bekleme Türü, Bekleme / Kapanış Nedeni, Gözden Geçirme]
+function uygulamaSutunlari(r) {
+  if (r.durum !== "Onaylandı") return ["", "", "", ""];
+  if (r.kaizen_no) return ["Kaizene dönüştü", "", "", ""];
+  if (r.uygulama_durumu === "beklemede") {
+    return ["Onaylı – Beklemede", r.bekleme_kategori || "", r.bekleme_nedeni || "", r.bekleme_gozden || ""];
+  }
+  if (r.uygulama_durumu === "uygulanamadi") return ["Uygulanamadı", "", r.uygulanamadi_nedeni || "", ""];
+  return [r.gorev_atanan_ad ? "Görev atandı" : "Uygulanacak", "", "", ""];
 }
 
 async function generateKaizenExcel() {

@@ -39,7 +39,7 @@ async function combinedRecords() {
 }
 
 // Liste filtresi. Reddedilen kayıtlar ana listede yer almaz ("Reddedilen & Silinen"
-// sayfasında toplanır). durum: "" (tümü) | "bekle" | "revize" | "onay"
+// sayfasında toplanır). durum: "" (tümü) | "bekle" | "revize" | "onay" | "havuz" (onaylı–beklemede) | "uygulanamadi"
 function filtrele(records, tip, ay, q, durum = "") {
   q = (q || "").trim().toLocaleLowerCase("tr");
   return records.filter((r) => {
@@ -49,6 +49,8 @@ function filtrele(records, tip, ay, q, durum = "") {
     if (durum === "bekle" && r.durum !== S.VARSAYILAN_DURUM) return false;
     if (durum === "revize" && r.durum !== "Düzeltme İsteniyor") return false;
     if (durum === "onay" && r.durum !== "Onaylandı") return false;
+    if (durum === "havuz" && r.uygulama_durumu !== "beklemede") return false;
+    if (durum === "uygulanamadi" && r.uygulama_durumu !== "uygulanamadi") return false;
     if (q) {
       const hay = `${r.baslik || ""} ${r.kisi || ""} ${r.no || ""}`.toLocaleLowerCase("tr");
       if (!hay.includes(q)) return false;
@@ -81,7 +83,8 @@ function kayitDuzenleyebilir(rec, yetkiler, denetmen) {
 
 // Onaylanan öneri kaizene dönüştürülebilir mi (henüz dönüştürülmemiş + yetkili ya da atanan kişi)
 function kaizeneDonusturebilir(oneri, yetkiler, denetmen) {
-  if (!oneri || oneri.durum !== "Onaylandı" || oneri.kaizen_no) return false;
+  // Havuzdaki (beklemede) ya da "Uygulanamadı" olarak kapatılmış öneri dönüştürülmez
+  if (!oneri || oneri.durum !== "Onaylandı" || oneri.kaizen_no || oneri.uygulama_durumu) return false;
   if ((yetkiler || []).some((k) => k === "degerlendir" || k === "kayit")) return true;
   return Boolean(denetmen && oneri.gorev_atanan_id === denetmen.id);
 }
@@ -96,7 +99,17 @@ async function kaizenKaydetGorsel(file, etiket, sn) {
   return null;
 }
 
+// Onaylı öneri havuzu özeti (Panel): havuzdaki, gözden geçirme tarihi gelmiş/geçmiş olan ve "Uygulanamadı" sayıları
+async function havuzOzeti(bugun) {
+  const r = await tek(
+    `SELECT SUM(uygulama_durumu = 'beklemede') AS beklemede,
+            SUM(uygulama_durumu = 'beklemede' AND bekleme_gozden IS NOT NULL AND bekleme_gozden <= ?) AS gozden,
+            SUM(uygulama_durumu = 'uygulanamadi') AS uygulanamadi
+       FROM oneriler WHERE durum = 'Onaylandı'`, [bugun]);
+  return { beklemede: Number(r.beklemede) || 0, gozden: Number(r.gozden) || 0, uygulanamadi: Number(r.uygulanamadi) || 0 };
+}
+
 module.exports = {
   getRecord, updateRecord, combinedRecords, filtrele, sayfala, mevcutAylar, kayitDuzenleyebilir,
-  kaizeneDonusturebilir, kaizenKaydetGorsel,
+  kaizeneDonusturebilir, kaizenKaydetGorsel, havuzOzeti,
 };

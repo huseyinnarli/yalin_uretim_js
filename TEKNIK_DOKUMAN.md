@@ -140,7 +140,7 @@ JSON** olarak saklanır; okurken `db.js`'teki satır dönüştürücüler nesney
 | Tablo | Anahtar | Önemli kolonlar |
 |---|---|---|
 | `config` | `anahtar` | `admin_password` (hash), `secret_key` (oturum imzası), `puan_kurallari` (öneri/kaizen kural sürümleri, JSON), `odul_ayarlari` (eşik + 5S tur ödülleri, JSON), `gorev_tanimlari` (görev listesi, JSON) |
-| `oneriler` | `no` (ÖNFR…) | tarih, sahibi, görev, `bolum` (ortak listeden, AD olarak), konu, detay, çözüm, 4 katkı alanı, durum, `onay_zamani` (ilk onay — puan kuralı seçimi), `form_no` (eski, gösterilmez), `puan`, `puanlama` (JSON kırılım), degerlendirme_notu, `red_nedeni`, `revize_*` (düzeltme: not, atanan denetmen id/ad, isteyen, zaman, tamamlandı), `gorev_*` (görev: atanan id/ad, termin, not, atayan, zaman — atamada termin + açıklama zorunlu, termin bugünden önce olamaz; değişmeyen eski termin kalabilir: `admin.js:gorevAlanlari`), `kaizen_no` (dönüştürülen kaizen) |
+| `oneriler` | `no` (ÖNFR…) | tarih, sahibi, görev, `bolum` (ortak listeden, AD olarak), konu, detay, çözüm, 4 katkı alanı, durum, `onay_zamani` (ilk onay — puan kuralı seçimi), `form_no` (eski, gösterilmez), `puan`, `puanlama` (JSON kırılım), degerlendirme_notu, `red_nedeni`, `revize_*` (düzeltme: not, atanan denetmen id/ad, isteyen, zaman, tamamlandı), `gorev_*` (görev: atanan id/ad, termin, not, atayan, zaman — atamada termin + açıklama zorunlu, termin bugünden önce olamaz; değişmeyen eski termin kalabilir: `admin.js:gorevAlanlari`), `kaizen_no` (dönüştürülen kaizen), `uygulama_durumu` (NULL · `beklemede` · `uygulanamadi` — onaylı öneri havuzu), `bekleme_kategori`, `bekleme_nedeni`, `bekleme_gozden` (YYYY-AA-GG), `uygulanamadi_nedeni`, `uygulama_isleyen`, `uygulama_zamani` |
 | `kaizenler` | `no` (ÖSKFR…) | başlangıç/bitiş, konu, bölüm, lider, `lider_gorevi`, `uyeler` (JSON), `uye_gorevleri` (JSON, `uyeler` ile aynı sırada), sorumlular, `kazanclar` (JSON), önceki/sonraki + görsel adları, durum, `onay_zamani` (ilk onay — puan kuralı seçimi), `form_no` (eski, gösterilmez), puan, puanlama, `red_nedeni`, `revize_*`, `kaynak_oneri_no` |
 | `bolumler` | `id` (hex8) | ad, `sorumlu` ("Ali / Veli" — çoklu lider), `kisiler` (JSON), `bes_dahil` (1 = 5S planı/kontrol formu/5S listelerinde; 0 = yalnız öneri/kaizen formunda seçilir) |
 | `denetimler` | `id` (hex8) | `revize_eden`, `revize_zamani` (denetim revizesi), bolum_id, `tarih` (**tur kimliği**), tur_adi, baslangic/bitis, plan_gun/saat, planlanan/misafir/gerçek denetmen, `puan` (NULL=bekliyor), `puanlar` (JSON kriter→hesaplanan puan), `bulgular` (JSON kriter→bulgu sayısı), `notu`, `aciklamalar` (JSON), `fotolar` (JSON kriter→[dosya]), denetim_tarihi |
@@ -239,6 +239,16 @@ aynı tur iki kez işlenemez. İlk 3 bölümün lider+üye tam listesi o günkü
 - **Görev** `POST /gorev`: yalnız onaylı ve dönüştürülmemiş öneri. `kaizeneDonusturebilir`: atanan denetmen veya
   değerlendirme/kayıt yetkili yönetici. `GET /kaizen/yeni?oneri=NO` formu öneriden doldurur; `POST` kaizeni ve
   `oneriler.kaizen_no`'yu **tek transaction**'da yazar; yetki sunucuda yeniden doğrulanır.
+- **Onaylı öneri havuzu** `POST /oneri/havuz` (Değerlendirme; yalnız onaylı ve dönüştürülmemiş öneri), `islem`:
+  `beklemeye_al` (tür ∈ `S.BEKLEME_KATEGORILERI` + açıklama + gözden geçirme tarihi; tarih bugünden önce olamaz, havuzdaki
+  kaydın değişmeyen eski tarihi kabul — `admin.js:ileriTarihHatasi`, görev termini de aynı denetimi kullanır; havuzdaki
+  kayıtta aynı işlem bilgiyi günceller), `havuzdan_cikar`, `uygulanamadi` (gerekçe zorunlu; normal ya da havuzdaki
+  öneriden), `yeniden_ac`. Durum `oneriler.uygulama_durumu`'nda: NULL (normal) · `beklemede` · `uygulanamadi`; kayıt
+  **"Onaylandı" kalır**, puan ve `odul`/puan listesi etkilenmez. `uygulama_durumu` doluyken `/gorev`, onay kartından görev
+  ve `kaizeneDonusturebilir` reddedilir; havuza alma/kapatma atanmış görevi (`gorev_*`) temizler. Bekleme/kapanış
+  metinleri havuzdan çıkınca silinmez (yalnız `uygulama_durumu` NULL olur). Liste filtresi `durum=havuz|uygulanamadi`
+  (havuz gözden geçirme tarihine göre sıralı), panel özeti `kayitlar.havuzOzeti(bugun)`, takip listesi
+  `gorevler.acikAtamalar().gozden` (tarihi gelenler).
 - Liste: `filtrele` reddedilenleri çıkarır; `sayfala` 20'li (`S.SAYFA_BOYUTU`). Puanlama `geri` adresini taşır,
   kaydedince detaya döner.
 
@@ -410,5 +420,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 210 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 236 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.
