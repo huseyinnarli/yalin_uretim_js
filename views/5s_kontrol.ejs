@@ -22,13 +22,13 @@
         <a class="btn ghost" href="/5s/bolum/<%= b.id %>/kontrol?ay=<%= sonraki_ay %>">Sonraki Ay ›</a>
         <% if (girisli) { %>
         <form method="get" action="/5s/bolum/<%= b.id %>/kontrol/excel" class="excel-ay-form"
-              title="Seçilen aya kadar doldurulmuş tüm aylar indirilir (her ay ayrı sayfa + özet)">
-            <select name="ay" aria-label="Excel: hangi aya kadar">
+              title="Seçilen ayın formu indirilir (kâğıt formdaki düzen + özet sayfası)">
+            <select name="ay" aria-label="Excel: hangi ay">
                 <% for (const e of excel_aylari) { %>
                 <option value="<%= e.ay %>" <%= e.ay === excel_ay ? 'selected' : '' %>><%= e.etiket %></option>
                 <% } %>
             </select>
-            <button type="submit" class="btn ghost">⬇ Excel (bu aya kadar)</button>
+            <button type="submit" class="btn ghost">⬇ Excel (seçilen ay)</button>
         </form>
         <% } %>
     </div>

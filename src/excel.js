@@ -292,11 +292,13 @@ function kontrolAyOzeti(ay, veri) {
   };
 }
 
-// 5S ve Güvenlik Kontrol Formu — seçilen aya kadar her ay ayrı sayfa (kâğıt formun düzeninde),
-// başta tüm ayların özeti + uygunsuzluk listesi. sayfalar: [{ ay: "2026-09", veri: kontrolAy() }], eskiden yeniye.
+// 5S ve Güvenlik Kontrol Formu — her ay kâğıt formun düzeninde ayrı sayfa (önce), ardından özet + uygunsuzluk
+// listesi. Rota yalnız seçilen ayı gönderir. sayfalar: [{ ay: "2026-09", veri: kontrolAy() }], eskiden yeniye.
 async function generateKontrolExcel(b, sayfalar) {
   const wb = new ExcelJS.Workbook();
   const ilk = sayfalar[0].ay, son = sayfalar[sayfalar.length - 1].ay;
+  // Form sayfaları önce: dosya açılınca ilk görünen ayın formu olsun
+  for (const s of sayfalar) kontrolAySayfasi(wb, b, s.ay, s.veri);
 
   const oz = wb.addWorksheet("ÖZET", { pageSetup: { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
   oz.mergeCells(1, 1, 1, 8);
@@ -322,7 +324,7 @@ async function generateKontrolExcel(b, sayfalar) {
       });
   }
   oz.addRow([]);
-  oz.addRow(["UYGUNSUZLUKLAR (tüm aylar — önlem planı)"]).getCell(1).font = { bold: true };
+  oz.addRow(["UYGUNSUZLUKLAR (önlem planı)"]).getCell(1).font = { bold: true };
   const uyBas = oz.addRow(["Tarih", "Madde", "Periyot", "Tespit / açıklama", "", "", "İşaretleyen", "Kontrol maddesi"]);
   uyBas.eachCell((c) => { c.fill = HEADER_FILL; c.font = HEADER_FONT; c.alignment = CENTER; c.border = BORDER; });
   oz.mergeCells(uyBas.number, 4, uyBas.number, 6);
@@ -345,8 +347,6 @@ async function generateKontrolExcel(b, sayfalar) {
   }
   if (!uySay) oz.addRow(["Uygunsuzluk işaretlenmedi."]);
   [14, 14, 14, 11, 11, 11, 22, 60].forEach((w, i) => { oz.getColumn(i + 1).width = w; });
-
-  for (const s of sayfalar) kontrolAySayfasi(wb, b, s.ay, s.veri);
   return wb.xlsx.writeBuffer();
 }
 

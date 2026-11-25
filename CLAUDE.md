@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 236 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 237 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -191,6 +191,9 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     `kaizeneDonusturebilir` kapalı; havuza alınca/kapatınca görev temizlenir. Tarih denetimi `admin.js:ileriTarihHatasi`
     (görev termini ile ortak). Liste filtresi `durum=havuz|uygulanamadi`, `C.havuzOzeti` (panel), `acikAtamalar().gozden`,
     öneri Excel'inin son 4 sütunu. Eski DB ile geçiş + geri dönüş denendi. e2e 236/236.
+24. **Kontrol formu Excel'i yalnız seçilen ay** (25 Kasım): `rotalar/kontrol.js` excel rotası tek ay gönderir; dosya adı
+    `5S_Kontrol_Formu_<Bölüm>_<ay>.xlsx`; `generateKontrolExcel` önce form sayfası(ları), sonra ÖZET (üretici hâlâ çok ayı
+    destekler). Düğme "⬇ Excel (seçilen ay)". Veritabanı değişmedi. e2e 237/237.
 
 ## Açık konular
 

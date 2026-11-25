@@ -750,7 +750,7 @@ async function main() {
       html.includes(`name="ay" value="${oncekiAy}"`));
     html = await getText(`${kUrl}?tarih=2099-01-01`);
     ok("ileri tarih bugüne çekildi", html.includes(`value="${trBugun}"`));
-    // Geçmiş aylara kayıt (Excel: seçilen aya kadar tüm aylar)
+    // Geçmiş aylara kayıt (Excel: yalnız seçilen ay iner)
     const ikiAyOnce = K.ayKaydir(kAy, -2);
     await db.query(`INSERT INTO kontrol_kayitlari(bolum_id, ay, gun, madde, durum, aciklama, isaretleyen, zaman)
       VALUES(?, ?, 5, 'g1', 'uygunsuz', 'Eski ay tespiti', 'Ali Test', ''), (?, ?, 7, 'g3', 'uygun', '', 'Ali Test', '')`,
@@ -770,17 +770,21 @@ async function main() {
     ok("form kodu (T-FR016) dosya adında, sayfada ve Excel'de yok",
       !/FR016/.test(decodeURIComponent(ex.rr.headers.get("content-disposition") || "")) &&
       !/FR016/.test(await getText(kUrl)) && !exMetin.some((t) => /FR016|REV/.test(t)));
-    ok("Excel: seçilen aya kadar her ay ayrı sayfa + özet",
-      ex.adlar.join("|") === ["ÖZET", ayAd(ikiAyOnce), ayAd(oncekiAy), ayAd(kAy)].join("|"), ex.adlar.join("|"));
-    const ozetMetin = [];
-    ex.wb.getWorksheet("ÖZET").eachRow((row) => ozetMetin.push(row.values.join(" ")));
-    ok("Excel özetinde tüm ayların uygunsuzlukları", ozetMetin.some((t) => t.includes("Eski ay tespiti")) &&
-      ozetMetin.some((t) => t.includes("Acil stop")));
-    ex = await excelOku(oncekiAy);
-    ok("Excel: önceki ay seçilince sonraki aylar inmiyor",
-      ex.adlar.join("|") === ["ÖZET", ayAd(ikiAyOnce), ayAd(oncekiAy)].join("|"), ex.adlar.join("|"));
+    ok("Excel: yalnız seçilen ayın formu (önce) + özet; önceki aylar yok",
+      ex.adlar.join("|") === [ayAd(kAy), "ÖZET"].join("|"), ex.adlar.join("|"));
+    ok("Excel dosya adında yalnız seçilen ay",
+      decodeURIComponent(ex.rr.headers.get("content-disposition") || "").includes(`_${kAy}.xlsx`));
+    const ozetMetni = (wb) => { const m = []; wb.getWorksheet("ÖZET").eachRow((row) => m.push(row.values.join(" "))); return m; };
+    let ozetMetin = ozetMetni(ex.wb);
+    ok("Excel özetinde yalnız seçilen ayın uygunsuzlukları", ozetMetin.some((t) => t.includes("Acil stop")) &&
+      !ozetMetin.some((t) => t.includes("Eski ay tespiti")));
+    ex = await excelOku(ikiAyOnce);
+    ozetMetin = ozetMetni(ex.wb);
+    ok("Excel: geçmiş ay seçilince yalnız o ay iner",
+      ex.adlar.join("|") === [ayAd(ikiAyOnce), "ÖZET"].join("|") && ozetMetin.some((t) => t.includes("Eski ay tespiti"))
+      && !ozetMetin.some((t) => t.includes("Acil stop")), ex.adlar.join("|"));
     html = await getText(kUrl);
-    ok("Excel ay seçiminde kayıtlı aylar", html.includes(`<option value="${ikiAyOnce}"`) && html.includes("bu aya kadar"));
+    ok("Excel ay seçiminde kayıtlı aylar", html.includes(`<option value="${ikiAyOnce}"`) && html.includes("Excel (seçilen ay)"));
     html = await getText("/5s");
     ok("bölümler listesinde bu ay kontrol sütunu", html.includes("Bu Ay Kontrol") && html.includes("1/" + kGun + " gün"));
 

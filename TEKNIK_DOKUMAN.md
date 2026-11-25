@@ -93,14 +93,14 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | `src/db.js` | mysql2 bağlantı havuzu, `CREATE TABLE IF NOT EXISTS` şeması + `EK_KOLONLAR` (sonradan eklenen kolonların tek listesi; `init()` ve `scripts/gecis-kontrol.js` ortak kullanır), `sorgu/tek/calistir/transaction` yardımcıları, JSON kolon yardımcıları (`j`/`js`), satır dönüştürücüler (`oneriRow`, `denetimRow`…), `configGet/Set`, `yedekle()` (tüm tablolar + görseller → ZIP) + `baslatYedekleme()` |
 | `src/cekirdek.js` | Cephe: `src/servis/*` modüllerini tek nesnede toplar (yukarıdaki tablo) |
 | `src/web.js` | `flash` (+ işlem günlüğü), `hizLimitAsildi`, `alan` (kırp + 5000 sınır), `adSoyadOku`/`kisiOku` (ad + soyad kutuları, eski tek kutu da kabul), `guvenliYol` (site içi dönüş adresi), `ortakLocals` (yetki çözümü, `req.denetmen`, görev rozeti, şablon değişkenleri, flash, CSRF), `csrfDogrula` (sabit zamanlı karşılaştırma), `dosyaYukleyici`, `guvenlikBasliklari`, `xlsxGonder`, `zipGonder`, yetki middleware'leri: `girisRequired`, `adminRequired`, `yetkiGerek(alan)`, `anaYoneticiRequired`, `denetciRequired` |
-| `src/excel.js` | 9 rapor üreticisi: öneri, kaizen (görsel gömülü), 5S toplu, 5S tek form, aksiyonlar, puan listesi, ödül alanlar, 5S trend (renkli fark), periyodik kontrol formu (seçilen aya kadar her ay bir sayfa + ÖZET) — hepsi buffer döner |
+| `src/excel.js` | 9 rapor üreticisi: öneri, kaizen (görsel gömülü), 5S toplu, 5S tek form, aksiyonlar, puan listesi, ödül alanlar, 5S trend (renkli fark), periyodik kontrol formu (seçilen ayın form sayfası + ÖZET) — hepsi buffer döner |
 | `src/rotalar/genel.js` | Anasayfa, kılavuz, **panel**, liste (giriş + sayfalama), detay, **arşiv** (reddedilen + silinen, silinen detayı), **görevlerim**, puan durumu, ödül ver/sil, kişi gizle, **isim birleştirme**, Excel'ler |
 | `src/rotalar/oneri.js` | Öneri yeni (herkese açık) / düzenle (kayıt yetkisi veya düzeltmesi atanan denetmen) / Excel |
 | `src/rotalar/kaizen.js` | Kaizen yeni / **öneriden dönüştür** / düzenle / Excel / görsel servisi (girişli) |
 | `src/rotalar/bes_s.js` | 5S: bölümler (liste + trend), plan, denetim (yap/göster/**revize**/sil/Excel/ZIP), aksiyonlar, ödül işleme, geçmiş, görsel servisleri |
 | `src/rotalar/ayarlar.js` | **Puan ve Ödül Ayarları** (yalnız ana yönetici): görüntüle, önizle (`islem=onizle`), kaydet, kural sürümü kaldır |
 | `src/rotalar/bolumler.js` | **Yönetim › Bölümler ve Görevler** (`/yonetici/bolumler`, yetki `bes_plan`): bölüm toplu ekleme, tek "Kaydet" ile ad + 5S'e dahil, silme (geçmişli bölümde denetim sayısı uyarısı); bölüm sayfası `/yonetici/bolumler/:bid` (ekip lideri, personel toplu ekleme/çıkarma); görev tanımları `/yonetici/gorevler/ekle\|kaydet\|sil` |
-| `src/rotalar/kontrol.js` | **Periyodik kontrol formu**: görüntüle (`?tarih=`), doldur, haftalık/aylık imza, Excel (`?ay=` — o aya kadar) |
+| `src/rotalar/kontrol.js` | **Periyodik kontrol formu**: görüntüle (`?tarih=`), doldur, haftalık/aylık imza, Excel (`?ay=` — yalnız o ay) |
 | `src/rotalar/admin.js` | Giriş/çıkış, **Yönetim** sayfası, ek yönetici (yalnız ana yönetici) ve denetmen/misafir yönetimi, şifre, durum değişikliği (onay / gerekçeli red / düzeltme ataması), **görev ataması**, puanlama, kayıt silme, trend Excel |
 | `scripts/import-json.js` | Eski JSON tabanlı sürümden veri + görsel aktarımı (kaynağa salt-okunur, tek transaction, hata durumunda tam geri alma) |
 | `scripts/sqlite-to-mysql.js` | Önceki SQLite sürümünden (`data/yalin.db`) tüm tabloları MySQL'e taşır (`npm run migrate`) |
@@ -420,5 +420,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 236 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 237 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

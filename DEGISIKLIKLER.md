@@ -1,5 +1,14 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — Kontrol formu Excel'i yalnız seçilen ay
+
+- 5S ve Güvenlik Kontrol Formu sayfasındaki **⬇ Excel (seçilen ay)** artık **yalnız seçilen ayı** indirir (önceden o aya
+  kadar doldurulmuş tüm aylar iniyordu).
+- Dosyada önce o ayın kâğıt düzenindeki form sayfası (uygunsuzluklar altında), sonra **ÖZET** sayfası (kontrol yapılan
+  gün, tam gün, uygun / uygun değil, uygunluk %, imzalı hafta, aylık imza, uygunsuzluk listesi).
+- Dosya adı: `5S_Kontrol_Formu_<Bölüm>_<YYYY-AA>.xlsx`. Ay listesi aynı (kaydı olan aylar + bu ay).
+- Veritabanı: değişiklik yok. e2e testi: **237/237**.
+
 ## 25 Kasım 2026 — Onaylı öneri havuzu (Onaylı – Beklemede / Uygulanamadı)
 
 - Onaylanmış ama şu an uygulanamayan öneri, detay sayfasından **⏸ Onaylı – Beklemede** havuzuna alınır.

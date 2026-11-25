@@ -1,5 +1,5 @@
 // 5S periyodik kontrol formu rotaları: görüntüleme (herkese açık), günlük doldurma (bölümün ekip lideri
-// veya "denetim yapma" yetkili yönetici), haftalık/aylık kontrol imzası ve seçilen aya kadar Excel.
+// veya "denetim yapma" yetkili yönetici), haftalık/aylık kontrol imzası ve seçilen ayın Excel'i.
 // İş kuralları: src/servis/kontrolFormu.js · form tanımı + takvim: src/kontrol.js
 const S = require("../sabitler");
 const C = require("../cekirdek");
@@ -114,17 +114,13 @@ module.exports = function register(app) {
     res.redirect(geri);
   }));
 
-  // Excel: seçilen aya KADAR kaydı olan tüm aylar (her ay ayrı sayfa, kâğıt düzeninde) + özet sayfası.
-  // Seçilen ayın kendisi kayıt olmasa da eklenir (boş form yazdırılabilsin).
+  // Excel: YALNIZ seçilen ay — kâğıt düzenindeki form sayfası + özet sayfası.
+  // Ayda kayıt olmasa da form çıkar (boş form yazdırılabilsin).
   app.get("/5s/bolum/:bid/kontrol/excel", girisRequired, sar(async (req, res) => {
     const b = await C.bolumById(req.params.bid);
     if (!b) return res.status(404).send("Bölüm bulunamadı.");
     const ay = kontrolAyiOku(req);
-    const aylar = [...(await C.kontrolAylari(b.id)).filter((a) => a < ay), ay];
-    const sayfalar = [];
-    for (const a of aylar) sayfalar.push({ ay: a, veri: await C.kontrolAy(b.id, a) });
-    const buf = await X.generateKontrolExcel(b, sayfalar);
-    const donem = aylar.length > 1 ? `${aylar[0]}_${ay}` : ay;
-    xlsxGonder(res, buf, `5S_Kontrol_Formu_${b.ad}_${donem}.xlsx`.replace(/\s+/g, "_"));
+    const buf = await X.generateKontrolExcel(b, [{ ay, veri: await C.kontrolAy(b.id, ay) }]);
+    xlsxGonder(res, buf, `5S_Kontrol_Formu_${b.ad}_${ay}.xlsx`.replace(/\s+/g, "_"));
   }));
 };

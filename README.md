@@ -105,8 +105,8 @@ saklar; ad değişikliği eski kayıtları değiştirmez, düzenlemede listeden 
   lideri günü **Türkçe takvimden** seçip *Uygun / Uygun Değil* işaretler; uygun değilde açıklama zorunlu
   (uygunsuzluklar formun altında ve Excel'de listelenir, formdan aksiyon açılmaz). Aylık tablo kâğıt formdaki gibi
   gün gün görünür. Haftalık **grup lideri** ve aylık **bölüm sorumlusu** kontrol imzası (bölümün lideri dışındaki
-  denetmen veya yetkili yönetici). **Excel:** ay seçilir, o aya kadar doldurulmuş tüm aylar iner (her ay ayrı
-  sayfa + tüm ayların özeti ve uygunsuzluk listesi).
+  denetmen veya yetkili yönetici). **Excel:** ay seçilir, yalnız o ayın formu iner (kâğıt düzeninde form sayfası +
+  özet sayfası: kontrol günü, uygunluk %, imzalar, uygunsuzluk listesi).
 
 ---
 

@@ -100,7 +100,8 @@ veritabanı [VERITABANI_GECIS.md](VERITABANI_GECIS.md) · güvenlik/mimari değe
 - **İmza:** haftalık (grup lideri) ve aylık (bölüm sorumlusu) "Kontrol Ettim" — denetim yetkili yönetici veya
   bölümün kendi lideri olmayan denetmen.
 - **Aylık tablo** kâğıt formdaki gibi gün gün ✓/✗, uygunsuzluk listesi, form notu.
-- **Excel:** ay seçilir; o aya kadar kaydı olan bütün aylar tek dosyada — başta ÖZET (ay başına kontrol günü, tam
+- **Excel** (25 Kasım 2026'dan beri yalnız seçilen ay iner: önce o ayın form sayfası, sonra ÖZET — aşağıdaki ilk düzen):
+  ay seçilir; o aya kadar kaydı olan bütün aylar tek dosyada — başta ÖZET (ay başına kontrol günü, tam
   gün, uygun/uygun değil, uygunluk %, imzalı hafta, aylık imza + tüm ayların uygunsuzluk listesi), sonra her ay kâğıt
   düzeninde ayrı sayfa. Dosya adı `5S_Kontrol_Formu_<Bölüm>_<ilk ay>_<son ay>.xlsx`.
 - Form kodu/revizyon numarası gösterilmez; formdan aksiyon açılmaz.
