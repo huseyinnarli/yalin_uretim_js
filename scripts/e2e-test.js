@@ -226,6 +226,14 @@ async function main() {
 
     html = await getText("/5s/aksiyonlar");
     ok("aksiyon oluştu", html.includes("Gereksiz malzemeleri kaldır"));
+    ok("açık aksiyon grubunun başlığında bölüm adı (açmadan görünür), en yeni grup açık",
+      /<summary class="tur-summary">[\s\S]*?class="bolum-cip acik">[^<]+<b>\d+<\/b><\/span>[\s\S]*?<\/summary>/.test(html)
+      && /<details class="tur-blok aksiyon-tur" open>/.test(html));
+    {
+      const acikBolum = html.split("Kapalı Aksiyonlar")[0];
+      const gruplar = (acikBolum.match(/<span class="tur-ad">([^<]+)<\/span>/g) || []);
+      ok("aynı turun aksiyonları tek grupta (aynı adlı grup tekrar etmez)", gruplar.length > 0 && new Set(gruplar).size === gruplar.length);
+    }
 
     // --- Ödülleri işle ---
     await post("/5s/odul-isle", { csrf_token: csrf, tarih: bugun });

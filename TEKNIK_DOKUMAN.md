@@ -423,5 +423,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 257 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 259 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

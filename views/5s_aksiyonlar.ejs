@@ -17,13 +17,15 @@
     <span class="rozet-acik"><%= toplam_acik %></span></h2>
 <% if (acik_gruplar.length) { %>
 <div class="aksiyon-gruplar">
-    <% for (const g of acik_gruplar) { %>
-    <details class="tur-blok aksiyon-tur">
+    <% acik_gruplar.forEach(function (g, gi) { %>
+    <%# En yeni turun açık aksiyonları açık gelir; başlıkta bölüm adları (açmadan hangi bölümde ne kadar açık var görünsün) %>
+    <details class="tur-blok aksiyon-tur"<%= gi === 0 ? ' open' : '' %>>
         <summary class="tur-summary">
             <span class="tur-ok">▸</span>
             <span class="ag-durum acik-var"></span>
             <span class="tur-ad"><%= g.tur_adi %></span>
             <span class="tur-bolum-sayisi"><%= g.bolumler.length %> bölüm · <%= g.toplam %> aksiyon</span>
+            <span class="tur-bolum-cipler"><% for (const bl of g.bolumler) { %><span class="bolum-cip acik"><%= bl.ad %> <b><%= bl.aksiyonlar.length %></b></span><% } %></span>
         </summary>
         <div class="aksiyon-grup-icerik">
             <% for (const bl of g.bolumler) { %>
@@ -34,7 +36,7 @@
             <% } %>
         </div>
     </details>
-    <% } %>
+    <% }); %>
 </div>
 <% } else { %>
 <p class="bos-not">🎉 Açık aksiyon yok — tüm aksiyonlar kapatılmış.</p>
@@ -51,6 +53,7 @@
             <span class="ag-durum temiz"></span>
             <span class="tur-ad"><%= g.tur_adi %></span>
             <span class="tur-bolum-sayisi"><%= g.bolumler.length %> bölüm · <%= g.toplam %> aksiyon</span>
+            <span class="tur-bolum-cipler"><% for (const bl of g.bolumler) { %><span class="bolum-cip"><%= bl.ad %> <b><%= bl.aksiyonlar.length %></b></span><% } %></span>
         </summary>
         <div class="aksiyon-grup-icerik">
             <% for (const bl of g.bolumler) { %>

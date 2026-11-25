@@ -1,5 +1,14 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — 5S Aksiyonlar: bölüm adları başlıkta, tur başına tek grup
+
+- **Düzeltme:** aynı denetim turunun aksiyonları, denetimler farklı günlerde yapıldığı için ayrı ayrı gruplara bölünüyordu
+  (ör. tek bölümlük birçok "Kasım 2026 Denetimi" grubu). Artık **tur adına göre tek grup**; sıralama turun en son denetim
+  gününe göre.
+- Grup başlığında **bölüm adları ve aksiyon sayıları** görünür (açık aksiyonlarda kırmızı, kapalılarda gri etiket) —
+  hangi bölümde ne kadar aksiyon olduğunu görmek için grubu açmak gerekmez. En yeni turun açık aksiyonları açık gelir.
+- Veritabanı değişikliği yok. e2e testi: **259/259**.
+
 ## 25 Kasım 2026 (devam) — Öneri Havuzu sayfası, sade rozetler
 
 - **🗃 Öneri Havuzu** (`/havuz`, girişli herkes): beklemedeki ve uygulanamadı olarak kapatılan öneriler artık **ana listede

@@ -39,11 +39,11 @@ async function aksiyonGruplari(durum, session) {
     a._atanan = await aksiyonAtanan(a, bolumlar);
     a._kapatabilir = await aksiyonKapatabilir(a, session, bolumlar, yetki);
     const turAdi = a.tur_adi || turAdiUret(a.tarih || "");
-    const anahtar = `${a.tarih || ""}|${turAdi}`;
-    if (!turlar.has(anahtar)) {
-      turlar.set(anahtar, { tarih: a.tarih || "", tur_adi: turAdi, bolumler: new Map(), toplam: 0 });
-    }
-    const t = turlar.get(anahtar);
+    // Gruplama TUR ADIYLA: aksiyonun tarihi denetimin yapıldığı gündür ve aynı turda bölümden bölüme değişir —
+    // tarihle gruplanınca aynı adlı (ör. "Kasım 2026 Denetimi") birçok tek bölümlük grup oluşuyordu.
+    if (!turlar.has(turAdi)) turlar.set(turAdi, { tarih: "", tur_adi: turAdi, bolumler: new Map(), toplam: 0 });
+    const t = turlar.get(turAdi);
+    if ((a.tarih || "") > t.tarih) t.tarih = a.tarih || ""; // sıralama: turun en son denetim günü
     const ad = a.bolum_ad || "?";
     if (!t.bolumler.has(ad)) t.bolumler.set(ad, []);
     t.bolumler.get(ad).push(a);

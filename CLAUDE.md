@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 257 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 259 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -205,6 +205,8 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     `filtrele` havuzdakileri (`uygulama_durumu` dolu) ana listeden çıkarır; `?durum=havuz|uygulanamadi` → `/havuz#…` yönlendirme.
     Emoji yerine SVG ikonlar: `web.js:IKONLAR` → `res.locals.ikon` (`bekle`, `kapali`, `devam`, `takvim`; şablonda `<%- ikon.bekle %>`).
     e2e 257/257.
+28. **5S Aksiyonlar grupları** (25 Kasım): `aksiyon.aksiyonGruplari` artık yalnız `tur_adi` ile gruplar (aksiyon `tarih`'i denetimin
+    yapıldığı gün — tarihle gruplayınca aynı turu bölüyordu); başlıkta bölüm çipleri (`.bolum-cip`), en yeni açık grup `open`. e2e 259/259.
 
 ## Açık konular
 

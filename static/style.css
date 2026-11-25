@@ -223,7 +223,14 @@ tr.benim-satirim td { background: var(--primary-tint) !important; }
 .aksiyon-bolum-baslik { display: flex; align-items: center; gap: 10px; margin-top: 26px; }
 .aksiyon-bolum-baslik.acik { color: var(--before); }
 .aksiyon-bolum-baslik.kapali { color: var(--after); }
-.aksiyon-tur .tur-summary { gap: 10px; }
+.aksiyon-tur .tur-summary { gap: 8px 10px; flex-wrap: wrap; }
+/* Aksiyon grubu başlığında bölüm adları: açmadan hangi bölümde kaç aksiyon olduğu görünür */
+.tur-bolum-cipler { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 6px; padding-left: 46px; }
+.bolum-cip { font-size: .8rem; font-weight: 500; color: #44505c; background: #f1f3f6; border: 1px solid var(--line);
+    padding: 2px 9px; border-radius: 20px; white-space: nowrap; }
+.bolum-cip b { font-weight: 700; margin-left: 2px; }
+.bolum-cip.acik { background: #fdf0ef; border-color: #f3cdc9; color: #8f2d26; }
+@media (max-width: 640px) { .tur-bolum-cipler { padding-left: 0; } }
 .aksiyon-tur .aksiyon-grup-icerik { padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); }
 
 /* Denetmen yönetimi (dashboard) */
