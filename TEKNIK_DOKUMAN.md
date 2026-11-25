@@ -246,9 +246,10 @@ aynı tur iki kez işlenemez. İlk 3 bölümün lider+üye tam listesi o günkü
   öneriden), `yeniden_ac`. Durum `oneriler.uygulama_durumu`'nda: NULL (normal) · `beklemede` · `uygulanamadi`; kayıt
   **"Onaylandı" kalır**, puan ve `odul`/puan listesi etkilenmez. `uygulama_durumu` doluyken `/gorev`, onay kartından görev
   ve `kaizeneDonusturebilir` reddedilir; havuza alma/kapatma atanmış görevi (`gorev_*`) temizler. Bekleme/kapanış
-  metinleri havuzdan çıkınca silinmez (yalnız `uygulama_durumu` NULL olur). Liste filtresi `durum=havuz|uygulanamadi`
-  (havuz gözden geçirme tarihine göre sıralı), panel özeti `kayitlar.havuzOzeti(bugun)`, takip listesi
-  `gorevler.acikAtamalar().gozden` (tarihi gelenler).
+  metinleri havuzdan çıkınca silinmez (yalnız `uygulama_durumu` NULL olur). Havuzdakiler ana listede görünmez
+  (`filtrele`); ayrı sayfa `GET /havuz` (`kayitlar.havuzKayitlari()`: beklemede gözden geçirme tarihine göre, uygulanamadı
+  son kapatılana göre); eski `?durum=havuz|uygulanamadi` adresleri oraya yönlenir. Panel özeti `kayitlar.havuzOzeti(bugun)`,
+  takip listesi `gorevler.acikAtamalar().gozden` (tarihi gelenler).
 - Liste: `filtrele` reddedilenleri çıkarır; tür / durum / dönem / arama / **bölüm** (`?bolum=` — `L.anahtar` ile harf
   farkı önemsiz; `-` = bölümü boş kayıtlar; seçenekler `listeBolumleri`: ortak liste + kayıtlarda geçen adlar);
   `sayfala` 20'li (`S.SAYFA_BOYUTU`). Puanlama `geri` adresini taşır,
@@ -422,5 +423,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 254 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 257 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

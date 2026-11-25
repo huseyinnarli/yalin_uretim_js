@@ -560,7 +560,7 @@ async function main() {
       no: havNo, p_form: "5", p_komite: "5", p_etki_0_0: "10" });
     const havPuan = (await havuzOku(havNo)).puan;
     html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(havNo)}`);
-    ok("onaylı öneride havuz ve uygulanamadı kartları", html.includes('action="/oneri/havuz"') && html.includes("Havuza Al")
+    ok("onaylı öneride havuz ve uygulanamadı kartları", html.includes('action="/oneri/havuz"') && html.includes("Beklemeye Al")
       && html.includes("Uygulanamadı Olarak Kapat") && html.includes(KAT));
     await havuz(havNo, { islem: "beklemeye_al", bekleme_kategori: "Uydurma tür", bekleme_nedeni: "x", bekleme_gozden: gozdenTarih });
     ok("listede olmayan bekleme türü reddedildi", !(await havuzOku(havNo)).uygulama_durumu);
@@ -580,7 +580,7 @@ async function main() {
     ok("havuza alınca durum Onaylandı ve puan aynı kaldı, görev kaldırıldı", hv.durum === "Onaylandı" && hv.puan === havPuan
       && hv.puan > 0 && !hv.gorev_atanan_id);
     html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(havNo)}`);
-    ok("detayda beklemede rozeti ve bilgisi; kaizene dönüştür yok", html.includes("⏸ Beklemede") && html.includes("2027 yatırım")
+    ok("detayda beklemede rozeti ve bilgisi; kaizene dönüştür yok", html.includes('class="durum-badge havuz"') && html.includes("2027 yatırım")
       && html.includes("Havuzdan Çıkar") && !html.includes("Kaizene Dönüştür") && !html.includes('action="/gorev"'));
     await post("/gorev", { csrf_token: csrf, no: havNo, gorev_denetmen: dz.id, gorev_termin: ileriTermin, gorev_notu: "Uygula" });
     ok("havuzdaki öneriye görev atanamaz", !(await havuzOku(havNo)).gorev_atanan_id);
@@ -592,10 +592,17 @@ async function main() {
     ok("değişmeyen eski gözden geçirme tarihiyle güncellenebilir", (await havuzOku(havNo)).bekleme_nedeni === "Bütçe Ocak'ta");
     await havuz(havNo, { islem: "beklemeye_al", bekleme_kategori: KAT, bekleme_nedeni: "Yeni", bekleme_gozden: gunEkle(-5) });
     ok("güncellerken yeni geçmiş tarih olmaz", (await havuzOku(havNo)).bekleme_nedeni === "Bütçe Ocak'ta");
-    html = await getText("/liste?tip=oneri&durum=havuz");
-    ok("liste havuz filtresi yalnız havuzdakini gösterir", html.includes(havNo) && !html.includes(kapNo) && html.includes("gozden-geldi"));
+    html = await getText("/havuz");
+    ok("Öneri Havuzu sayfası: beklemede bölümünde öneri ve gözden geçirme uyarısı", html.includes(havNo) && !html.includes(kapNo)
+      && html.includes("gozden-geldi") && html.includes("Bütçe / yatırım gerekiyor") && html.includes('id="uygulanamadi"'));
+    html = await getText("/liste?q=" + encodeURIComponent("Toplu 5"));
+    ok("havuzdaki öneri ana listede görünmez; listede Öneri Havuzu düğmesi", !html.includes(havNo)
+      && html.includes('href="/havuz"') && html.includes("Öneri Havuzu'ndakiler hariç"));
+    r = await get("/liste?tip=oneri&durum=havuz");
+    ok("eski havuz filtresi adresi Öneri Havuzu'na yönlenir", r.status === 302 && konum(r) === "/havuz#beklemede");
     html = await getText("/panel");
-    ok("panelde havuz özeti (gözden geçirme tarihi gelen)", html.includes("Beklemede havuzu") && html.includes("gözden geçirme tarihi geldi"));
+    ok("panelde havuz özeti (gözden geçirme tarihi gelen)", html.includes("Öneri Havuzu") && html.includes('href="/havuz#beklemede"')
+      && html.includes("gözden geçirme tarihi geldi"));
     html = await getText("/gorevlerim");
     ok("takip listesinde gözden geçirme tarihi gelen öneri", html.includes("Gözden geçirme tarihi gelen") && html.includes(havNo));
     await havuz(havNo, { islem: "havuzdan_cikar" });
@@ -614,10 +621,14 @@ async function main() {
     await havuz(kapNo, { islem: "beklemeye_al", bekleme_kategori: KAT, bekleme_nedeni: "x", bekleme_gozden: gozdenTarih });
     ok("kapatılmış öneri doğrudan havuza alınamaz", (await havuzOku(kapNo)).uygulama_durumu === "uygulanamadi");
     html = await getText(`/detay?tip=oneri&no=${encodeURIComponent(kapNo)}`);
-    ok("detayda uygulanamadı rozeti, gerekçe ve yeniden aç", html.includes("⛔ Uygulanamadı") && html.includes("Tedarikçi parçayı")
-      && html.includes("Yeniden Aç") && !html.includes("Havuza Al"));
-    html = await getText("/liste?tip=oneri&durum=uygulanamadi");
-    ok("liste uygulanamadı filtresi", html.includes(kapNo) && !html.includes(havNo));
+    ok("detayda uygulanamadı rozeti, gerekçe ve yeniden aç", html.includes('class="durum-badge kapali"') && html.includes("Tedarikçi parçayı")
+      && html.includes("Yeniden Aç") && !html.includes("Beklemeye Al"));
+    html = await getText("/havuz");
+    const uyBolum = html.split('id="uygulanamadi"')[1] || "";
+    ok("Öneri Havuzu: uygulanamadı bölümünde gerekçesiyle; havuzdan çıkan öneri yok", uyBolum.includes(kapNo)
+      && uyBolum.includes("Tedarikçi parçayı") && !html.includes(havNo));
+    html = await getText("/liste?q=" + encodeURIComponent("Toplu 6"));
+    ok("uygulanamadı öneri ana listede görünmez", !html.includes(kapNo));
     r = await get("/oneri/excel");
     const ExcelJSh = require("exceljs");
     const wbH = new ExcelJSh.Workbook();

@@ -56,8 +56,10 @@
         <% } else if (d == 'Reddedildi') { %><span class="durum-badge red"><%= d %></span>
         <% } else if (d == 'Düzeltme İsteniyor') { %><span class="durum-badge revize"><%= d %></span>
         <% } else { %><span class="durum-badge bekle"><%= d %></span><% } %>
-        <% if (ud == 'beklemede') { %><span class="durum-badge havuz" title="Onaylı – uygulanamıyor, gözden geçirilecek">⏸ Beklemede</span>
-        <% } else if (ud == 'uygulanamadi') { %><span class="durum-badge kapali" title="Onaylı – uygulanamadı olarak kapatıldı">⛔ Uygulanamadı</span><% } %>
+        <% if (ud == 'beklemede') { %><a class="durum-badge havuz" href="/havuz#beklemede" title="Onaylı – şu an uygulanamıyor; Öneri Havuzu'nda">
+            <%- ikon.bekle %> Beklemede</a>
+        <% } else if (ud == 'uygulanamadi') { %><a class="durum-badge kapali" href="/havuz#uygulanamadi" title="Onaylı – uygulanamadı olarak kapatıldı; Öneri Havuzu'nda">
+            <%- ikon.kapali %> Uygulanamadı</a><% } %>
         <% if (sabitOneri) { %>
             <span class="puan-badge" title="Bu öneri puanlama tablosuyla değil, sabit puanla değerlendirilir">Sabit puan: <%= puanfmt(kural.oneri_sabit) %></span>
         <% } else if (r.puan !== null && r.puan !== '' && r.puan !== undefined) { %>
@@ -184,14 +186,14 @@
     <% } %>
 
     <% if (ud == 'beklemede') { %>
-    <div class="detail-block havuz-blok"><h3>⏸ Onaylı – Beklemede</h3>
+    <div class="detail-block havuz-blok"><h3><%- ikon.bekle %> Öneri Havuzu — Beklemede</h3>
         <p><strong><%= r.bekleme_kategori || '—' %></strong></p>
         <% if (r.bekleme_nedeni) { %><p><%= r.bekleme_nedeni %></p><% } %>
-        <p class="<%= gozdenGeldi ? 'gozden-geldi' : '' %>">📅 Gözden geçirme: <strong><%= r.bekleme_gozden ? trdate(r.bekleme_gozden) : '—' %></strong><%= gozdenGeldi ? ' — tarihi geldi, yeniden değerlendirin' : '' %></p>
+        <p class="<%= gozdenGeldi ? 'gozden-geldi' : '' %>"><%- ikon.takvim %> Gözden geçirme: <strong><%= r.bekleme_gozden ? trdate(r.bekleme_gozden) : '—' %></strong><%= gozdenGeldi ? ' — tarihi geldi, yeniden değerlendirin' : '' %></p>
         <small class="bos-not">İşleyen: <%= r.uygulama_isleyen || '—' %> · <%= r.uygulama_zamani || '' %> · onay puanı korunur</small>
     </div>
     <% } else if (ud == 'uygulanamadi') { %>
-    <div class="detail-block havuz-blok kapali"><h3>⛔ Uygulanamadı</h3>
+    <div class="detail-block havuz-blok kapali"><h3><%- ikon.kapali %> Öneri Havuzu — Uygulanamadı</h3>
         <p><%= r.uygulanamadi_nedeni || '—' %></p>
         <small class="bos-not">Kapatan: <%= r.uygulama_isleyen || '—' %> · <%= r.uygulama_zamani || '' %> · onay puanı korunur</small>
     </div>
@@ -283,7 +285,7 @@
     <form method="post" action="/oneri/havuz" class="panel degerlendir-kart havuz-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
         <input type="hidden" name="no" value="<%= r.no %>"><input type="hidden" name="don" value="<%= bu_sayfa %>">
         <input type="hidden" name="islem" value="beklemeye_al">
-        <h3>⏸ <%= ud == 'beklemede' ? 'Bekleme Bilgisini Güncelle' : 'Onaylı – Beklemede Havuzuna Al' %></h3>
+        <h3><%- ikon.bekle %> <%= ud == 'beklemede' ? 'Bekleme Bilgisini Güncelle' : 'Beklemeye Al (Öneri Havuzu)' %></h3>
         <p class="bos-not">Şu an uygulanamayan öneri için. Onay puanı korunur<%= r.gorev_atanan_ad ? '; ' + r.gorev_atanan_ad + ' kişisinin uygulama görevi kaldırılır' : '' %>.</p>
         <select name="bekleme_kategori" required>
             <option value="">— neden bekliyor? —</option>
@@ -295,7 +297,7 @@
         <input type="date" name="bekleme_gozden" value="<%= gEski %>" required
                min="<%= gEski && gEski < bugun_iso ? gEski : bugun_iso %>"
                title="Gözden geçirme tarihi — zorunlu" placeholder="Gözden geçirme tarihi — zorunlu">
-        <button type="submit" class="btn primary">⏸ <%= ud == 'beklemede' ? 'Güncelle' : 'Havuza Al' %></button>
+        <button type="submit" class="btn primary"><%= ud == 'beklemede' ? 'Güncelle' : 'Beklemeye Al' %></button>
     </form>
     <% } %>
 
@@ -303,9 +305,9 @@
     <form method="post" action="/oneri/havuz" class="panel degerlendir-kart onay-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
         <input type="hidden" name="no" value="<%= r.no %>"><input type="hidden" name="don" value="<%= bu_sayfa %>">
         <input type="hidden" name="islem" value="havuzdan_cikar">
-        <h3>▶ Havuzdan Çıkar</h3>
+        <h3><%- ikon.devam %> Havuzdan Çıkar</h3>
         <p class="bos-not">Engel kalktıysa öneri normale döner; uygulama görevi atanabilir ve kaizene dönüştürülebilir.</p>
-        <button type="submit" class="btn-mini onay">▶ Havuzdan Çıkar</button>
+        <button type="submit" class="btn-mini onay">Havuzdan Çıkar</button>
     </form>
     <% } %>
 
@@ -313,10 +315,10 @@
     <form method="post" action="/oneri/havuz" class="panel degerlendir-kart red-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
         <input type="hidden" name="no" value="<%= r.no %>"><input type="hidden" name="don" value="<%= bu_sayfa %>">
         <input type="hidden" name="islem" value="uygulanamadi">
-        <h3>⛔ Uygulanamadı Olarak Kapat</h3>
+        <h3><%- ikon.kapali %> Uygulanamadı Olarak Kapat</h3>
         <p class="bos-not">Öneri onaylı kalır ve puanı korunur, ama uygulanmayacağı kayda geçer.</p>
         <textarea name="uygulanamadi_nedeni" rows="2" required placeholder="Neden uygulanamadı — zorunlu"></textarea>
-        <button type="submit" class="btn-mini reddet">⛔ Kapat</button>
+        <button type="submit" class="btn-mini reddet">Uygulanamadı Olarak Kapat</button>
     </form>
     <% } else { %>
     <form method="post" action="/oneri/havuz" class="panel degerlendir-kart"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">

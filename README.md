@@ -72,10 +72,11 @@ saklar; ad değişikliği eski kayıtları değiştirmez, düzenlemede listeden 
     kaydedince kayıt "Değerlendiriliyor"a döner.
 - **📌 Görev:** onaylanan öneri bir denetmene atanır; **termin ve açıklama zorunludur** (termin bugünden önce olamaz). Atanan kişi **🔧 Kaizene Dönüştür** ile
   kaizeni açar; öneri ↔ kaizen bağlantısı detaylarda görünür.
-- **⏸ Onaylı – Beklemede havuzu:** onaylı ama şu an uygulanamayan öneri; **neden türü + açıklama + gözden geçirme
-  tarihi** zorunlu. Onay puanı korunur; havuzdayken görev atanmaz, kaizene dönüştürülmez. **▶ Havuzdan Çıkar** ile
-  normale döner ya da **⛔ Uygulanamadı** olarak gerekçeyle kapatılır (**↩ Yeniden Aç** ile geri alınır). Listede ayrı
-  durum filtresi (gözden geçirme tarihine göre sıralı); tarihi gelenler Panel'de ve Görevlerim takip listesinde.
+- **🗃 Öneri Havuzu:** onaylı ama şu an uygulanamayan öneri detay sayfasında **Beklemeye Al** ile havuza alınır
+  (**neden türü + açıklama + gözden geçirme tarihi** zorunlu). Onay puanı korunur; havuzdayken görev atanmaz, kaizene
+  dönüştürülmez. **Havuzdan Çıkar** ile normale döner ya da **Uygulanamadı Olarak Kapat** ile gerekçeyle kapatılır
+  (**↩ Yeniden Aç** ile geri alınır). Havuzdakiler ana listede görünmez, **🗃 Öneri Havuzu** sayfasında toplanır (beklemede: gözden geçirme tarihine göre; uygulanamadı: son
+  kapatılan üstte); tarihi gelenler Panel'de ve Görevlerim takip listesinde.
 - **★ Puanla** (Puanlama yetkisi) — 100 üzerinden rubrik: Temel 10 · Etki 40 · Maliyet 20 · Yaygınlaştırma 15 ·
   Efor 15. Kaydedince kaydın detayına dönülür; "← Listeye Dön" kaldığın sayfaya/filtreye götürür.
 - **🗂 Reddedilen & Silinen:** reddedilenler (gerekçesiyle) ve silinenler burada; denetmenler yalnızca görüntüler,

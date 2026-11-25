@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 254 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 257 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -189,7 +189,7 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     `bekleme_kategori/nedeni/gozden`, `uygulanamadi_nedeni`, `uygulama_isleyen/zamani` (EK_KOLONLAR → 37 kolon); türler
     `S.BEKLEME_KATEGORILERI`. Kayıt "Onaylandı" kalır (puan değişmez); havuzda/kapalıyken `/gorev`, onayla görev ve
     `kaizeneDonusturebilir` kapalı; havuza alınca/kapatınca görev temizlenir. Tarih denetimi `admin.js:ileriTarihHatasi`
-    (görev termini ile ortak). Liste filtresi `durum=havuz|uygulanamadi`, `C.havuzOzeti` (panel), `acikAtamalar().gozden`,
+    (görev termini ile ortak). Havuz listesi (sonradan ayrı sayfa: madde 27), `C.havuzOzeti` (panel), `acikAtamalar().gozden`,
     öneri Excel'inin son 4 sütunu. Eski DB ile geçiş + geri dönüş denendi. e2e 236/236.
 24. **Kontrol formu Excel'i yalnız seçilen ay** (25 Kasım): `rotalar/kontrol.js` excel rotası tek ay gönderir; dosya adı
     `5S_Kontrol_Formu_<Bölüm>_<ay>.xlsx`; `generateKontrolExcel` önce form sayfası(ları), sonra ÖZET (üretici hâlâ çok ayı
@@ -201,6 +201,10 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     `kaizenRow` sayıya çevirir, yoksa null); formda zorunlu (`kaizen.js:maliyetOku`, saf `yardimci.paraOku` — `1.250,50`/`1250.5`
     kabul, eksi yok); `paraFmt`, `maliyetFarki` (önceki − sonraki → kazanç/zarar; `res.locals.parafmt/maliyetFarki`); formda
     canlı fark (satır içi betik), detayda kazanç/zarar, kaizen Excel'inin son 3 sütunu (€ biçimli). e2e 254/254.
+27. **Öneri Havuzu sayfası** (25 Kasım): `GET /havuz` (`genel.js`, girişli) + `views/havuz.ejs`, `kayitlar.havuzKayitlari()`;
+    `filtrele` havuzdakileri (`uygulama_durumu` dolu) ana listeden çıkarır; `?durum=havuz|uygulanamadi` → `/havuz#…` yönlendirme.
+    Emoji yerine SVG ikonlar: `web.js:IKONLAR` → `res.locals.ikon` (`bekle`, `kapali`, `devam`, `takvim`; şablonda `<%- ikon.bekle %>`).
+    e2e 257/257.
 
 ## Açık konular
 

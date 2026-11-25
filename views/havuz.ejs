@@ -1,0 +1,74 @@
+<%- include('partials/header') %>
+<% const geri = encodeURIComponent('/havuz');
+   const gecikenSay = beklemede.filter((r) => r.bekleme_gozden && r.bekleme_gozden <= bugun_iso).length; %>
+
+<div class="list-head">
+    <h1 class="page-title">🗃 Öneri Havuzu</h1>
+    <div class="list-actions">
+        <a class="btn ghost" href="/liste">← Öneri &amp; Kaizen</a>
+        <a class="btn ghost" href="/arsiv">🗂 Reddedilen &amp; Silinen</a>
+    </div>
+</div>
+
+<p class="subtitle">Onaylanmış ama şu an uygulanamayan öneriler ana listede görünmez; burada toplanır. Öneriler onaylı
+    sayılır ve <strong>puanları korunur</strong>. İşlemler (güncelle, havuzdan çıkar, kapat, yeniden aç) önerinin detay sayfasında.</p>
+
+<nav class="havuz-sekme" aria-label="Havuz bölümleri">
+    <a href="#beklemede"><span class="durum-badge havuz"><%- ikon.bekle %> Beklemede</span> <strong><%= beklemede.length %></strong></a>
+    <a href="#uygulanamadi"><span class="durum-badge kapali"><%- ikon.kapali %> Uygulanamadı</span> <strong><%= uygulanamadi.length %></strong></a>
+    <% if (gecikenSay) { %><span class="gozden-geldi"><%- ikon.takvim %> <%= gecikenSay %> önerinin gözden geçirme tarihi geldi</span><% } %>
+</nav>
+
+<h2 class="bolum-baslik" id="beklemede">Beklemede <span class="sayi-rozet"><%= beklemede.length %></span></h2>
+<p class="blok-not">Engel kalkınca yeniden değerlendirilecek öneriler — gözden geçirme tarihi en yakın olan en üstte.</p>
+<% if (beklemede.length) { %>
+<div class="table-wrap">
+<table class="data-table havuz-tablo">
+    <thead><tr><th>No</th><th>Konu</th><th>Öneri Sahibi</th><th>Bölüm</th><th>Neden Bekliyor</th><th>Gözden Geçirme</th><th>Puan</th></tr></thead>
+    <tbody>
+        <% for (const r of beklemede) { const geldi = r.bekleme_gozden && r.bekleme_gozden <= bugun_iso; %>
+        <tr>
+            <td class="mono nowrap" data-label="No"><%= r.no %></td>
+            <td data-label="Konu"><a class="title-link" href="/detay?tip=oneri&no=<%= encodeURIComponent(r.no) %>&geri=<%= geri %>"><%= r.konu || '(başlıksız)' %></a></td>
+            <td data-label="Öneri Sahibi"><%= r.sahibi || '—' %></td>
+            <td data-label="Bölüm"><%= r.bolum || '—' %></td>
+            <td data-label="Neden Bekliyor"><strong><%= r.bekleme_kategori || '—' %></strong>
+                <% if (r.bekleme_nedeni) { %><br><small class="bos-not"><%= r.bekleme_nedeni %></small><% } %></td>
+            <td class="nowrap" data-label="Gözden Geçirme">
+                <% if (r.bekleme_gozden) { %><span class="<%= geldi ? 'gozden-geldi' : '' %>"><%- ikon.takvim %> <%= trdate(r.bekleme_gozden) %></span>
+                <% if (geldi) { %><br><small class="gozden-geldi">tarihi geldi</small><% } %><% } else { %>—<% } %></td>
+            <td class="nowrap puan-cell" data-label="Puan"><%= (r.puan === null || r.puan === undefined || r.puan === '') ? '—' : r.puan %></td>
+        </tr>
+        <% } %>
+    </tbody>
+</table>
+</div>
+<% } else { %>
+<div class="empty">Beklemede öneri yok.</div>
+<% } %>
+
+<h2 class="bolum-baslik" id="uygulanamadi">Uygulanamadı <span class="sayi-rozet"><%= uygulanamadi.length %></span></h2>
+<p class="blok-not">Uygulanmayacağı kayda geçen öneriler — en son kapatılan en üstte. Gerekirse detay sayfasından yeniden açılabilir.</p>
+<% if (uygulanamadi.length) { %>
+<div class="table-wrap">
+<table class="data-table havuz-tablo">
+    <thead><tr><th>No</th><th>Konu</th><th>Öneri Sahibi</th><th>Bölüm</th><th>Neden Uygulanamadı</th><th>Kapatan</th><th>Puan</th></tr></thead>
+    <tbody>
+        <% for (const r of uygulanamadi) { %>
+        <tr>
+            <td class="mono nowrap" data-label="No"><%= r.no %></td>
+            <td data-label="Konu"><a class="title-link" href="/detay?tip=oneri&no=<%= encodeURIComponent(r.no) %>&geri=<%= geri %>"><%= r.konu || '(başlıksız)' %></a></td>
+            <td data-label="Öneri Sahibi"><%= r.sahibi || '—' %></td>
+            <td data-label="Bölüm"><%= r.bolum || '—' %></td>
+            <td data-label="Neden Uygulanamadı"><%= r.uygulanamadi_nedeni || '—' %></td>
+            <td data-label="Kapatan"><%= r.uygulama_isleyen || '—' %><% if (r.uygulama_zamani) { %><br><small class="bos-not"><%= r.uygulama_zamani %></small><% } %></td>
+            <td class="nowrap puan-cell" data-label="Puan"><%= (r.puan === null || r.puan === undefined || r.puan === '') ? '—' : r.puan %></td>
+        </tr>
+        <% } %>
+    </tbody>
+</table>
+</div>
+<% } else { %>
+<div class="empty">Uygulanamadı olarak kapatılmış öneri yok.</div>
+<% } %>
+<%- include('partials/footer') %>

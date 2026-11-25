@@ -128,6 +128,7 @@ const ortakLocals = sar(async (req, res, next) => {
   res.locals.bugun_iso = S.bugunIso(); // Türkiye saatiyle bugün (tarih alanlarında min= için)
   res.locals.puanfmt = C.puanfmt;
   res.locals.parafmt = C.paraFmt;
+  res.locals.ikon = IKONLAR;
   res.locals.maliyetFarki = C.maliyetFarki;
   res.locals.adBol = I.adBol;
   res.locals.mesajlar = req.session.flash || [];
@@ -276,6 +277,15 @@ function zipGonder(res, ad, ekleyici) {
   ekleyici(arch);
   arch.finalize();
 }
+
+// Rozet ve başlık ikonları (satır içi SVG, renk metinden): emoji her cihazda farklı ve iri göründüğü için
+const _svg = (yol) => `<svg class="ikon" viewBox="0 0 16 16" width="1em" height="1em" aria-hidden="true" focusable="false">${yol}</svg>`;
+const IKONLAR = {
+  bekle: _svg('<rect x="4" y="3" width="2.6" height="10" rx="1" fill="currentColor"/><rect x="9.4" y="3" width="2.6" height="10" rx="1" fill="currentColor"/>'),
+  kapali: _svg('<circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.1 11.9l7.8-7.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'),
+  devam: _svg('<path d="M5 3.2v9.6a.6.6 0 0 0 .9.5l7.4-4.8a.6.6 0 0 0 0-1L5.9 2.7a.6.6 0 0 0-.9.5z" fill="currentColor"/>'),
+  takvim: _svg('<rect x="2.2" y="3.2" width="11.6" height="10.6" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.2 6.6h11.6M5.4 1.8v2.6M10.6 1.8v2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>'),
+};
 
 module.exports = {
   sar, flash, xlsxGonder, zipGonder, hizLimitAsildi, alan, adSoyadOku, kisiOku, guvenliYol, ortakLocals, csrfDogrula, dosyaYukleyici,

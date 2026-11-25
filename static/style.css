@@ -331,15 +331,29 @@ tr.benim-satirim td { background: var(--primary-tint) !important; }
 /* Düzeltme isteniyor rozeti */
 .durum-badge.revize { background: #fff5e0; color: #8a6300; border: 1px solid #f0dca6; }
 
-/* Onaylı öneri havuzu: beklemede / uygulanamadı */
-.durum-badge.havuz  { background: #eaf1fb; color: #2b5a8f; border: 1px solid #c3d6ef; }
-.durum-badge.kapali { background: #eef0f2; color: #555f6b; border: 1px solid #d3d8de; }
-.havuz-blok { background: #f4f8fd; border-left: 4px solid #8fb3df; border-radius: 8px; padding: 10px 14px; }
-.havuz-blok.kapali { background: #f5f6f7; border-left-color: #b3bac2; }
+/* Öneri Havuzu: beklemede / uygulanamadı — emoji yerine SVG ikonlu sade rozetler */
+.ikon { display: inline-block; vertical-align: -0.125em; flex: none; }
+.durum-badge { display: inline-flex; align-items: center; gap: 5px; }
+a.durum-badge { text-decoration: none; }
+.durum-badge.havuz  { background: #eef3fb; color: #2f5b94; border: 1px solid #cddcf1; }
+.durum-badge.kapali { background: #f1f2f4; color: #59626e; border: 1px solid #dadee3; }
+a.durum-badge.havuz:hover { background: #e2ebf8; }
+a.durum-badge.kapali:hover { background: #e8eaed; }
+.havuz-blok { background: #f5f8fd; border-left: 4px solid #9db9e0; border-radius: 8px; padding: 10px 14px; }
+.havuz-blok.kapali { background: #f6f7f8; border-left-color: #b8bec6; }
+.havuz-blok h3 { display: flex; align-items: center; gap: 7px; }
 .havuz-blok p + p { margin-top: 4px; }
 .gozden-geldi { color: #a4322a; font-weight: 700; }
-.havuz-ozet { background: var(--card); border-radius: 10px; padding: 10px 14px; box-shadow: var(--shadow); margin: 12px 0 0; }
-.havuz-kart { border-top: 3px solid #5b8cc8; }
+.havuz-ozet { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; background: var(--card); border-radius: 10px;
+    padding: 10px 14px; box-shadow: var(--shadow); margin: 12px 0 0; }
+.havuz-ozet a { text-decoration: none; color: inherit; }
+.havuz-ozet-baslik { font-weight: 700; color: var(--primary) !important; }
+.havuz-kart { border-top: 3px solid #6f97cf; }
+.degerlendir-kart h3 .ikon { margin-right: 2px; }
+.havuz-sekme { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin: 0 0 6px; }
+.havuz-sekme a { text-decoration: none; color: inherit; display: inline-flex; align-items: center; gap: 6px; }
+.sayi-rozet { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 10px; background: #eef3fb;
+    color: #2f5b94; font-size: .78rem; font-weight: 700; text-align: center; line-height: 1.5; }
 
 /* Değerlendirme kartı */
 .eval-card { background: var(--card); border-radius: 14px; padding: 26px; box-shadow: var(--shadow); }

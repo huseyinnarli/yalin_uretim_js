@@ -52,12 +52,13 @@
 </div>
 
 <% if (havuz.beklemede || havuz.uygulanamadi) { %>
-<p class="havuz-ozet">
-    <a href="/liste?tip=oneri&durum=havuz">⏸ Onaylı – Beklemede havuzu: <strong><%= havuz.beklemede %></strong> öneri</a><% if (havuz.gozden) { %>
-    <span class="gozden-geldi">(<%= havuz.gozden %> tanesinin gözden geçirme tarihi geldi)</span><% } %>
-    <% if (havuz.uygulanamadi) { %> · <a href="/liste?tip=oneri&durum=uygulanamadi">⛔ Uygulanamadı: <strong><%= havuz.uygulanamadi %></strong></a><% } %>
-    <span class="bos-not">— onaylı sayılır, puanları korunur</span>
-</p>
+<div class="havuz-ozet">
+    <a class="havuz-ozet-baslik" href="/havuz">Öneri Havuzu →</a>
+    <a href="/havuz#beklemede"><span class="durum-badge havuz"><%- ikon.bekle %> Beklemede</span> <strong><%= havuz.beklemede %></strong></a>
+    <a href="/havuz#uygulanamadi"><span class="durum-badge kapali"><%- ikon.kapali %> Uygulanamadı</span> <strong><%= havuz.uygulanamadi %></strong></a>
+    <% if (havuz.gozden) { %><span class="gozden-geldi"><%- ikon.takvim %> <%= havuz.gozden %> önerinin gözden geçirme tarihi geldi</span><% } %>
+    <span class="bos-not">onaylı sayılır, puanları korunur</span>
+</div>
 <% } %>
 
 <!-- Son 12 ay: gelen vs onaylanıp puan alan -->

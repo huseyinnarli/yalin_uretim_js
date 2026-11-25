@@ -44,10 +44,11 @@ module.exports = function register(app) {
     const ay = req.query.ay || "";
     const q = req.query.q || "";
     const durum = req.query.durum || "";
+    // Eski havuz filtresi adresleri (yer imleri) Öneri Havuzu sayfasına
+    if (durum === "havuz") return res.redirect("/havuz#beklemede");
+    if (durum === "uygulanamadi") return res.redirect("/havuz#uygulanamadi");
     const bolum = typeof req.query.bolum === "string" ? req.query.bolum : "";
     const liste = C.filtrele(records, tip, ay, q, durum, bolum);
-    // Havuz görünümü: gözden geçirme tarihi en yakın (ya da geçmiş) olan en üstte
-    if (durum === "havuz") liste.sort((a, b) => String(a.bekleme_gozden || "9999").localeCompare(String(b.bekleme_gozden || "9999")));
     const sf = C.sayfala(liste, req.query.s);
     const filtre = { tip, ay, q, durum, bolum };
     const bolumSec = C.listeBolumleri(records, await C.bolumAdlari());
@@ -61,7 +62,8 @@ module.exports = function register(app) {
       // Seçili bölüm seçenek listesindeki yazılışıyla (adres elle "montaj" yazılsa da "Montaj" seçili görünür)
       bolum_secili: bolum === C.BOLUMSUZ ? bolum : (bolumSec.adlar.find((a) => C.bolumAnahtar(a) === C.bolumAnahtar(bolum)) || ""),
       tip, ay, q, durum, bolum,
-      toplam: records.filter((r) => r.durum !== "Reddedildi").length,
+      toplam: records.filter((r) => r.durum !== "Reddedildi" && !r.uygulama_durumu).length,
+      havuz: await C.havuzOzeti(S.bugunIso()),
       tam_yol: req.originalUrl,
       kural_bul: await C.kuralCozucu(),
     });
@@ -87,6 +89,12 @@ module.exports = function register(app) {
       bekleme_kategorileri: S.BEKLEME_KATEGORILERI,
       silinen: null,
     });
+  }));
+
+  // ----- Öneri Havuzu: onaylı ama uygulanamayan öneriler (beklemede / uygulanamadı) — ana listede görünmez -----
+  app.get("/havuz", girisRequired, sar(async (req, res) => {
+    const h = await C.havuzKayitlari();
+    res.render("havuz", { title: "Öneri Havuzu", beklemede: h.beklemede, uygulanamadi: h.uygulanamadi });
   }));
 
   // ----- Reddedilen & Silinen arşivi (girişli herkes görür; işlem yalnız yetkiliye) -----

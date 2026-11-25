@@ -5,6 +5,7 @@
     <div class="list-actions">
         <a class="btn primary" href="/oneri/yeni">+ Öneri</a>
         <a class="btn primary" href="/kaizen/yeni">+ Kaizen</a>
+        <a class="btn ghost" href="/havuz">🗃 Öneri Havuzu<% if (havuz.beklemede + havuz.uygulanamadi) { %> <span class="sayi-rozet"><%= havuz.beklemede + havuz.uygulanamadi %></span><% } %></a>
         <a class="btn ghost" href="/arsiv">🗂 Reddedilen &amp; Silinen</a>
         <% if (yetki('kayit')) { %>
         <a class="btn ghost" href="/oneri/excel">⬇ Öneri Excel</a>
@@ -29,8 +30,6 @@
             <option value="bekle" <%= durum=='bekle' ? 'selected' : '' %>>Değerlendiriliyor</option>
             <option value="revize" <%= durum=='revize' ? 'selected' : '' %>>Düzeltme İsteniyor</option>
             <option value="onay" <%= durum=='onay' ? 'selected' : '' %>>Onaylandı</option>
-            <option value="havuz" <%= durum=='havuz' ? 'selected' : '' %>>⏸ Onaylı – Beklemede (havuz)</option>
-            <option value="uygulanamadi" <%= durum=='uygulanamadi' ? 'selected' : '' %>>⛔ Uygulanamadı</option>
         </select>
     </div>
     <div class="filter-group">
@@ -64,7 +63,7 @@
 
 <p class="result-info">
     <% if (sf.toplam) { %><%= sf.bas %>–<%= sf.son %> arası gösteriliyor · filtreye uyan <%= sf.toplam %> kayıt<% } else { %>Filtreye uyan kayıt yok<% } %>
-    (reddedilenler hariç toplam <%= toplam %>).
+    (reddedilenler ve Öneri Havuzu'ndakiler hariç toplam <%= toplam %>).
 </p>
 
 <% const islemVar = yetki('degerlendir') || yetki('puanla') || yetki('kayit'); %>
@@ -97,9 +96,6 @@
             <td data-label="Bölüm"><%= r.bolum || '—' %></td>
             <td class="nowrap" data-label="Durum">
                 <% if (du == 'Onaylandı') { %><span class="durum-badge onay"><%= du %></span>
-                    <% if (r.uygulama_durumu == 'beklemede') { %><br><span class="durum-badge havuz">⏸ Beklemede</span>
-                        <% if (r.bekleme_gozden) { %><br><small class="<%= r.bekleme_gozden <= bugun_iso ? 'gozden-geldi' : 'bos-not' %>">📅 <%= trdate(r.bekleme_gozden) %></small><% } %>
-                    <% } else if (r.uygulama_durumu == 'uygulanamadi') { %><br><span class="durum-badge kapali">⛔ Uygulanamadı</span><% } %>
                 <% } else if (du == 'Düzeltme İsteniyor') { %><span class="durum-badge revize"><%= du %></span>
                     <% if (r.revize_atanan_ad) { %><br><small class="bos-not">✏ <%= r.revize_atanan_ad %></small><% } %>
                 <% } else { %><span class="durum-badge bekle"><%= du %></span><% } %>

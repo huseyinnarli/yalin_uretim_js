@@ -50,13 +50,12 @@ function filtrele(records, tip, ay, q, durum = "", bolum = "") {
     if (bolum === BOLUMSUZ && (r.bolum || "").trim()) return false;
     if (bolumK && L.anahtar(r.bolum || "") !== bolumK) return false;
     if (r.durum === "Reddedildi") return false;
+    if (r.uygulama_durumu) return false; // Öneri Havuzu'ndakiler (beklemede / uygulanamadı) ayrı sayfada (/havuz)
     if ((tip === "oneri" || tip === "kaizen") && r.tip !== tip) return false;
     if (ay && !r.sort_date.startsWith(ay)) return false;
     if (durum === "bekle" && r.durum !== S.VARSAYILAN_DURUM) return false;
     if (durum === "revize" && r.durum !== "Düzeltme İsteniyor") return false;
     if (durum === "onay" && r.durum !== "Onaylandı") return false;
-    if (durum === "havuz" && r.uygulama_durumu !== "beklemede") return false;
-    if (durum === "uygulanamadi" && r.uygulama_durumu !== "uygulanamadi") return false;
     if (q) {
       const hay = `${r.baslik || ""} ${r.kisi || ""} ${r.no || ""}`.toLocaleLowerCase("tr");
       if (!hay.includes(q)) return false;
@@ -121,6 +120,21 @@ async function kaizenKaydetGorsel(file, etiket, sn) {
 }
 
 // Onaylı öneri havuzu özeti (Panel): havuzdaki, gözden geçirme tarihi gelmiş/geçmiş olan ve "Uygulanamadı" sayıları
+// "25.11.2026 10:38" → "2026-11-25 10:38" (sıralama için)
+const _zamanSira = (z) => { const m = String(z || "").match(/^(\d{2})\.(\d{2})\.(\d{4})(.*)$/); return m ? `${m[3]}-${m[2]}-${m[1]}${m[4]}` : ""; };
+
+// Öneri Havuzu sayfası: beklemedekiler (gözden geçirme tarihi yakın olan önce) + uygulanamadılar (son kapatılan önce)
+async function havuzKayitlari() {
+  const satirlar = (await sorgu(
+    "SELECT * FROM oneriler WHERE durum = 'Onaylandı' AND uygulama_durumu IN ('beklemede', 'uygulanamadi')")).map(oneriRow);
+  return {
+    beklemede: satirlar.filter((r) => r.uygulama_durumu === "beklemede")
+      .sort((a, b) => String(a.bekleme_gozden || "9999").localeCompare(String(b.bekleme_gozden || "9999"))),
+    uygulanamadi: satirlar.filter((r) => r.uygulama_durumu === "uygulanamadi")
+      .sort((a, b) => _zamanSira(b.uygulama_zamani).localeCompare(_zamanSira(a.uygulama_zamani))),
+  };
+}
+
 async function havuzOzeti(bugun) {
   const r = await tek(
     `SELECT SUM(uygulama_durumu = 'beklemede') AS beklemede,
@@ -132,5 +146,5 @@ async function havuzOzeti(bugun) {
 
 module.exports = {
   getRecord, updateRecord, combinedRecords, filtrele, BOLUMSUZ, listeBolumleri, sayfala, mevcutAylar, kayitDuzenleyebilir,
-  kaizeneDonusturebilir, kaizenKaydetGorsel, havuzOzeti,
+  kaizeneDonusturebilir, kaizenKaydetGorsel, havuzOzeti, havuzKayitlari,
 };

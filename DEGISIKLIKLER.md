@@ -1,5 +1,18 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — Öneri Havuzu sayfası, sade rozetler
+
+- **🗃 Öneri Havuzu** (`/havuz`, girişli herkes): beklemedeki ve uygulanamadı olarak kapatılan öneriler artık **ana listede
+  görünmez**, burada toplanır (reddedilen/silinenler ayrı: 🗂 Reddedilen & Silinen).
+  - **Beklemede** tablosu: öneri, sahibi, bölüm, bekleme türü + açıklama, gözden geçirme tarihi (yakın olan üstte; tarihi
+    gelen kırmızı), puan. **Uygulanamadı** tablosu: kapanış nedeni, kapatan ve zaman (son kapatılan üstte), puan.
+  - Liste sayfasında **🗃 Öneri Havuzu** düğmesi (havuzdaki öneri sayısıyla). Panel özeti, Görevlerim takip listesi ve
+    detaydaki rozet havuz sayfasına götürür. Eski `?durum=havuz` / `?durum=uygulanamadi` adresleri havuz sayfasına yönlenir;
+    ana listedeki bu iki durum filtresi kaldırıldı.
+- **Rozetler:** "Beklemede" ve "Uygulanamadı" işaretleri emoji yerine sade çizgi ikonlu rozetler (her cihazda aynı görünür);
+  detay kartlarının başlık ve düğme yazıları sadeleşti ("Beklemeye Al", "Havuzdan Çıkar", "Uygulanamadı Olarak Kapat").
+- Veritabanı değişikliği yok. e2e testi: **257/257**.
+
 ## 25 Kasım 2026 (devam) — Kaizen maliyet hesabı (€)
 
 - Kaizen formunda **Önceki Durum** ve **Sonraki Durum** açıklamalarının altına **maliyet (€)** kutusu eklendi; ikisi de
