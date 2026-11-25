@@ -14,7 +14,7 @@
     <div class="ak-meta">
         <% if (a.sorumlu) { %><span>👤 <%= a.sorumlu %></span><% } %>
         <% if (a._atanan) { %><span>🎯 Kapatabilir: <%= a._atanan %></span><% } %>
-        <% if (a.termin) { %><span>⏳ Termin: <%= trdate(a.termin) %></span><% } %>
+        <% if (a.termin) { const gec = a.durum != 'kapali' && a.termin < bugun_iso; %><span class="<%= gec ? 'termin-gecti' : '' %>">⏳ Termin: <%= trdate(a.termin) %><%= gec ? ' — gecikti' : '' %></span><% } %>
         <span class="ak-olusturma">Oluşturma: <%= a.olusturma_zamani %></span>
     </div>
 

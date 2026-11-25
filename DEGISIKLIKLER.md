@@ -1,5 +1,16 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — Arayüz incelemesi: küçük düzeltmeler
+
+- Üst menüde ana yönetici rozetinde "Ana Yönetici yönetici" tekrarı kaldırıldı (ek yöneticide ad + "yönetici" kalır).
+- Liste arama ipucundan kaldırılmış "form no" çıkarıldı; Filtrele ve Temizle düğmeleri aynı hizada.
+- Panel kısayolunda Öneri & Kaizen simgesi üst menüyle aynı; bölüm sayfasında "Form" düğmesi diğerleri gibi "Formu Gör".
+- Detay sayfasında tek ana eylem öne çıkar: Düzenle ve (puanlanmışsa) Puanı Düzenle ikincil düğme.
+- **Geciken terminler kırmızı:** açık 5S aksiyonlarında ve görev terminlerinde (Görevlerim) tarih geçtiyse "— gecikti".
+- Puan listesindeki "Sil" düğmesi yaptığı işi anlatsın diye **"Kaldır"** (kişiyi puan listesinden kaldırır).
+- Görevlerim'de gözden geçirme tarihi gelen havuz önerisi tek satırda (tarih · bekleme türü).
+- Veritabanı değişikliği yok. e2e testi: **259/259**.
+
 ## 25 Kasım 2026 (devam) — 5S Aksiyonlar: bölüm adları başlıkta, tur başına tek grup
 
 - **Düzeltme:** aynı denetim turunun aksiyonları, denetimler farklı günlerde yapıldığı için ayrı ayrı gruplara bölünüyordu

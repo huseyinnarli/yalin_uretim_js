@@ -15,10 +15,10 @@
     <div class="list-actions">
         <a class="btn ghost" href="<%= geri %>">← <%= silinen ? 'Arşive Dön' : 'Listeye Dön' %></a>
         <% if (duzenleyebilir) { %>
-        <a class="btn primary" href="/<%= tip %>/duzenle?no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">✏ Düzenle</a>
+        <a class="btn ghost" href="/<%= tip %>/duzenle?no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">✏ Düzenle</a>
         <% } %>
         <% if (!silinen && yetki('puanla') && d == 'Onaylandı' && !sabitOneri) { %>
-        <a class="btn primary" href="/degerlendir/puan?tip=<%= tip %>&no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">★ <%= r.puanlama ? 'Puanı Düzenle' : 'Puanla' %></a>
+        <a class="btn <%= r.puanlama ? 'ghost' : 'primary' %>" href="/degerlendir/puan?tip=<%= tip %>&no=<%= encodeURIComponent(r.no) %><%= detayGeri %>">★ <%= r.puanlama ? 'Puanı Düzenle' : 'Puanla' %></a>
         <% } %>
         <% if (donusturebilir) { %>
         <a class="btn primary" href="/kaizen/yeni?oneri=<%= encodeURIComponent(r.no) %>">🔧 Kaizene Dönüştür</a>

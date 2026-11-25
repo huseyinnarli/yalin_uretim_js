@@ -24,7 +24,7 @@
             <% } %>
             <a href="/yardim">📖 Kılavuz</a>
             <% if (admin) { %>
-                <span class="nav-kisi">👤 <%= yonetici_adi || 'Ana Yönetici' %> <small>yönetici</small></span>
+                <span class="nav-kisi">👤 <% if (yonetici_adi) { %><%= yonetici_adi %> <small>yönetici</small><% } else { %>Ana Yönetici<% } %></span>
                 <a class="nav-admin" href="/yonetici">🛠 Yönetim</a>
                 <a href="/yonetici/cikis">Çıkış</a>
             <% } else if (denetmen_adi) { %>

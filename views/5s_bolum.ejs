@@ -141,7 +141,7 @@
             <td data-label="<%= s.kod.toUpperCase() %>" class="<%= oran >= 0.8 ? 's-iyi' : (oran >= 0.6 ? 's-orta' : 's-dusuk') %>"><%= v %></td>
             <% } %>
             <td data-label="Toplam"><span class="skor-rozet <%= t.puan >= 80 ? 'iyi' : (t.puan >= 60 ? 'orta' : 'dusuk') %>"><%= t.puan %></span></td>
-            <td data-label=""><a class="btn-mini eval" href="/5s/denetim/<%= t.id %>">Form</a></td>
+            <td data-label=""><a class="btn-mini eval" href="/5s/denetim/<%= t.id %>">Formu Gör</a></td>
         </tr>
         <% }); %>
     </tbody>

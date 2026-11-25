@@ -62,7 +62,7 @@
                 <form method="post" action="/puan/sil" style="display:inline"
                       onsubmit="return confirm(this.dataset.onay)" data-onay="“<%= k.ad %>” puan listesinden kaldırılacak. Devam?"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                     <input type="hidden" name="ad" value="<%= k.ad %>">
-                    <button type="submit" class="btn-mini del">Sil</button>
+                    <button type="submit" class="btn-mini del" title="Kişiyi puan listesinden kaldırır">Kaldır</button>
                 </form>
             </td>
             <% } %>

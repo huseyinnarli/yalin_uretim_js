@@ -40,7 +40,7 @@
     <div class="gorev-satir">
         <span class="tip-badge oneri">ÖNERİ</span>
         <span class="gs-govde"><a class="title-link" href="<%= kayitLink(r) %>"><span class="mono"><%= r.no %></span> · <%= r.konu || '(başlıksız)' %></a>
-            <small><% if (r.gorev_termin) { %>Termin: <%= trdate(r.gorev_termin) %> · <% } %><%= r.gorev_notu || '' %></small></span>
+            <small><% if (r.gorev_termin) { %><span class="<%= r.gorev_termin < bugun_iso ? 'termin-gecti' : '' %>">Termin: <%= trdate(r.gorev_termin) %><%= r.gorev_termin < bugun_iso ? ' — gecikti' : '' %></span> · <% } %><%= r.gorev_notu || '' %></small></span>
         <a class="btn-mini onay" href="/kaizen/yeni?oneri=<%= encodeURIComponent(r.no) %>">🔧 Kaizene Dönüştür</a>
     </div>
     <% } %>
@@ -99,7 +99,7 @@
         <h3>📌 Kaizene dönüştürülmeyi bekleyen görevler (<%= tumu.gorevler.length %>)</h3>
         <% if (tumu.gorevler.length) { for (const r of tumu.gorevler) { %>
         <div class="gorev-satir"><span class="gs-govde"><a class="title-link" href="<%= kayitLink(r) %>"><span class="mono"><%= r.no %></span> · <%= r.konu %></a>
-            <small>👤 <%= r.gorev_atanan_ad %><% if (r.gorev_termin) { %> · Termin: <%= trdate(r.gorev_termin) %><% } %></small></span></div>
+            <small>👤 <%= r.gorev_atanan_ad %><% if (r.gorev_termin) { %> · <span class="<%= r.gorev_termin < bugun_iso ? 'termin-gecti' : '' %>">Termin: <%= trdate(r.gorev_termin) %><%= r.gorev_termin < bugun_iso ? ' — gecikti' : '' %></span><% } %></small></span></div>
         <% } } else { %><p class="bos-not">Yok.</p><% } %>
     </div>
 </div>
@@ -108,7 +108,7 @@
     <h3><%- ikon.takvim %> Gözden geçirme tarihi gelen havuz önerileri (<%= tumu.gozden.length %>)</h3>
     <% for (const r of tumu.gozden) { %>
     <div class="gorev-satir"><span class="gs-govde"><a class="title-link" href="<%= kayitLink(r) %>"><span class="mono"><%= r.no %></span> · <%= r.konu %></a>
-        <small class="gozden-geldi"><%= trdate(r.bekleme_gozden) %></small> <small>· <%= r.bekleme_kategori || '' %></small></span></div>
+        <small><span class="gozden-geldi"><%= trdate(r.bekleme_gozden) %></span> · <%= r.bekleme_kategori || '' %></small></span></div>
     <% } %>
     <p class="bos-not"><a href="/havuz">Öneri Havuzu'na git →</a></p>
 </div>
