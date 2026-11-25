@@ -5,7 +5,7 @@ const S = require("../sabitler");
 const C = require("../cekirdek");
 const X = require("../excel");
 const K = require("../kontrol");
-const { sar, flash, xlsxGonder, girisRequired, alan } = require("../web");
+const { sar, flash, xlsxGonder, girisRequired, adminRequired, alan } = require("../web");
 
 module.exports = function register(app) {
   function kontrolAyiOku(req) {
@@ -116,7 +116,8 @@ module.exports = function register(app) {
 
   // Excel: YALNIZ seçilen ay — kâğıt düzenindeki form sayfası + özet sayfası.
   // Ayda kayıt olmasa da form çıkar (boş form yazdırılabilsin).
-  app.get("/5s/bolum/:bid/kontrol/excel", girisRequired, sar(async (req, res) => {
+  // Excel yalnız yöneticiye (denetmen / bölüm lideri dosya indiremez)
+  app.get("/5s/bolum/:bid/kontrol/excel", adminRequired, sar(async (req, res) => {
     const b = await C.bolumById(req.params.bid);
     if (!b) return res.status(404).send("Bölüm bulunamadı.");
     const ay = kontrolAyiOku(req);

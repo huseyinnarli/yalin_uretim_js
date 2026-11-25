@@ -814,6 +814,35 @@ async function main() {
     await db.query(`INSERT INTO kontrol_kayitlari(bolum_id, ay, gun, madde, durum, aciklama, isaretleyen, zaman)
       VALUES(?, ?, 5, 'g1', 'uygunsuz', 'Eski ay tespiti', 'Ali Test', ''), (?, ?, 7, 'g3', 'uygun', '', 'Ali Test', '')`,
       [aliBolum.id, ikiAyOnce, aliBolum.id, oncekiAy]);
+    // Denetmen / bölüm lideri: Excel indiremez; aksiyonlarda yalnız kendi aksiyonları
+    html = await getText(kUrl);
+    ok("denetmen kontrol formunda Excel düğmesi görmez", !html.includes("Excel (seçilen ay)"));
+    r = await get(`${kUrl}/excel?ay=${kAy}`);
+    ok("denetmen kontrol formu Excel'ini indiremez", r.status === 302 && !(r.headers.get("content-type") || "").includes("spreadsheet"));
+    {
+      const [[baskaB]] = await db.query("SELECT id, ad FROM bolumler WHERE id <> ? AND (sorumlu IS NULL OR sorumlu NOT LIKE '%Ali%') LIMIT 1", [aliBolum.id]);
+      await db.query(`INSERT INTO aksiyonlar(id, denetim_id, tarih, tur_adi, bolum_id, bolum_ad, kriter_k, kriter_m, aksiyon, sorumlu,
+          atanan_lider, termin, durum, olusturma_zamani) VALUES
+        ('akkendi1', '', '2026-11-01', 'Kasım 2026 Denetimi', ?, ?, 's1_1', '1.1) Test', 'Kendi bölüm aksiyonu', '', '', '2099-01-01', 'acik', ''),
+        ('akbaska1', '', '2026-11-01', 'Kasım 2026 Denetimi', ?, ?, 's1_1', '1.1) Test', 'Başka bölüm aksiyonu', 'Zeki Başka', 'Zeki Başka', '2099-01-01', 'acik', '')`,
+        [aliBolum.id, aliBolum.ad || "", baskaB.id, baskaB.ad]);
+      html = await getText("/5s/aksiyonlar");
+      ok("bölüm lideri yalnız kendi aksiyonlarını görür (5S Aksiyonlarım)", html.includes("Kendi bölüm aksiyonu")
+        && !html.includes("Başka bölüm aksiyonu") && html.includes("5S Aksiyonlarım"));
+      ok("bölüm liderinin aksiyon sayfasında Excel/ZIP düğmesi yok", !html.includes("/5s/aksiyonlar/excel") && !html.includes("fotolar.zip"));
+      r = await get("/5s/aksiyonlar/excel");
+      ok("denetmen aksiyon Excel'ini indiremez", r.status === 302 && !(r.headers.get("content-type") || "").includes("spreadsheet"));
+      r = await get("/5s/aksiyonlar/fotolar.zip");
+      ok("denetmen aksiyon fotoğraf ZIP'ini indiremez", r.status === 302);
+      const misafirYanit = await fetch(BASE + "/5s/aksiyonlar", { redirect: "manual" });
+      ok("girişsiz ziyaretçi aksiyonları göremez (girişe yönlenir)", misafirYanit.status === 302
+        && (misafirYanit.headers.get("location") || "").startsWith("/yonetici/giris"));
+      csrf = await girisYap("admin123");
+      html = await getText("/5s/aksiyonlar");
+      ok("yönetici tüm aksiyonları görür", html.includes("Kendi bölüm aksiyonu") && html.includes("Başka bölüm aksiyonu")
+        && html.includes("/5s/aksiyonlar/excel"));
+      await db.query("DELETE FROM aksiyonlar WHERE id IN ('akkendi1', 'akbaska1')");
+    }
     const ExcelJS = require("exceljs");
     const excelOku = async (ay) => {
       const rr = await get(`${kUrl}/excel?ay=${ay}`);

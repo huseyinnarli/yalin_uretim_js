@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 
 <div class="list-head">
-    <h1 class="page-title"><%- ik('flag') %> 5S Aksiyonlar</h1>
+    <h1 class="page-title"><%- ik('flag') %> <%= kendi ? '5S Aksiyonlarım' : '5S Aksiyonlar' %></h1>
     <div class="list-actions">
         <a class="btn ghost" href="/5s">← 5S</a>
         <% if (yetki('bes_aksiyon')) { %>
@@ -10,6 +10,10 @@
         <% } %>
     </div>
 </div>
+
+<% if (kendi) { %>
+<p class="subtitle">Yalnız size atanan aksiyonlar görünür: ekip lideri olduğunuz bölümlerin aksiyonları ve sorumlusu olduğunuz aksiyonlar.</p>
+<% } %>
 
 <% if (acik_gruplar.length || kapali_gruplar.length) { %>
 
@@ -71,7 +75,11 @@
 <% } %>
 
 <% } else { %>
+<% if (kendi) { %>
+<div class="empty">Size atanmış aksiyon yok.</div>
+<% } else { %>
 <div class="empty">Henüz atanmış aksiyon yok. Denetim formunda her madde için <strong><%- ik('flag') %> Aksiyon Ata</strong> ile aksiyon oluşturabilirsiniz.</div>
+<% } %>
 <% } %>
 
 <script>

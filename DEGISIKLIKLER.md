@@ -1,5 +1,15 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — Denetmen / bölüm lideri: yalnız kendi aksiyonları, dosya indirme yok
+
+- **5S Aksiyonlar** sayfası artık girişe kapalı. Yönetici tüm aksiyonları görür; **denetmen / bölüm lideri yalnız kendi
+  aksiyonlarını** görür ("5S Aksiyonlarım"): ekip lideri olduğu bölümlerin aksiyonları ve sorumlusu olduğu aksiyonlar.
+  Görevlerim'deki "Aksiyona Git" de bu sayfaya götürür. Girişsiz ziyaretçi giriş sayfasına yönlenir; 5S sayfalarındaki
+  aksiyon sayıları görünmeye devam eder (bağlantısız).
+- **Denetmen / bölüm lideri hiçbir Excel veya ZIP dosyası indiremez.** Tek açık uç olan periyodik kontrol formu Excel'i
+  de yalnız yöneticiye açıldı (düğme denetmene görünmez). Diğer Excel/ZIP uçları zaten yönetici yetkisi istiyordu.
+- Veritabanı değişikliği yok. e2e testi: **273/273**.
+
 ## 25 Kasım 2026 (devam) — Görsel düzen: çizgi ikonlar, kısa mobil liste, sekmeli Yönetim, menüde Puan Listesi
 
 - **Tek tip çizgi ikonlar:** sitedeki emojiler (menü, sayfa başlıkları, düğmeler, bilgi satırları) her cihazda aynı görünen

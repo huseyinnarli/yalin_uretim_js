@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 265 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 273 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -214,6 +214,9 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     (`.ysekme[data-sekme]`, `#denetmenler|#misafirler|#yoneticiler|#sifre`; betiksiz hepsi görünür). Üst menüde Puan Listesi (girişli);
     menü kırılımları ≤1220 px düğme, 1221–1440 px marka yazısı gizli. `GET /yonetici/gunluk/excel` (ana yönetici, `tumGunluk`,
     `generateGunlukExcel`). Bölüm sayfasında tek denetim tablosu. e2e 265/265.
+30. **Denetmen kısıtları** (25 Kasım): `/5s/aksiyonlar` `girisRequired`; denetmene `aksiyonGruplari(..., kisiAd)` filtresi (atanan lider
+    `isimIcerir` veya `sorumlu` `isimEsit`); kontrol formu Excel'i `adminRequired`. **Kural: denetmen hiçbir Excel/ZIP indiremez** —
+    yeni indirme ucu `yetkiGerek(...)`/`adminRequired` ile, düğmesi `yetki(...)`/`admin` ile kapılanır. e2e 273/273.
 
 ## Açık konular
 

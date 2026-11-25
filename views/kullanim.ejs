@@ -20,13 +20,15 @@
 
     <h2 class="bolum-baslik"><%- ik('key-round') %> Giriş ve Roller</h2>
     <ul>
-        <li><strong>Herkes</strong> (giriş gerekmez): öneri/kaizen formu doldurur; puan listesini, 5S sonuçlarını,
-            aksiyonları ve kontrol formlarını görüntüler. Öneri/kaizen <em>listesi ve detayları</em> girişe kapalıdır.</li>
+        <li><strong>Herkes</strong> (giriş gerekmez): öneri/kaizen formu doldurur; puan listesini, 5S sonuçlarını ve
+            kontrol formlarını görüntüler. Öneri/kaizen <em>listesi ve detayları</em> ile 5S <em>aksiyonları</em> girişe kapalıdır.</li>
         <li><strong>Giriş</strong> tek ekrandan, tek şifre alanıyla yapılır — sistem sizi şifreden tanır.</li>
         <li><strong>Denetmen:</strong> kendisine planlanan 5S denetimini yapar; ekip lideri olduğu bölümün aksiyonlarını
             kapatır ve <strong>periyodik kontrol formunu</strong> doldurur; öneri/kaizenleri <em>görüntüler</em>; kendisine
             atanan <strong>düzeltmeleri</strong> ve <strong>kaizene dönüştürme görevlerini</strong> yapar
-            (<%- ik('clipboard-list') %> Görevlerim). Bölüm lideri olması gerekmez.</li>
+            (<%- ik('clipboard-list') %> Görevlerim). Bölüm lideri olması gerekmez. Aksiyonlar sayfasında <strong>yalnız kendi
+            aksiyonlarını</strong> görür (ekip lideri olduğu bölümün aksiyonları ve sorumlusu olduğu aksiyonlar);
+            <strong>Excel / ZIP dosyası indiremez</strong> — dosya indirme yalnız yetkili yöneticilerdedir.</li>
         <li><strong>Ana yönetici:</strong> sabittir, tüm yetkilere sahiptir.</li>
         <li><strong>Ek yönetici:</strong> verilen yetki alanlarıyla sınırlıdır — Değerlendirme · Puanlama · Kayıt
             düzenle-sil · Bölüm &amp; plan · Denetim yapma · Denetim revize · Aksiyon yönetimi · 5S ödül &amp; raporlar ·
@@ -107,7 +109,7 @@
             altında ve Excel'de listelenir.</li>
         <li>Haftalık <strong>grup lideri</strong> ve aylık <strong>bölüm sorumlusu</strong> kontrolü "Kontrol Ettim" ile imzalanır
             (bölümün lideri dışındaki denetmen veya yetkili yönetici). Aylık tablo herkese açıktır.</li>
-        <li><strong><%- ik('download') %> Excel (seçilen ay):</strong> yanındaki listeden ay seçilir; yalnız o ayın formu iner — kâğıt formdaki
+        <li><strong><%- ik('download') %> Excel (seçilen ay)</strong> (yalnız yönetici): yanındaki listeden ay seçilir; yalnız o ayın formu iner — kâğıt formdaki
             düzende form sayfası (uygunsuzluklar altında) ve özet sayfası (kontrol günü, uygunluk %, imzalar).</li>
     </ul>
 
@@ -160,7 +162,8 @@
     <h2 class="bolum-baslik"><%- ik('flag') %> 5S — Aksiyonlar</h2>
     <ul>
         <li>Denetimde bir soruya atanan <strong>düzeltici aksiyonlar</strong> Aksiyonlar sayfasında
-            <strong>Açık / Kapalı</strong> olarak, tur → bölüm kırılımıyla listelenir.</li>
+            <strong>Açık / Kapalı</strong> olarak, tur → bölüm kırılımıyla listelenir. Sayfa girişe kapalıdır: yönetici
+            tüm aksiyonları, denetmen / bölüm lideri yalnız kendi aksiyonlarını ("5S Aksiyonlarım") görür.</li>
         <li>Bir aksiyonu yalnızca <strong>açıldığı bölümün ekip lideri</strong> (denetmen olarak girişli) veya
             <strong>yönetici</strong> kapatabilir. Kapatırken <strong>açıklama + en az 1 fotoğraf zorunludur</strong>.</li>
         <li>Yönetici aksiyonları Excel, fotoğrafları ZIP olarak indirebilir.</li>

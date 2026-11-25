@@ -8,7 +8,7 @@ const X = require("../excel");
 const { sorgu, tek, calistir, transaction, js, aksiyonRow } = require("../db");
 const I = require("../isim");
 const {
-  sar, flash, xlsxGonder, zipGonder, yetkiGerek, denetciRequired, alan, kisiOku, guvenliYol, hizLimitAsildi, dosyaYukleyici,
+  sar, flash, xlsxGonder, zipGonder, yetkiGerek, denetciRequired, girisRequired, alan, kisiOku, guvenliYol, hizLimitAsildi, dosyaYukleyici,
 } = require("../web");
 
 // Bölümdeki benzersiz kişi sayısı (ekip liderleri + üyeler; aynı isim bir kez sayılır)
@@ -290,11 +290,14 @@ module.exports = function register(app) {
     res.render("5s_onceki_aylar", { title: "5S — Denetim Listesi", gecmis });
   }));
 
-  app.get("/5s/aksiyonlar", sar(async (req, res) => {
-    const acikGruplar = await C.aksiyonGruplari("acik", req.session);
-    const kapaliGruplar = await C.aksiyonGruplari("kapali", req.session);
+  // Aksiyonlar girişe kapalı: yönetici hepsini, denetmen / bölüm lideri YALNIZ kendi aksiyonlarını görür
+  // (kapatabileceği ya da sorumlusu olduğu). Excel/ZIP indirme yalnız aksiyon yetkili yöneticide.
+  app.get("/5s/aksiyonlar", girisRequired, sar(async (req, res) => {
+    const kisiAd = !req.yetkiBilgi.yonetici && req.denetmen ? req.denetmen.ad : null;
+    const acikGruplar = await C.aksiyonGruplari("acik", req.session, kisiAd);
+    const kapaliGruplar = await C.aksiyonGruplari("kapali", req.session, kisiAd);
     res.render("5s_aksiyonlar", {
-      title: "5S Aksiyonlar",
+      title: kisiAd ? "5S Aksiyonlarım" : "5S Aksiyonlar", kendi: Boolean(kisiAd),
       acik_gruplar: acikGruplar, kapali_gruplar: kapaliGruplar,
       toplam_acik: acikGruplar.reduce((a, g) => a + g.toplam, 0),
       toplam_kapali: kapaliGruplar.reduce((a, g) => a + g.toplam, 0),

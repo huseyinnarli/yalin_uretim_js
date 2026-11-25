@@ -98,7 +98,7 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | `src/rotalar/genel.js` | Anasayfa, kılavuz, **panel**, liste (giriş + sayfalama), detay, **arşiv** (reddedilen + silinen, silinen detayı), **görevlerim**, puan durumu, ödül ver/sil, kişi gizle, **isim birleştirme**, Excel'ler |
 | `src/rotalar/oneri.js` | Öneri yeni (herkese açık) / düzenle (kayıt yetkisi veya düzeltmesi atanan denetmen) / Excel |
 | `src/rotalar/kaizen.js` | Kaizen yeni / **öneriden dönüştür** / düzenle / Excel / görsel servisi (girişli) |
-| `src/rotalar/bes_s.js` | 5S: bölümler (liste + trend), plan, denetim (yap/göster/**revize**/sil/Excel/ZIP), aksiyonlar, ödül işleme, geçmiş, görsel servisleri |
+| `src/rotalar/bes_s.js` | 5S: bölümler (liste + trend), plan, denetim (yap/göster/**revize**/sil/Excel/ZIP), aksiyonlar (girişli; denetmen / bölüm lideri yalnız kendi aksiyonları: `aksiyonGruplari(durum, session, kisiAd)` — kapatabileceği ya da sorumlusu olduğu), ödül işleme, geçmiş, görsel servisleri. **Excel/ZIP uçlarının hepsi yönetici yetkisi ister** (kontrol formu Excel'i dahil: `adminRequired`); denetmen hiçbir dosya indiremez |
 | `src/rotalar/ayarlar.js` | **Puan ve Ödül Ayarları** (yalnız ana yönetici): görüntüle, önizle (`islem=onizle`), kaydet, kural sürümü kaldır |
 | `src/rotalar/bolumler.js` | **Yönetim › Bölümler ve Görevler** (`/yonetici/bolumler`, yetki `bes_plan`): bölüm toplu ekleme, tek "Kaydet" ile ad + 5S'e dahil, silme (geçmişli bölümde denetim sayısı uyarısı); bölüm sayfası `/yonetici/bolumler/:bid` (ekip lideri, personel toplu ekleme/çıkarma); görev tanımları `/yonetici/gorevler/ekle\|kaydet\|sil` |
 | `src/rotalar/kontrol.js` | **Periyodik kontrol formu**: görüntüle (`?tarih=`), doldur, haftalık/aylık imza, Excel (`?ay=` — yalnız o ay) |
@@ -424,5 +424,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 265 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 273 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

@@ -7,7 +7,7 @@
         <button type="button" class="btn ghost tab-btn" data-tab="bolumler"><%- ik('factory') %> Bölümler</button>
         <button type="button" class="btn ghost tab-btn" data-tab="plan"><%- ik('clipboard-list') %> Denetim Planı</button>
         <a class="btn ghost" href="/5s/gecmis"><%- ik('folder') %> Geçmiş Denetimler</a>
-        <a class="btn ghost" href="/5s/aksiyonlar"><%- ik('flag') %> Aksiyonlar</a>
+        <% if (girisli) { %><a class="btn ghost" href="/5s/aksiyonlar"><%- ik('flag') %> <%= admin ? 'Aksiyonlar' : 'Aksiyonlarım' %></a><% } %>
         <% if (yetki('bes_odul')) { %>
         <a class="btn ghost" href="/5s/denetim-excel"><%- ik('download') %> Denetim Excel</a>
         <% } %>
@@ -96,7 +96,7 @@
                 </td>
                 <td class="nowrap" data-label="Son Denetim"><%= b._son ? trdate(b._son.denetim_tarihi || b._son.tarih) : '—' %></td>
                 <td data-label="Açık Aksiyon">
-                    <% if (b._acik_aksiyon) { %><a class="aksiyon-rozet acik" href="/5s/aksiyonlar"><%- ik('flag') %> <%= b._acik_aksiyon %> açık</a>
+                    <% if (b._acik_aksiyon) { %><<%= girisli ? 'a href="/5s/aksiyonlar"' : 'span' %> class="aksiyon-rozet acik"><%- ik('flag') %> <%= b._acik_aksiyon %> açık</<%= girisli ? 'a' : 'span' %>>
                     <% } else { %><span class="bos-not">—</span><% } %>
                 </td>
                 <td class="nowrap" data-label="Bu Ay Kontrol">

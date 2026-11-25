@@ -20,7 +20,7 @@
         <a class="btn ghost" href="/5s/bolum/<%= b.id %>">← Bölüm</a>
         <a class="btn ghost" href="/5s/bolum/<%= b.id %>/kontrol?ay=<%= onceki_ay %>">‹ Önceki Ay</a>
         <a class="btn ghost" href="/5s/bolum/<%= b.id %>/kontrol?ay=<%= sonraki_ay %>">Sonraki Ay ›</a>
-        <% if (girisli) { %>
+        <% if (admin) { %>
         <form method="get" action="/5s/bolum/<%= b.id %>/kontrol/excel" class="excel-ay-form"
               title="Seçilen ayın formu indirilir (kâğıt formdaki düzen + özet sayfası)">
             <select name="ay" aria-label="Excel: hangi ay">

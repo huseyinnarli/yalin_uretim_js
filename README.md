@@ -165,7 +165,9 @@ saklar; ad değişikliği eski kayıtları değiştirmez, düzenlemede listeden 
 
 | | Herkes (girişsiz) | Denetmen | Ek yönetici | Ana yönetici |
 |---|---|---|---|---|
-| Öneri/kaizen formu, puan listesi, 5S sonuçları, aksiyonlar, kontrol formları | ✅ | ✅ | ✅ | ✅ |
+| Öneri/kaizen formu, puan listesi, 5S sonuçları, kontrol formları | ✅ | ✅ | ✅ | ✅ |
+| 5S aksiyonları | ❌ | yalnız kendi aksiyonları | ✅ | ✅ |
+| Excel / ZIP dosyası indirme | ❌ | ❌ | verilen yetkiyle | ✅ |
 | Öneri/kaizen listesi ve detayları, Panel, Reddedilen & Silinen | ❌ | ✅ (görüntüleme) | ✅ | ✅ |
 | Kendisine planlanan 5S denetimi, lideri olduğu bölümün aksiyonu ve kontrol formu | ❌ | ✅ | yetkiyle | ✅ |
 | Kendisine atanan düzeltme ve kaizene dönüştürme görevi | ❌ | ✅ | — | — |
