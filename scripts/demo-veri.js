@@ -234,11 +234,13 @@ async function main() {
     const { puanlama, toplam } = puanFormu();
     await calistir(
       `INSERT INTO kaizenler(\`no\`, baslangic, bitis, konu, bolum, lider, lider_gorevi, uyeler, uye_gorevleri,
-         sorumlular, kazanclar, onceki, sonraki, onceki_gorsel, sonraki_gorsel, durum, puan, puanlama, degerlendirme_notu,
-         kayit_zamani, kaynak_oneri_no)
-       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'','',?,?,?,?,?,?)`,
+         sorumlular, kazanclar, onceki, sonraki, onceki_maliyet, sonraki_maliyet, onceki_gorsel, sonraki_gorsel, durum,
+         puan, puanlama, degerlendirme_notu, kayit_zamani, kaynak_oneri_no)
+       VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'','',?,?,?,?,?,?)`,
       [no, iso(d), iso(new Date(d.getTime() + 10 * 864e5)), konu, bolum, lider, "Ekip Lideri",
         js(uyeler), js(uyeler.map((_, k) => (k ? "Usta" : "Üretim Operatörü"))), [lider, ...uyeler].join(", "), js(["Setup", "Kalite", "5S"].slice(0, 1 + (i % 3))), onceki, sonraki,
+        // Yıllık maliyet örnekleri (€): çoğunda kazanç, birinde (i = 3) yatırım nedeniyle zarar
+        [4800, 2600, 12500, 900, 3200, 7400, 1500][i % 7], [1900, 1100, 8300, 1350, 1200, 5100, 600][i % 7],
         puanli ? "Onaylandı" : "Değerlendiriliyor", puanli ? toplam : null, puanli ? js(puanlama) : null,
         puanli ? "Komite değerlendirmesi" : "", zaman(d), i === 0 ? kaynak.no : null]);
     if (i === 0) await calistir("UPDATE oneriler SET kaizen_no = ? WHERE `no` = ?", [no, kaynak.no]);

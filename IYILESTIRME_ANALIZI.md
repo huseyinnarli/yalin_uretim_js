@@ -89,7 +89,7 @@ oturumu → ortak şablon değişkenleri + yetki çözümü (her istekte veritab
 reddedilir; böylece CSRF denetimi gövde çözümleme sırası üzerinden atlatılamaz.
 
 ### 2.5 Veri modeli
-19 tablo, InnoDB, `utf8mb4_turkish_ci`. Ekim sürümünde 3 tablo ve 26 kolon, Kasım 2026 bölüm listesi ve görevlerle 4, onaylı öneri havuzuyla 7 kolon daha eklendi (toplam 37); hiçbir kolon silinmedi/değişmedi.
+19 tablo, InnoDB, `utf8mb4_turkish_ci`. Ekim sürümünde 3 tablo ve 26 kolon, Kasım 2026 bölüm listesi ve görevlerle 4, onaylı öneri havuzuyla 7, kaizen maliyet hesabıyla 2 kolon daha eklendi (toplam 39); hiçbir kolon silinmedi/değişmedi.
 
 | Karar | Değerlendirme |
 |---|---|

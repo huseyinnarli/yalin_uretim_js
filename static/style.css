@@ -128,6 +128,18 @@ legend { font-weight: 700; padding: 0 8px; color: var(--primary); }
 .chk:hover { border-color: var(--kaizen); }
 .chk input { width: 17px; height: 17px; accent-color: var(--kaizen); }
 .prepost .field { flex: 1 1 320px; }
+/* Kaizen maliyet hesabı (€) */
+.prepost .field textarea + label { margin-top: 10px; }
+.para-kutu { position: relative; }
+.para-kutu input { padding-right: 34px; }
+.para-kutu span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 700; pointer-events: none; }
+.maliyet-sonuc { font-weight: 700; margin: 10px 0 2px; padding: 8px 12px; border-radius: 8px; background: #f3f5f7; }
+.maliyet-sonuc:empty { display: none; }
+.maliyet-sonuc.kazanc { background: #e4f6ec; color: #1e6b43; }
+.maliyet-sonuc.zarar { background: #fcebea; color: #a4322a; }
+.maliyet-sonuc small { font-weight: 400; opacity: .8; }
+.maliyet-not { margin-top: 4px; }
+.pp-maliyet { margin-top: 6px !important; }
 
 /* Ek yönetici yetki kutuları + satırları */
 .yetki-kutulari { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }

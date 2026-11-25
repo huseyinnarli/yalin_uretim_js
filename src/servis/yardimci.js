@@ -65,6 +65,34 @@ function puanfmt(v) {
   return s.replace(".", ",");
 }
 
+// Para (€) girişi: "1250", "1250,5", "1.250,50", "1250.50" kabul; eksi değer ve harf kabul edilmez.
+// Döner: { deger: number|null, hata: string|null } — boş girişte deger null, hata null (zorunluluğu çağıran denetler)
+const PARA_MAX = 999999999999.99;
+function paraOku(metin) {
+  let s = String(metin ?? "").replace(/[\s€]/g, "");
+  if (!s) return { deger: null, hata: null };
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", "."); // Türkçe yazım: nokta binlik, virgül ondalık
+  if (!/^\d+(\.\d{1,2})?$/.test(s)) return { deger: null, hata: "Maliyet € cinsinden sayı olmalı (ör. 1250,50); eksi değer girilemez." };
+  const n = Number(s);
+  if (!(n <= PARA_MAX)) return { deger: null, hata: "Maliyet çok büyük." };
+  return { deger: n, hata: null };
+}
+// 1250.5 → "1.250,50 €" (sayı değilse "—")
+function paraFmt(v) {
+  const n = Number(v);
+  if (v === null || v === undefined || v === "" || Number.isNaN(n)) return "—";
+  return n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+}
+// Kaizen maliyet farkı: önceki − sonraki. İkisi de yoksa null. Döner: { fark, tur: "kazanc"|"zarar"|"yok", metin }
+function maliyetFarki(k) {
+  if (!k || k.onceki_maliyet === null || k.onceki_maliyet === undefined
+    || k.sonraki_maliyet === null || k.sonraki_maliyet === undefined) return null;
+  const fark = Math.round((Number(k.onceki_maliyet) - Number(k.sonraki_maliyet)) * 100) / 100;
+  if (fark > 0) return { fark, tur: "kazanc", metin: `Kazanç: ${paraFmt(fark)}` };
+  if (fark < 0) return { fark, tur: "zarar", metin: `Zarar: ${paraFmt(-fark)}` };
+  return { fark: 0, tur: "yok", metin: "Maliyet farkı yok (0,00 €)" };
+}
+
 // Görsel doğrulama + işleme: dosya imzası (magic bytes) kontrolünden sonra sharp ile
 // yeniden kodlanır — EXIF yönü düzeltilir, metadata (GPS/konum dahil) TEMİZLENİR,
 // büyük görseller 1600px'e küçültülür, JPEG'ler kalite 85 kaydedilir.
@@ -128,5 +156,6 @@ function _logoAra() {
 }
 
 module.exports = {
-  uid, nextNumber, safeName, allowedFile, guvenliYol, trdate, ayEtiketi, puanfmt, gorselKaydet, logoBul,
+  uid, nextNumber, safeName, allowedFile, guvenliYol, trdate, ayEtiketi, puanfmt, paraOku, paraFmt, maliyetFarki,
+  gorselKaydet, logoBul,
 };

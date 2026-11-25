@@ -267,11 +267,29 @@ async function main() {
     // Dosya kabul etmeyen uca multipart → 400 (CSRF atlatma kapısı yok)
     const rm = await postMultipart("/durum", { csrf_token: csrf, tip: "oneri", no, durum: "Onaylandı" });
     ok("dosya kabul etmeyen uca multipart reddedildi", rm.status === 400);
-    // Kaizen: görselli kayıt (2 dosya sınırının içinde)
+    // Kaizen maliyet hesabı (€): önceki + sonraki maliyet zorunlu, sayı ve eksi olmayan
+    const kzTemel = { csrf_token: csrf, baslangic: bugun, konu: "Maliyet kaizeni", bolum: "Kaynak",
+      lider: "Foto Test", onceki: "Önce", sonraki: "Sonra" };
+    html = await getText("/kaizen/yeni");
+    ok("kaizen formunda önceki/sonraki maliyet (€) kutuları zorunlu",
+      /name="onceki_maliyet"[^>]*required/.test(html) && /name="sonraki_maliyet"[^>]*required/.test(html) && html.includes("Önceki Durum Maliyeti (€)"));
+    // (veritabanı bağlantısı testin ilerisinde açılır — burada liste üzerinden sayılır)
+    const mkSay = async () => ((await getText("/liste?q=" + encodeURIComponent("Maliyet kaizeni"))).match(/>Maliyet kaizeni</g) || []).length;
+    html = await (await postMultipart("/kaizen/yeni", kzTemel)).text();
+    ok("maliyet girilmeden kaizen kaydedilmez", html.includes("maliyetini (€) girin") && (await mkSay()) === 0);
+    html = await (await postMultipart("/kaizen/yeni", { ...kzTemel, onceki_maliyet: "1000", sonraki_maliyet: "abc" })).text();
+    ok("sayı olmayan maliyet reddedildi", html.includes("Maliyet € cinsinden sayı olmalı") && (await mkSay()) === 0);
+    html = await (await postMultipart("/kaizen/yeni", { ...kzTemel, onceki_maliyet: "-5", sonraki_maliyet: "0" })).text();
+    ok("eksi maliyet reddedildi", html.includes("eksi değer girilemez") && (await mkSay()) === 0);
+    // Kaizen: görselli kayıt (2 dosya sınırının içinde) + Türkçe yazımlı maliyet
     await postMultipart("/kaizen/yeni", {
       csrf_token: csrf, baslangic: bugun, konu: "Görselli kaizen", bolum: "Kaynak",
-      lider: "Foto Test", onceki: "Önce", sonraki: "Sonra",
+      lider: "Foto Test", onceki: "Önce", sonraki: "Sonra", onceki_maliyet: "1.250,50", sonraki_maliyet: "900",
     }, { onceki_gorsel: ["once.png", MINI_PNG], sonraki_gorsel: ["sonra.png", MINI_PNG] });
+    const gkmNo = ((await getText("/liste?q=" + encodeURIComponent("Görselli kaizen"))).match(/ÖSKFR\d{4}-\d{2}/) || [""])[0];
+    html = await getText(`/detay?tip=kaizen&no=${encodeURIComponent(gkmNo)}`);
+    ok("Türkçe yazımlı maliyet kaydedildi; detayda maliyetler ve kazanç", html.includes("1.250,50 €") && html.includes("900,00 €")
+      && html.includes("maliyet-sonuc kazanc") && html.includes("Kazanç: 350,50 €"));
     html = await getText("/liste");
     const kno = (html.match(/ÖSKFR\d{4}-\d{2}/) || [])[0];
     ok("görselli kaizen kaydedildi", Boolean(kno));
@@ -504,11 +522,13 @@ async function main() {
     ok("kaizene dönüştürme formu öneriyle dolu", html.includes(gorNo) && html.includes('name="kaynak_oneri"'));
     r = await postMultipart("/kaizen/yeni", { csrf_token: csrf, bolum: "Montaj", kaynak_oneri: gorNo, baslangic: bugun,
       konu: "Dönüşen kaizen", lider_ad: "Deniz", lider_soyad: "Denetmen", uye1_ad: "Ali", uye1_soyad: "Test",
-      onceki: "Önce", sonraki: "Sonra" });
+      onceki: "Önce", sonraki: "Sonra", onceki_maliyet: "400", sonraki_maliyet: "650" });
     const [[dk]] = await db.query("SELECT kaizen_no FROM oneriler WHERE `no` = ?", [gorNo]);
     ok("öneri kaizene dönüştü (bağlandı)", Boolean(dk.kaizen_no) && konum(r) === "/gorevlerim");
     const [[kk]] = await db.query("SELECT kaynak_oneri_no, uyeler FROM kaizenler WHERE `no` = ?", [dk.kaizen_no || ""]);
     ok("kaizende kaynak öneri kayıtlı", kk && kk.kaynak_oneri_no === gorNo);
+    html = await getText(`/detay?tip=kaizen&no=${encodeURIComponent(dk.kaizen_no || "")}`);
+    ok("maliyet artınca detayda zarar (kırmızı)", html.includes("maliyet-sonuc zarar") && html.includes("Zarar: 250,00 €"));
     r = await get(`/kaizen/yeni?oneri=${encodeURIComponent(gorNo)}`);
     ok("ikinci dönüştürme engellendi", r.status === 302);
     html = await getText("/panel");
@@ -900,8 +920,13 @@ async function main() {
     ok("bölüm adı sayfada kaçışlı", html.includes("&lt;b&gt;Xss&lt;/b&gt;") && !html.includes("<b>Xss</b>"));
     html = await getText("/5s");
     ok("5S bölüm tablosunda 5S dışı bölüm yok", !html.includes("İdari İşler") && html.includes("3 bölüm 5S dışında"));
+    // Üst menüde 5S yalnız girişliye; girişsiz ziyaretçi ana sayfadaki kutudan ulaşır
+    html = await getText("/");
+    ok("girişli üst menüde 5S var", html.includes('<a href="/5s">🧹 5S</a>'));
     // Öneri formu: açılır liste + sunucu doğrulaması (girişsiz)
     await get("/yonetici/cikis");
+    html = await getText("/");
+    ok("girişsiz üst menüde 5S yok, ana sayfa kutusu duruyor", !html.includes('<a href="/5s">🧹 5S</a>') && html.includes('class="hub-box" href="/5s"'));
     html = await getText("/oneri/yeni");
     const anonCsrf = csrfFrom(html);
     ok("öneri formunda bölüm açılır listesi (5S dışı bölümler de)",
@@ -917,7 +942,7 @@ async function main() {
     html = await getText("/kaizen/yeni");
     ok("kaizen formunda aynı bölüm listesi", html.includes('<select id="bolum" name="bolum" required>') && html.includes('<option value="Satın Alma"'));
     html = await (await postMultipart("/kaizen/yeni", { csrf_token: anonCsrf, baslangic: bugun, konu: "Bölümsüz kaizen",
-      bolum: "", lider_ad: "Kai", lider_soyad: "Zen", onceki: "o", sonraki: "s" })).text();
+      bolum: "", lider_ad: "Kai", lider_soyad: "Zen", onceki: "o", sonraki: "s", onceki_maliyet: "0", sonraki_maliyet: "0" })).text();
     const [[kzSay]] = await db.query("SELECT COUNT(*) AS n FROM kaizenler WHERE konu = 'Bölümsüz kaizen'");
     ok("kaizende bölüm seçimi zorunlu", html.includes('flash error">Bölüm seçin.') && kzSay.n === 0);
     // Tek kaydet: ad değiştirme + 5S dışına alma; çakışan ad hiçbir şeyi kaydetmez
@@ -952,6 +977,22 @@ async function main() {
     csrf = await girisYap("admin123");
     html = await getText(`/kaizen/duzenle?no=${encodeURIComponent(eskiKz.no)}`);
     ok("düzenlemede eski bölüm seçili kalır (listede yok)", html.includes('<option value="Kaynak" selected>Kaynak (eski kayıt — listede yok)</option>'));
+    // Maliyeti olmayan eski kaizen: detayda not; düzenlerken maliyet zorunlu
+    await db.query("INSERT INTO kaizenler(`no`, baslangic, konu, bolum, lider, uyeler, sorumlular, onceki, sonraki, durum, kayit_zamani) " +
+      "VALUES('ÖSKFR9901-01', '2025-01-10', 'Eski maliyetsiz kaizen', 'Montaj', 'Eski Lider', '[]', 'Eski Lider', 'ö', 's', 'Değerlendiriliyor', '')");
+    html = await getText(`/detay?tip=kaizen&no=${encodeURIComponent("ÖSKFR9901-01")}`);
+    ok("maliyetsiz eski kaizen detayı açılır (not gösterilir)", html.includes("Maliyet hesabı girilmemiş"));
+    const eskiDuzenle = `/kaizen/duzenle?no=${encodeURIComponent("ÖSKFR9901-01")}`;
+    const eskiForm = { csrf_token: csrf, baslangic: "2025-01-10", konu: "Eski maliyetsiz kaizen", bolum: "Montaj",
+      lider_ad: "Eski", lider_soyad: "Lider", onceki: "ö", sonraki: "s" };
+    html = await (await postMultipart(eskiDuzenle, eskiForm)).text();
+    let [[eskiM]] = await db.query("SELECT onceki_maliyet FROM kaizenler WHERE `no` = 'ÖSKFR9901-01'");
+    ok("eski kaizen düzenlenirken maliyet zorunlu", html.includes("maliyetini (€) girin") && eskiM.onceki_maliyet === null);
+    await postMultipart(eskiDuzenle, { ...eskiForm, onceki_maliyet: "2000", sonraki_maliyet: "1500,25" });
+    [[eskiM]] = await db.query("SELECT onceki_maliyet, sonraki_maliyet FROM kaizenler WHERE `no` = 'ÖSKFR9901-01'");
+    ok("düzenlemede maliyet kaydedildi", Number(eskiM.onceki_maliyet) === 2000 && Number(eskiM.sonraki_maliyet) === 1500.25);
+    html = await getText(eskiDuzenle);
+    ok("düzenleme formunda kayıtlı maliyet dolu", html.includes('value="2000"') && html.includes('value="1500.25"'));
     // Denetim turu yalnız 5S'e dahil bölümler için açılır
     await post("/5s/denetim-turu", { csrf_token: csrf, baslangic: "2027-03-01", bitis: "2027-03-05" });
     const [turBolum] = await db.query("SELECT bolum_id FROM denetimler WHERE tarih = '2027-03-01'");
@@ -1060,7 +1101,7 @@ async function main() {
       html.includes('<select id="lider_gorevi" name="lider_gorevi" required>') && html.includes('<select id="uye1_gorevi" name="uye1_gorevi">'));
     const kzForm = { csrf_token: anonG, baslangic: bugun, konu: "Görevli kaizen", bolum: "Montaj", lider_ad: "Kai",
       lider_soyad: "Lider", lider_gorevi: "Ekip Lideri", uye1_ad: "Üye", uye1_soyad: "Bir", uye1_gorevi: "",
-      uye2_ad: "", uye2_soyad: "", uye2_gorevi: "", onceki: "o", sonraki: "s" };
+      uye2_ad: "", uye2_soyad: "", uye2_gorevi: "", onceki: "o", sonraki: "s", onceki_maliyet: "100", sonraki_maliyet: "100" };
     html = await (await postMultipart("/kaizen/yeni", kzForm)).text();
     ok("kaizende üye yazıldıysa görevi zorunlu", html.includes('flash error">Üye Bir için görev seçin.'));
     html = await (await postMultipart("/kaizen/yeni", { ...kzForm, lider_gorevi: "" })).text();
@@ -1083,9 +1124,16 @@ async function main() {
     const bK = wsK.getRow(1).values.slice(1);
     let kzSatir = null;
     wsK.eachRow((row) => { if (row.getCell(1).value === gkz.no) kzSatir = row; });
-    ok("kaizen Excel'inde son sütunlar Lider Görevi / Üye Görevleri",
-      bK.slice(-2).join("|") === "Lider Görevi|Üye Görevleri" && kzSatir
-      && kzSatir.getCell(bK.length - 1).value === "Ekip Lideri" && kzSatir.getCell(bK.length).value === "Üye Bir: Operatör");
+    const lgSutun = bK.indexOf("Lider Görevi") + 1;
+    ok("kaizen Excel'inde Lider Görevi / Üye Görevleri sütunları",
+      lgSutun === 21 && bK[lgSutun] === "Üye Görevleri" && kzSatir
+      && kzSatir.getCell(lgSutun).value === "Ekip Lideri" && kzSatir.getCell(lgSutun + 1).value === "Üye Bir: Operatör");
+    let dkSatir = null;
+    wsK.eachRow((row) => { if (row.getCell(1).value === dk.kaizen_no) dkSatir = row; });
+    ok("kaizen Excel'inin son 3 sütunu maliyet (€): önceki, sonraki, kazanç/zarar (sayı)",
+      bK.slice(-3).join("|") === "Önceki Maliyet (€)|Sonraki Maliyet (€)|Kazanç (+) / Zarar (−) (€)" && dkSatir
+      && dkSatir.getCell(bK.length - 2).value === 400 && dkSatir.getCell(bK.length).value === -250
+      && kzSatir.getCell(bK.length).value === 0 && /€/.test(dkSatir.getCell(bK.length).numFmt || ""));
 
     await db.end();
   } finally {

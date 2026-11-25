@@ -116,6 +116,7 @@
         <div class="pp-col">
             <div class="pp-label before">ÖNCEKİ DURUM</div>
             <p><%= r.onceki || '—' %></p>
+            <% if (r.onceki_maliyet != null) { %><p class="pp-maliyet">💶 Maliyet: <strong><%= parafmt(r.onceki_maliyet) %></strong></p><% } %>
             <% if (r.onceki_gorsel) { %>
             <a href="/kaizen/gorsel/<%= encodeURIComponent(r.onceki_gorsel) %>" target="_blank">
                 <img loading="lazy" src="/kaizen/gorsel/<%= encodeURIComponent(r.onceki_gorsel) %>" alt="önce">
@@ -125,6 +126,7 @@
         <div class="pp-col">
             <div class="pp-label after">SONRAKİ DURUM</div>
             <p><%= r.sonraki || '—' %></p>
+            <% if (r.sonraki_maliyet != null) { %><p class="pp-maliyet">💶 Maliyet: <strong><%= parafmt(r.sonraki_maliyet) %></strong></p><% } %>
             <% if (r.sonraki_gorsel) { %>
             <a href="/kaizen/gorsel/<%= encodeURIComponent(r.sonraki_gorsel) %>" target="_blank">
                 <img loading="lazy" src="/kaizen/gorsel/<%= encodeURIComponent(r.sonraki_gorsel) %>" alt="sonra">
@@ -132,6 +134,9 @@
             <% } %>
         </div>
     </div>
+    <% const mf = maliyetFarki(r); %>
+    <% if (mf) { %><p class="maliyet-sonuc <%= mf.tur %>">💶 <%= mf.metin %> <small>(önceki − sonraki maliyet)</small></p>
+    <% } else { %><p class="bos-not">💶 Maliyet hesabı girilmemiş (eski kayıt).</p><% } %>
     <% } %>
 
     <% if (r.puanlama) { const pz = r.puanlama;

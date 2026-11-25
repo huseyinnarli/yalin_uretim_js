@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 241 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 254 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -195,8 +195,12 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     `5S_Kontrol_Formu_<Bölüm>_<ay>.xlsx`; `generateKontrolExcel` önce form sayfası(ları), sonra ÖZET (üretici hâlâ çok ayı
     destekler). Düğme "⬇ Excel (seçilen ay)". Veritabanı değişmedi. e2e 237/237.
 25. **Mobil menü + 5S menüde + liste bölüm filtresi** (25 Kasım): `style.css` ≤1160 px düğme düzeni, 1161–1380 px
-    `.brand-logo + span` gizli; üst menüde `/5s` (herkese); `kayitlar.filtrele(..., bolum)` (`L.anahtar` ile, `BOLUMSUZ = "-"`),
+    `.brand-logo + span` gizli; üst menüde `/5s` (yalnız girişli); `kayitlar.filtrele(..., bolum)` (`L.anahtar` ile, `BOLUMSUZ = "-"`),
     `listeBolumleri(records, bolumAdlari)`; listede Bölüm sütunu. e2e 241/241.
+26. **Kaizen maliyet hesabı (€)** (25 Kasım): `kaizenler.onceki_maliyet/sonraki_maliyet` DECIMAL(14,2) (EK_KOLONLAR → 39 kolon;
+    `kaizenRow` sayıya çevirir, yoksa null); formda zorunlu (`kaizen.js:maliyetOku`, saf `yardimci.paraOku` — `1.250,50`/`1250.5`
+    kabul, eksi yok); `paraFmt`, `maliyetFarki` (önceki − sonraki → kazanç/zarar; `res.locals.parafmt/maliyetFarki`); formda
+    canlı fark (satır içi betik), detayda kazanç/zarar, kaizen Excel'inin son 3 sütunu (€ biçimli). e2e 254/254.
 
 ## Açık konular
 
@@ -207,5 +211,8 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
   rota bölünmesi + lint + birim test, Ö4 FK, Ö2 Excel worker, Ö3 log + `/saglik`, Ö11 sicil no.
 - Giriş "şifre = kimlik": her başarısız giriş tüm hesap hash'lerini `pbkdf2Sync` ile tarar (hesap başına
   ~0,28 sn, olay döngüsünü bloklar). Komite puanlaması (15 hesap) konuşuldu — yapılırsa önce Ö10.
+- Fikir (25 Kasım, kullanıcı "şimdilik manuel, ileride belki" dedi): öneri/kaizen formlarında kişi adını bölüm personeli
+  listesinden seçtirme (bölüm seç → o bölümün personeli; kaizende tüm personel aranabilir) + "Listede yok, elle yaz" yedeği.
+  Dikkat: formlar girişsiz ve site internete açık → tüm çalışan adlarını açık sayfada listelemek KVKK konusu; önce İK/bilgi işlemle konuşulmalı.
 - Karar bekliyor: ZIP/Excel dosya adındaki tarih tur başlangıç tarihi (`d.tarih`) —
   gerçekleşme tarihine (`denetim_tarihi`) çevrilmesi önerildi, kullanıcı henüz onaylamadı.

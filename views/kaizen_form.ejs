@@ -85,6 +85,9 @@
         <div class="field">
             <label>Önceki Durum (Açıklama) *</label>
             <textarea name="onceki" rows="4" required placeholder="İyileştirme öncesi durumu açıklayın"><%= kayit.onceki || '' %></textarea>
+            <label for="onceki_maliyet">Önceki Durum Maliyeti (€) *</label>
+            <div class="para-kutu"><input type="text" id="onceki_maliyet" name="onceki_maliyet" inputmode="decimal" required
+                autocomplete="off" placeholder="ör. 1250,50" data-maliyet value="<%= kayit.onceki_maliyet ?? '' %>"><span>€</span></div>
             <label class="file-label">Önceki Durum Görseli</label>
             <% if (kayit.onceki_gorsel) { %>
             <div class="mevcut-gorsel">
@@ -97,6 +100,9 @@
         <div class="field">
             <label>Sonraki Durum (Açıklama) *</label>
             <textarea name="sonraki" rows="4" required placeholder="İyileştirme sonrası durumu açıklayın"><%= kayit.sonraki || '' %></textarea>
+            <label for="sonraki_maliyet">Sonraki Durum Maliyeti (€) *</label>
+            <div class="para-kutu"><input type="text" id="sonraki_maliyet" name="sonraki_maliyet" inputmode="decimal" required
+                autocomplete="off" placeholder="ör. 900" data-maliyet value="<%= kayit.sonraki_maliyet ?? '' %>"><span>€</span></div>
             <label class="file-label">Sonraki Durum Görseli</label>
             <% if (kayit.sonraki_gorsel) { %>
             <div class="mevcut-gorsel">
@@ -107,6 +113,33 @@
             <input type="file" name="sonraki_gorsel" accept="image/*">
         </div>
     </div>
+    <p class="maliyet-sonuc" id="maliyet-sonuc" aria-live="polite"></p>
+    <p class="bos-not maliyet-not">💶 Maliyet hesabı: iki durumu <strong>aynı dönem</strong> için girin (ör. yıllık). Fark
+        (önceki − sonraki) kazancı ya da zararı gösterir. Maliyet yoksa 0 yazın.</p>
+    <script>
+    // Maliyet farkının canlı gösterimi (sunucu da aynı kuralla doğrular: yardimci.js paraOku)
+    (function () {
+        var kutular = document.querySelectorAll('[data-maliyet]'), sonuc = document.getElementById('maliyet-sonuc');
+        function oku(v) {
+            var s = String(v || '').replace(/[\s€]/g, '');
+            if (!s) return null;
+            if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+            return /^\d+(\.\d{1,2})?$/.test(s) ? Number(s) : NaN;
+        }
+        function fmt(n) { return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+        function guncelle() {
+            var o = oku(kutular[0].value), s = oku(kutular[1].value);
+            sonuc.className = 'maliyet-sonuc';
+            if (o === null || s === null) { sonuc.textContent = ''; return; }
+            if (isNaN(o) || isNaN(s)) { sonuc.textContent = 'Maliyet sayı olmalı (ör. 1250,50).'; sonuc.className += ' zarar'; return; }
+            var f = Math.round((o - s) * 100) / 100;
+            sonuc.textContent = f > 0 ? '💶 Kazanç: ' + fmt(f) : (f < 0 ? '💶 Zarar: ' + fmt(-f) : '💶 Maliyet farkı yok (0,00 €)');
+            sonuc.className += f > 0 ? ' kazanc' : (f < 0 ? ' zarar' : '');
+        }
+        for (var i = 0; i < kutular.length; i++) kutular[i].addEventListener('input', guncelle);
+        guncelle();
+    })();
+    </script>
 
     <div class="form-actions">
         <button type="submit" class="btn primary"><%= duzenle ? "Değişiklikleri Kaydet" : "Kaizeni Kaydet" %></button>

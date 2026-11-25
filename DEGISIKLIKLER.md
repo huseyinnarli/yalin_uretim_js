@@ -1,8 +1,22 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — Kaizen maliyet hesabı (€)
+
+- Kaizen formunda **Önceki Durum** ve **Sonraki Durum** açıklamalarının altına **maliyet (€)** kutusu eklendi; ikisi de
+  **zorunlu** (maliyet yoksa 0). Türkçe yazım kabul: `1250,50`, `1.250,50`, `1250`. Eksi değer ve harf kabul edilmez.
+- Fark (önceki − sonraki) formda yazarken ve kaizen detayında görünür: pozitifse **Kazanç** (yeşil), negatifse **Zarar**
+  (kırmızı). İki durum aynı dönem için girilmeli (ör. yıllık) — formda not var.
+- Maliyeti olmayan **eski kaizenler** detayda "Maliyet hesabı girilmemiş" notuyla açılır; düzenlenirken (düzeltme dahil)
+  maliyet girilmesi istenir.
+- Kaizen Excel'inin sonuna **Önceki Maliyet (€)**, **Sonraki Maliyet (€)**, **Kazanç (+) / Zarar (−) (€)** sütunları
+  eklendi (sayı, € biçimli — Excel'de toplanabilir). Görsel sütunlarının yeri değişmedi.
+- **Veritabanı (yalnız ekleme):** `kaizenler.onceki_maliyet`, `kaizenler.sonraki_maliyet` (DECIMAL(14,2)). Eski sürüm
+  genişletilmiş veritabanında çalışır; eski sürümle girilen kaizende maliyet boş kalır (eski düzen veritabanıyla geçiş ve geri dönüş denendi).
+- e2e testi: **254/254**.
+
 ## 25 Kasım 2026 (devam) — Üst menüde 5S, listede bölüm filtresi
 
-- **Üst menüye 🧹 5S** eklendi (herkes görür; 5S sayfası girişsiz de açıktı, yalnız ana sayfadan ve Panel'den ulaşılıyordu).
+- **Üst menüye 🧹 5S** eklendi — yalnız giriş yapınca görünür (girişsiz ziyaretçi 5S'e ana sayfadaki kutudan ulaşmaya devam eder).
 - Üst menü yerleşimi: 1160 px ve altında (telefon, tablet, dar ekran) düğme düzeni — marka ortada, düğmeler her satırı
   doldurur. 1161–1380 px arasında (ör. 1280/1366 dizüstü) menü tek satıra sığsın diye logonun yanındaki marka yazısı
   gizlenir (logo adı zaten taşır; logo yoksa yazı görünür). Daha geniş ekranda değişiklik yok.

@@ -127,6 +127,8 @@ const ortakLocals = sar(async (req, res, next) => {
   res.locals.trdate = C.trdate;
   res.locals.bugun_iso = S.bugunIso(); // Türkiye saatiyle bugün (tarih alanlarında min= için)
   res.locals.puanfmt = C.puanfmt;
+  res.locals.parafmt = C.paraFmt;
+  res.locals.maliyetFarki = C.maliyetFarki;
   res.locals.adBol = I.adBol;
   res.locals.mesajlar = req.session.flash || [];
   delete req.session.flash;

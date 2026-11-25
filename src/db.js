@@ -244,6 +244,9 @@ const EK_KOLONLAR = [
   ["oneriler", "uygulanamadi_nedeni", "TEXT"],
   ["oneriler", "uygulama_isleyen", "VARCHAR(191)"],
   ["oneriler", "uygulama_zamani", "VARCHAR(20)"],
+  // Kaizen maliyet hesabı (€): önceki ve sonraki durum maliyeti; fark = kazanç (+) / zarar (−). Eski kayıtlarda NULL.
+  ["kaizenler", "onceki_maliyet", "DECIMAL(14,2) NULL"],
+  ["kaizenler", "sonraki_maliyet", "DECIMAL(14,2) NULL"],
 ];
 
 // Şemanın tek tek CREATE TABLE IF NOT EXISTS komutları
@@ -283,7 +286,10 @@ function oneriRow(r) {
 }
 function kaizenRow(r) {
   if (!r) return null;
+  // DECIMAL sürücüden metin gelir → sayı (yoksa / boşsa null)
+  const para = (v) => (v === null || v === undefined || v === "" || Number.isNaN(Number(v)) ? null : Number(v));
   return { ...r, tip: "kaizen", uyeler: j(r.uyeler, []), uye_gorevleri: j(r.uye_gorevleri, []),
+    onceki_maliyet: para(r.onceki_maliyet), sonraki_maliyet: para(r.sonraki_maliyet),
     kazanclar: j(r.kazanclar, []), puanlama: j(r.puanlama, null) };
 }
 function bolumRow(r) {

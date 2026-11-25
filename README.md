@@ -45,7 +45,8 @@ Alanlar: öneri sahibi (**ad** ve **soyad** ayrı kutularda), **görevi** ve **b
 
 ### Kaizen Formu (No: `ÖSKFR2607-01`) — herkese açık
 Başlangıç–bitiş tarihi, kazanç başlıkları (çoklu seçim), konu, **bölüm** (açılır listeden), **ekip** (her kişinin görevi açılır listeden; 1 lider + en fazla 2 üye; her biri
-ad/soyad ayrı), önceki/sonraki durum açıklaması **+ önce/sonra fotoğrafı**. Onaylanan öneriden dönüştürülürken
+ad/soyad ayrı), önceki/sonraki durum açıklaması **+ önce/sonra fotoğrafı**, **önceki/sonraki durum maliyeti (€, zorunlu;
+fark kazanç/zarar olarak gösterilir)**. Onaylanan öneriden dönüştürülürken
 form öneriden doldurulur ve kaizen öneriye bağlanır.
 
 ### Ortak listeler — Yönetim › 🏭 Bölümler ve Görevler

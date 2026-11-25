@@ -61,8 +61,18 @@ function formKaydi(req, ekip) {
     bolum: alan(req, "bolum"), lider: ekip.lider, uyeler: ekip.uyeler,
     lider_gorevi: ekip.liderGorevi, uye_gorevleri: ekip.uyeGorevleri,
     kazanclar: kazanclarOku(req), onceki: alan(req, "onceki"), sonraki: alan(req, "sonraki"),
+    onceki_maliyet: alan(req, "onceki_maliyet"), sonraki_maliyet: alan(req, "sonraki_maliyet"),
     kaynak_oneri_no: alan(req, "kaynak_oneri"),
   };
+}
+
+// Maliyet hesabı (€): önceki ve sonraki durum maliyeti ZORUNLU (maliyet yoksa 0). Döner: { onceki, sonraki, hata }
+function maliyetOku(req) {
+  const o = C.paraOku(alan(req, "onceki_maliyet"));
+  const s = C.paraOku(alan(req, "sonraki_maliyet"));
+  const hata = o.hata || s.hata || (o.deger === null || s.deger === null
+    ? "Önceki ve sonraki durum maliyetini (€) girin — maliyet yoksa 0 yazın." : null);
+  return { onceki: o.deger, sonraki: s.deger, hata };
 }
 
 // mevcut: düzenlemede kaydın veritabanındaki hâli (listeden kalkmış eski bölüm/görevler seçenek olarak kalır)
@@ -113,7 +123,8 @@ module.exports = function register(app) {
     S.ensureDirs();
     const ekip = ekipOku(req);
     const secim = C.bolumSecimi(alan(req, "bolum"), await C.bolumAdlari());
-    const hata = ekipHatasi(ekip, req) || secim.hata || await ekipGorevleriDogrula(ekip);
+    const maliyet = maliyetOku(req);
+    const hata = ekipHatasi(ekip, req) || maliyet.hata || secim.hata || await ekipGorevleriDogrula(ekip);
     const kayit = formKaydi(req, ekip);
     kayit.bolum = secim.bolum || kayit.bolum;
     if (hata) {
@@ -138,12 +149,13 @@ module.exports = function register(app) {
     await transaction(async (conn) => {
       await calistir(
         `INSERT INTO kaizenler(\`no\`, baslangic, bitis, konu, bolum, lider, lider_gorevi, uyeler, uye_gorevleri,
-          sorumlular, kazanclar, onceki, sonraki, onceki_gorsel, sonraki_gorsel,
+          sorumlular, kazanclar, onceki, sonraki, onceki_maliyet, sonraki_maliyet, onceki_gorsel, sonraki_gorsel,
           durum, puan, puanlama, kayit_zamani, kaynak_oneri_no)
-         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?,?)`,
+         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL,NULL,?,?)`,
         [no, kayit.baslangic, kayit.bitis, kayit.konu, kayit.bolum, ekip.lider, ekip.liderGorevi,
           js(ekip.uyeler), js(ekip.uyeGorevleri),
-          ekip.sorumlular, js(kayit.kazanclar), kayit.onceki, kayit.sonraki, gorselOnceki, gorselSonraki,
+          ekip.sorumlular, js(kayit.kazanclar), kayit.onceki, kayit.sonraki, maliyet.onceki, maliyet.sonraki,
+          gorselOnceki, gorselSonraki,
           S.VARSAYILAN_DURUM, now, oneri ? oneri.no : null], conn);
       if (oneri) {
         await calistir("UPDATE oneriler SET kaizen_no = ?, guncelleme_zamani = ? WHERE `no` = ?",
@@ -181,7 +193,8 @@ module.exports = function register(app) {
     const geri = guvenliYol(req.query.geri, "");
     const ekip = ekipOku(req);
     const secim = C.bolumSecimi(alan(req, "bolum"), await C.bolumAdlari(), eski.bolum);
-    const hata = ekipHatasi(ekip, req) || secim.hata || await ekipGorevleriDogrula(ekip, eski);
+    const maliyet = maliyetOku(req);
+    const hata = ekipHatasi(ekip, req) || maliyet.hata || secim.hata || await ekipGorevleriDogrula(ekip, eski);
     if (hata) {
       res.locals.mesajlar.push(["error", hata]);
       return await formRender(res, { ...eski, ...formKaydi(req, ekip), no }, true, geri, eski);
@@ -197,6 +210,7 @@ module.exports = function register(app) {
       uye_gorevleri: js(ekip.uyeGorevleri), sorumlular: ekip.sorumlular,
       kazanclar: js(kazanclarOku(req)),
       onceki: alan(req, "onceki"), sonraki: alan(req, "sonraki"),
+      onceki_maliyet: maliyet.onceki, sonraki_maliyet: maliyet.sonraki,
       // Yeni görsel yüklenmediyse mevcudu koru
       onceki_gorsel: yeniOnceki || eski.onceki_gorsel || "",
       sonraki_gorsel: yeniSonraki || eski.sonraki_gorsel || "",

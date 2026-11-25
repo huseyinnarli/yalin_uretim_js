@@ -86,10 +86,10 @@ async function generateKaizenExcel() {
     "Sorumlular", "Kazançlar", "Önceki Durum", "Sonraki Durum",
     "Önceki Görsel", "Sonraki Görsel", "Durum", "Puan", "Puan Detayı", "Kayıt Zamanı",
     "Red Nedeni", "Düzeltme Talebi", "Kaynak Öneri", "Lidere Yazılan Puan", "Üye Başına Yazılan Puan",
-    "Lider Görevi", "Üye Görevleri"];
+    "Lider Görevi", "Üye Görevleri", "Önceki Maliyet (€)", "Sonraki Maliyet (€)", "Kazanç (+) / Zarar (−) (€)"];
   ws.addRow(headers);
   styleHeader(ws, headers.length);
-  [18, 12, 12, 28, 20, 22, 30, 38, 38, 22, 22, 16, 8, 50, 18, 30, 30, 16, 14, 14, 18, 30]
+  [18, 12, 12, 28, 20, 22, 30, 38, 38, 22, 22, 16, 8, 50, 18, 30, 30, 16, 14, 14, 18, 30, 16, 16, 18]
     .forEach((w, i) => { ws.getColumn(i + 1).width = w; });
   const kuralBul = await C.kuralCozucu();
   for (const r of (await sorgu("SELECT * FROM kaizenler")).map(kaizenRow)) {
@@ -101,7 +101,8 @@ async function generateKaizenExcel() {
       P.puanlamaOzet(r.puanlama), r.kayit_zamani, r.red_nedeni || "",
       r.revize_notu ? `${r.revize_notu} (${r.revize_atanan_ad || ""})` : "", r.kaynak_oneri_no || "",
       kz.lider || "", kz.uye || "", r.lider_gorevi || "",
-      (r.uyeler || []).map((u, i) => `${u}: ${(r.uye_gorevleri || [])[i] || "—"}`).join(", ")]);
+      (r.uyeler || []).map((u, i) => `${u}: ${(r.uye_gorevleri || [])[i] || "—"}`).join(", "),
+      r.onceki_maliyet ?? "", r.sonraki_maliyet ?? "", C.maliyetFarki(r) ? C.maliyetFarki(r).fark : ""]);
     const rowIdx = ws.rowCount;
     let hasImg = false;
     for (const [fname, col] of [[r.onceki_gorsel, 10], [r.sonraki_gorsel, 11]]) {
@@ -122,6 +123,10 @@ async function generateKaizenExcel() {
     if (hasImg) ws.getRow(rowIdx).height = 95;
   }
   govdeStil(ws, headers.length);
+  // Son 3 sütun (maliyet) sayı olarak € biçiminde — Excel'de toplanabilir
+  for (let c = headers.length - 2; c <= headers.length; c++) {
+    ws.getColumn(c).eachCell((cell, satir) => { if (satir > 1) cell.numFmt = '#,##0.00 "€"'; });
+  }
   return wb.xlsx.writeBuffer();
 }
 
