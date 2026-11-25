@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 273 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 275 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -217,6 +217,9 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
 30. **Denetmen kısıtları** (25 Kasım): `/5s/aksiyonlar` `girisRequired`; denetmene `aksiyonGruplari(..., kisiAd)` filtresi (atanan lider
     `isimIcerir` veya `sorumlu` `isimEsit`); kontrol formu Excel'i `adminRequired`. **Kural: denetmen hiçbir Excel/ZIP indiremez** —
     yeni indirme ucu `yetkiGerek(...)`/`adminRequired` ile, düğmesi `yetki(...)`/`admin` ile kapılanır. e2e 273/273.
+31. **Düzeltme: bölüm sayfasındaki aksiyon bağlantısı 404** (25 Kasım): `<<%= koşul ? 'a href="…"' : 'div' %>` kalıbında `<%=` tırnakları
+    `&#34;` yaptı → href bozuldu. Etiket parçası basarken `<%-` kullan (yalnız sabit metin). e2e'ye **bağlantı taraması** eklendi
+    (ana yönetici + denetmen olarak siteyi gezer; bozuk href / 404 / 500 yakalar). e2e 275/275.
 
 ## Açık konular
 
@@ -230,5 +233,12 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
 - Fikir (25 Kasım, kullanıcı "şimdilik manuel, ileride belki" dedi): öneri/kaizen formlarında kişi adını bölüm personeli
   listesinden seçtirme (bölüm seç → o bölümün personeli; kaizende tüm personel aranabilir) + "Listede yok, elle yaz" yedeği.
   Dikkat: formlar girişsiz ve site internete açık → tüm çalışan adlarını açık sayfada listelemek KVKK konusu; önce İK/bilgi işlemle konuşulmalı.
+- **Bekleyen görsel öneriler** (25 Kasım, kullanıcı "sakla" dedi — sırası gelince sorulacak; önerilen sıra 1+5, sonra 2+3):
+  1) 5S denetim formu telefonda: soru metni dar sütunda (tam genişlik yapılmalı), her soruda 3 ham "Dosya Seç" (toplam 69) →
+  tek "Fotoğraf ekle" düğmesi + küçük önizleme (DOSYA_YOLLARI / dosyaYukleyici sayısına dikkat — tuzak 3). 2) Puan listesi
+  telefonda kişi başı ~10 satırlık kart → kısa kart (sıra · ad · net; öneri/kaizen/5S tek satır). 3) Öneri Havuzu ve
+  Reddedilen & Silinen telefonda aynı uzun kart → kısa kart. 4) Kırmızı düğme kalabalığı: puan listesinde her satırda
+  "Kaldır", 5S'te "Sil" "Formu Gör"ün yanında → satır ayrıntısına taşı. 5) Kaizen formu ve aksiyon kapatmada ham
+  "Dosya Seç" kutuları (1 ile aynı düzeltme).
 - Karar bekliyor: ZIP/Excel dosya adındaki tarih tur başlangıç tarihi (`d.tarih`) —
   gerçekleşme tarihine (`denetim_tarihi`) çevrilmesi önerildi, kullanıcı henüz onaylamadı.

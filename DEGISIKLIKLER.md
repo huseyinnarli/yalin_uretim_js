@@ -1,5 +1,12 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — Düzeltme: bölüm sayfasındaki "Açık aksiyon" bağlantısı
+
+- 5S bölüm sayfasındaki **Açık aksiyon** kutusu ve 5S Bölümler tablosundaki "N açık" etiketi, bir önceki güncellemede bozulan
+  bağlantı yüzünden "sayfa bulunamadı" veriyordu; düzeltildi.
+- Test paketine **site içi bağlantı taraması** eklendi: yönetici ve denetmen olarak tüm sayfaları gezip bozuk ya da
+  bulunamayan bağlantı arar (bu tür hata bir daha fark edilmeden gitmesin). e2e testi: **275/275**.
+
 ## 25 Kasım 2026 (devam) — Denetmen / bölüm lideri: yalnız kendi aksiyonları, dosya indirme yok
 
 - **5S Aksiyonlar** sayfası artık girişe kapalı. Yönetici tüm aksiyonları görür; **denetmen / bölüm lideri yalnız kendi

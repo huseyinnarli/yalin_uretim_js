@@ -1205,6 +1205,33 @@ async function main() {
       && dkSatir.getCell(bK.length - 2).value === 400 && dkSatir.getCell(bK.length).value === -250
       && kzSatir.getCell(bK.length).value === 0 && /€/.test(dkSatir.getCell(bK.length).numFmt || ""));
 
+    // --- Site içi bağlantı taraması: bozuk href (ör. kaçışlanmış tırnak &#34;) ve 404/500 veren bağlantı olmasın ---
+    const tara = async (etiket) => {
+      const gorulen = new Set(), kuyruk = ["/"], sorun = [];
+      const anahtar = (u) => u.replace(/([?&])(s|geri|don|tarih|ay)=[^&#]*/g, "$1").replace(/#.*$/, "");
+      while (kuyruk.length && gorulen.size < 250) {
+        const u = kuyruk.shift();
+        const k = anahtar(u); if (gorulen.has(k)) continue; gorulen.add(k);
+        const rr = await get(u);
+        if (rr.status >= 400) { sorun.push(`${rr.status} ${u}`); continue; }
+        if (!(rr.headers.get("content-type") || "").includes("text/html")) continue;
+        const h = await rr.text();
+        for (const m of h.matchAll(/<a\b[^>]*?href=([^\s>]+)/g)) {
+          let href = m[1];
+          if (!href.startsWith('"')) { sorun.push(`bozuk href ${u}: ${href.slice(0, 50)}`); continue; }
+          href = href.slice(1, href.indexOf('"', 1)).replace(/&amp;/g, "&");
+          if (!href.startsWith("/") || href.startsWith("//") || /^\/(yonetici\/cikis|static\/)/.test(href)
+            || /(\.zip|\/excel)(\?|$)/.test(href)) continue;
+          kuyruk.push(href);
+        }
+      }
+      ok(`bağlantı taraması (${etiket}): ${gorulen.size} sayfa, kırık/bozuk bağlantı yok`, sorun.length === 0, sorun.slice(0, 5).join(" | "));
+    };
+    csrf = await girisYap("admin123");
+    await tara("ana yönetici");
+    csrf = await girisYap("deniz123");
+    await tara("denetmen");
+
     await db.end();
   } finally {
     srv.kill();

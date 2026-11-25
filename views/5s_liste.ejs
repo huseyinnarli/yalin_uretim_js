@@ -96,7 +96,7 @@
                 </td>
                 <td class="nowrap" data-label="Son Denetim"><%= b._son ? trdate(b._son.denetim_tarihi || b._son.tarih) : '—' %></td>
                 <td data-label="Açık Aksiyon">
-                    <% if (b._acik_aksiyon) { %><<%= girisli ? 'a href="/5s/aksiyonlar"' : 'span' %> class="aksiyon-rozet acik"><%- ik('flag') %> <%= b._acik_aksiyon %> açık</<%= girisli ? 'a' : 'span' %>>
+                    <% if (b._acik_aksiyon) { %><<%- girisli ? 'a href="/5s/aksiyonlar"' : 'span' %> class="aksiyon-rozet acik"><%- ik('flag') %> <%= b._acik_aksiyon %> açık</<%- girisli ? 'a' : 'span' %>>
                     <% } else { %><span class="bos-not">—</span><% } %>
                 </td>
                 <td class="nowrap" data-label="Bu Ay Kontrol">

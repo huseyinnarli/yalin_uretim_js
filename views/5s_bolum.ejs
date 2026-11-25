@@ -16,7 +16,7 @@
 
 <div class="ozet-kutular">
     <div class="ozet-kutu"><span class="ok-deger"><%= personel_sayisi %></span><span class="ok-etiket">Personel</span></div>
-    <<%= girisli ? 'a href="/5s/aksiyonlar"' : 'div' %> class="ozet-kutu"><span class="ok-deger <%= acik_aksiyon ? 'uyari' : '' %>"><%= acik_aksiyon %></span><span class="ok-etiket">Açık aksiyon</span></<%= girisli ? 'a' : 'div' %>>
+    <<%- girisli ? 'a href="/5s/aksiyonlar"' : 'div' %> class="ozet-kutu"><span class="ok-deger <%= acik_aksiyon ? 'uyari' : '' %>"><%= acik_aksiyon %></span><span class="ok-etiket">Açık aksiyon</span></<%- girisli ? 'a' : 'div' %>>
     <div class="ozet-kutu"><span class="ok-deger"><%= son ? son.puan : '—' %></span><span class="ok-etiket">Son skor<%= son ? ' · ' + trdate(son.tarih) : '' %></span></div>
     <div class="ozet-kutu"><span class="ok-deger"><%= trend.length %></span><span class="ok-etiket">Tamamlanan denetim</span></div>
 </div>
