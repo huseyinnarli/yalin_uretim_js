@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 282 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 304 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -86,6 +86,12 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
    listesini buradan okur — form değişince test kendiliğinden uyar.
 8. **Kişi 5S puanlarının tek kaynağı `odul_kayitlari`** tablosudur; denetim silinince ödül
    kaydı da transaction içinde geri alınır (puan otomatik düşer). Bu kuralı bozma.
+8a. **Giriş = kullanıcı adı + şifre** (`hesaplar.girisHesabi`): ana yönetici `admin` (sabit, `ANA_YONETICI_KULLANICI`), ek yönetici
+   ve denetmenlerde `kullanici_adi` kolonu (iki tabloda birlikte benzersiz; karşılaştırma DAİMA `isim.js:kullaniciAdiAnahtar` ile —
+   büyük/küçük + Türkçe harf farksız). Yeni hesap INSERT'ünde `kullanici_adi` yaz (boşsa `C.kullaniciAdiOner(ad)`; doğrulama
+   `C.kullaniciAdiHatasi`). Boş kalan hesaplar açılışta ve her giriş denemesinde `C.kullaniciAdlariniTamamla()` ile dolar.
+   Şifre benzersizliği ARANMAZ (eski "şifre = kimlik" taraması kaldırıldı — geri getirme). e2e'de giriş: `girisYap(sifre[, kullanici])`
+   (`KULLANICI` haritası).
 8b. **Yetki sistemi:** roller = ana yönetici (`session.super`, sabit, tüm yetkiler), ek yönetici
    (`session.yonetici_id`, `yoneticiler.yetkiler` JSON — alanlar `src/yetkiler.js`: `degerlendir`, `puanla`,
    `kayit`, `bes_plan`, `bes_denetim`, `bes_revize`, `bes_aksiyon`, `bes_odul`, `odul`, `kullanici`;
@@ -230,16 +236,24 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     `#tab-gecmis` sekmesi, `/5s/gecmis` → `/5s#gecmis` (`5s_gecmis.ejs` silindi). Sekme çubuğu `.sekme-cubugu.bes-sekmeler`
     (`button.tab-btn`), seçili sekme `history.replaceState` ile adreste. Partial içinden partial: `include('odul_siralama')`
     (göreli yol — `partials/` ÖNEKİ YOK). e2e 282/282.
+34. **Kullanıcı adı + şifre girişi** (25 Kasım): `denetmenler/yoneticiler.kullanici_adi` VARCHAR(64) (EK_KOLONLAR → 41 kolon);
+    `isim.js:kullaniciAdiYap/kullaniciAdiSec/kullaniciAdiAnahtar/KULLANICI_ADI_RE`; `hesaplar.js:girisHesabi` (tek hash doğrulaması,
+    bilinmeyen adda sahte doğrulama), `kullaniciAdlariniTamamla` (server.js açılışı + giriş POST'u), `kullaniciAdiOner/Hatasi/Degistir`;
+    `denetmenBySifre/yoneticiBySifre/sifreCakismasi` SİLİNDİ (Ö10 kapandı). Yönetim: hesap satırında kullanıcı adı + isteğe bağlı şifre
+    (`POST /yonetici/denetmen/guncelle`, `/yonetici/yonetici/guncelle` kullanici_adi alanı), yeni hesapta "boş = otomatik"; Şifre
+    sekmesinde "Kullanıcı adınız: admin". Giriş formu `kullanici_adi` + `sifre`; hatalı girişte ad kutuda kalır (`session.son_kullanici`).
+    `gecis-kontrol` §5 verilecek adları önceden listeler. Demo şeridi ad/şifre çiftleri. Eski DB ile geçiş + geri dönüş + tekrar geçiş
+    denendi (eski sürüm yine yalnız şifreyle girer; aynı şifreli iki hesap geri dönüşte ilk hesaba girer — rehberde). e2e 304/304.
 
 ## Açık konular
 
 - GUNCELLEME_REHBERI.md §6 (2 Kasım): Ö14 öneri/kaizen Excel'inde isimler ham (kişi bazlı sayım bölünür) ·
   Ö15 `npm test` koruması · Ö16 ZIP yedek geri yükleme aracı/artımlı foto · Ö17 bellekte yükleme · Ö18 IP'ye bağlı limitler.
-- IYILESTIRME_ANALIZI.md §5: 🔴 Ö9 depo public + varsayılan şifre, 🟠 Ö10 giriş şifre taraması (pbkdf2Sync),
+- IYILESTIRME_ANALIZI.md §5: 🔴 Ö9 depo public + varsayılan şifre, (Ö10 giriş taraması 25 Kasım'da kapandı),
   🟠 Ö12 oturum (GET çıkış, şifre değişince oturum düşmüyor), Ö1 CSP inline JS (9 şablon), Ö5 CI, Ö13 bes_s/admin
   rota bölünmesi + lint + birim test, Ö4 FK, Ö2 Excel worker, Ö3 log + `/saglik`, Ö11 sicil no.
-- Giriş "şifre = kimlik": her başarısız giriş tüm hesap hash'lerini `pbkdf2Sync` ile tarar (hesap başına
-  ~0,28 sn, olay döngüsünü bloklar). Komite puanlaması (15 hesap) konuşuldu — yapılırsa önce Ö10.
+- Komite puanlaması (15 hesap) konuşuldu — giriş taraması engeli kalktı (kullanıcı adı girişi); tek doğrulama hâlâ `pbkdf2Sync`
+  (~0,28 sn), istenirse asenkron yapılabilir. Hesap bazlı giriş kilidi (Ö18) artık mümkün, yapılmadı.
 - Fikir (25 Kasım, kullanıcı "şimdilik manuel, ileride belki" dedi): öneri/kaizen formlarında kişi adını bölüm personeli
   listesinden seçtirme (bölüm seç → o bölümün personeli; kaizende tüm personel aranabilir) + "Listede yok, elle yaz" yedeği.
   Dikkat: formlar girişsiz ve site internete açık → tüm çalışan adlarını açık sayfada listelemek KVKK konusu; önce İK/bilgi işlemle konuşulmalı.

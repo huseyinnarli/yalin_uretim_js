@@ -1,5 +1,26 @@
 # Sürüm Notları
 
+## 25 Kasım 2026 (devam) — Giriş: kullanıcı adı + şifre
+
+- **Giriş artık kullanıcı adı ve şifreyle.** Yalnız şifreyle giriş kapandı (eskiden sistem kişiyi şifreden tanıyordu).
+  Ana yöneticinin kullanıcı adı **`admin`** (sabit). Diğer hesaplara addan otomatik verilir: Ali Yılmaz → `ali.yilmaz`,
+  aynısı varsa `ali.yilmaz2`. Girişte büyük/küçük harf ve Türkçe harf farkı önemsenmez (`Ali.Yılmaz` da olur);
+  hatalı girişte kullanıcı adı kutuda kalır, telefon klavyesi ilk harfi büyütmez.
+- **Mevcut hesaplar:** güncellemeden sonraki ilk açılışta kullanıcı adı olmayan her denetmen ve ek yöneticiye addan kullanıcı
+  adı verilir (sunucu günlüğüne yazılır; `npm run gecis-kontrol` önceden hangi adların verileceğini listeler). **Şifreler değişmez.**
+- **Yönetim:** Denetmenler ve Yöneticiler sekmelerinde her hesabın kullanıcı adı görünür ve değiştirilebilir (yeni şifre kutusu
+  boşsa şifre değişmez). Yeni hesapta kullanıcı adı kutusu boş bırakılırsa addan verilir. Kullanıcı adları benzersizdir
+  (3–32 karakter: harf, rakam, nokta, tire); `admin` ana yöneticiye ayrılmıştır. Şifre sekmesinde "Kullanıcı adınız: admin".
+- **"Her şifre farklı olmalı" kuralı kaldırıldı** — kimlik artık kullanıcı adından geliyor. Bu kural, başka bir hesabın
+  şifresini deneme yanılmayla bulmaya da açık kapı bırakıyordu ("bu şifre kullanımda" uyarısı).
+- **Hızlı giriş:** her hatalı girişte tüm hesapların şifreleri tek tek denenmiyor (hesap başına ~0,3 sn sunucuyu kilitliyordu);
+  yalnız o kullanıcı adının şifresi karşılaştırılır.
+- **Veritabanı (yalnız ekleme):** `denetmenler.kullanici_adi`, `yoneticiler.kullanici_adi` (VARCHAR(64)). Eski sürüm genişletilmiş
+  veritabanında çalışır ve yine şifreyle girer; eski sürümle açılan hesaba yeni sürüm ilk açılışta kullanıcı adı verir
+  (eski düzen veritabanıyla geçiş, ön kontrol, geri dönüş ve tekrar geçiş denendi).
+- **Canlıya alırken:** güncellemeden sonra denetmenlere / ek yöneticilere kullanıcı adlarını bildirin (Yönetim'de listeli).
+- e2e testi: **304/304**.
+
 ## 25 Kasım 2026 (devam) — 5S: bölüm liderine kısayollar, Benim Aksiyonlarım / Tüm Aksiyonlar, Geçmiş sekmesi
 
 - **5S sayfası:** girişli bölüm liderine **Periyodik Kontrol Formu** düğmesi (birden çok bölümün lideriyse her biri için).

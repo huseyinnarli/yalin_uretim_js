@@ -247,6 +247,9 @@ const EK_KOLONLAR = [
   // Kaizen maliyet hesabı (€): önceki ve sonraki durum maliyeti; fark = kazanç (+) / zarar (−). Eski kayıtlarda NULL.
   ["kaizenler", "onceki_maliyet", "DECIMAL(14,2) NULL"],
   ["kaizenler", "sonraki_maliyet", "DECIMAL(14,2) NULL"],
+  // Giriş kullanıcı adı (kullanıcı adı + şifre). Boş hesaplara açılışta addan otomatik verilir (hesaplar.kullaniciAdlariniTamamla)
+  ["denetmenler", "kullanici_adi", "VARCHAR(64)"],
+  ["yoneticiler", "kullanici_adi", "VARCHAR(64)"],
 ];
 
 // Şemanın tek tek CREATE TABLE IF NOT EXISTS komutları

@@ -286,6 +286,32 @@ async function main() {
     if (liste.length) notlar.push("Ek yöneticilerin yetkilerini Yönetim › Yöneticiler'de gözden geçirip bir kez kaydedin — geri dönüş süresi " +
       "dolunca (eski anahtarlar okunurken zaten çevrilir; kaydedilen yeni anahtarları eski sürüm tanımaz).");
   }
+  // Giriş kullanıcı adları: yeni sürüm ilk açılışta kullanıcı adı olmayan hesaplara addan verir (aynı algoritma)
+  if (canli.denetmenler && canli.yoneticiler) {
+    const kullanilan = new Set(["admin"]);
+    const satir = {};
+    for (const t of ["denetmenler", "yoneticiler"]) {
+      satir[t] = await q(`SELECT ad${canli[t].has("kullanici_adi") ? ", kullanici_adi" : ""} FROM \`${t}\` ORDER BY ad`);
+      for (const r of satir[t]) if (r.kullanici_adi) kullanilan.add(I.kullaniciAdiAnahtar(r.kullanici_adi));
+    }
+    const liste = [];
+    for (const t of ["denetmenler", "yoneticiler"]) {
+      for (const r of satir[t]) {
+        const k = r.kullanici_adi ? I.kullaniciAdiAnahtar(r.kullanici_adi) : I.kullaniciAdiSec(r.ad, kullanilan);
+        if (!r.kullanici_adi) kullanilan.add(k);
+        liste.push({ tur: t === "denetmenler" ? "denetmen" : "ek yönetici", ad: r.ad, k, yeni: !r.kullanici_adi });
+      }
+    }
+    const yeni = liste.filter((x) => x.yeni).length;
+    yaz(`- Giriş kullanıcı adları (bu sürümde giriş **kullanıcı adı + şifre**; yalnız şifreyle giriş kapandı):`);
+    yaz(`  - Ana yönetici: \`admin\` (sabit)`);
+    for (const x of liste) yaz(`  - ${x.ad} (${x.tur}): \`${x.k}\`${x.yeni ? " — açılışta otomatik verilecek" : ""}`);
+    if (liste.length) {
+      notlar.push(`Giriş artık kullanıcı adı + şifre: ${yeni ? `${yeni} hesaba ilk açılışta addan kullanıcı adı verilecek (liste §5). ` : ""}` +
+        "Güncellemeden sonra her denetmene/ek yöneticiye kullanıcı adını bildirin (Yönetim › Denetmenler / Yöneticiler'de listeli); " +
+        "ana yöneticinin kullanıcı adı `admin`. Şifreler değişmez.");
+    }
+  }
   if (canli.bolumler && canli.denetmenler) {
     const denetmen = (await q("SELECT ad FROM denetmenler")).map((r) => r.ad);
     const liderler = [...new Set((await q("SELECT sorumlu FROM bolumler")).flatMap((r) => I.isimListesi(r.sorumlu)))];

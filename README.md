@@ -9,8 +9,9 @@ bölümler periyodik 5S denetimlerinden ve günlük/haftalık/aylık 5S kontrol 
 personel sıralamasına ve ödüllere dönüşür. Tüm raporlar tek tıkla Excel olarak alınır.
 Sürüm değişiklikleri için: **[DEGISIKLIKLER.md](DEGISIKLIKLER.md)**.
 
-> **Giriş modeli:** Tek giriş ekranı vardır. Girilen şifre ana yöneticinin veya bir ek yöneticininkiyse
-> **yönetici**, bir denetmeninkiyse o **denetmen** olarak oturum açılır — sistem kişiyi şifreden tanır.
+> **Giriş modeli:** Tek giriş ekranı vardır: **kullanıcı adı + şifre**. Ana yöneticinin kullanıcı adı `admin`'dir;
+> ek yönetici ve denetmen hesaplarına addan otomatik verilir (Ali Yılmaz → `ali.yilmaz`) ve Yönetim'den değiştirilebilir.
+> Hesabın türünü (yönetici / denetmen) sistem kullanıcı adından bulur; büyük/küçük ve Türkçe harf farkı önemsenmez.
 > İlk kurulum şifresi `admin123`'tür; ilk girişten sonra panelden hemen değiştirin
 > (varsayılan şifre kullanıldığında sistem uyarı gösterir).
 
@@ -161,7 +162,7 @@ saklar; ad değişikliği eski kayıtları değiştirmez, düzenlemede listeden 
 | | **Aksiyon yönetimi** | Her aksiyonu kapatma/silme, aksiyon Excel/ZIP |
 | | **5S ödül & raporlar** | Tur ödüllerini işleme, denetim Excel/ZIP, trend Excel |
 | Puan & Ödül | **Ödül verme & isim birleştirme** | Ödül ver/sil, kişi gizleme, isim birleştirme, puan raporları |
-| Hesaplar | **Denetmen hesapları** | Denetmen ekleme, şifre, silme |
+| Hesaplar | **Denetmen hesapları** | Denetmen ekleme, kullanıcı adı ve şifre, silme |
 
 | | Herkes (girişsiz) | Denetmen | Ek yönetici | Ana yönetici |
 |---|---|---|---|---|
@@ -283,7 +284,7 @@ canlı veriye dokunmaz. (Bir kez `CREATE DATABASE yalin_e2e` + GRANT gerekir.)
   ```
 
 Eski hash'li şifreler (pbkdf2/scrypt) aynen tanınır — yönetici ve denetmenler mevcut
-şifreleriyle giriş yapmaya devam eder.
+şifreleriyle giriş yapmaya devam eder (kullanıcı adı ilk açılışta addan verilir; Yönetim'de listelenir).
 
 ### Canlı veritabanıyla yeni sürüme geçiş
 

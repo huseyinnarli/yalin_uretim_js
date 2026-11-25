@@ -13,6 +13,10 @@ async function main() {
   S.ensureDirs();
   await db.init();            // tablolar yoksa oluştur
   await C.sifreleriHashle();  // eski düz metin şifreleri açılışta hash'le
+  // Kullanıcı adı olmayan hesaplara (eski sürümden gelenler) addan otomatik kullanıcı adı ver
+  for (const v of await C.kullaniciAdlariniTamamla()) {
+    console.log(`Kullanıcı adı verildi: ${v.ad} → ${v.kullanici_adi} (${v.tablo === "yoneticiler" ? "ek yönetici" : "denetmen"})`);
+  }
   const secretKey = await C.getSecretKey();
 
   const app = express();

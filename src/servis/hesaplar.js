@@ -2,8 +2,8 @@
 // oturumdaki hesabın taze okunması, oturum yetki çözümü, şifre çakışma kontrolü, bölüm liderleri.
 const I = require("../isim");
 const Y = require("../yetkiler");
-const { sorgu, tek, yoneticiRow } = require("../db");
-const { checkPassword, adminSifreDogru } = require("./guvenlik");
+const { sorgu, tek, calistir, yoneticiRow } = require("../db");
+const { checkPassword, adminSifreDogru, hashPassword } = require("./guvenlik");
 const { loadBolumler } = require("./bolumler");
 
 async function loadDenetmenler() {
@@ -30,15 +30,6 @@ async function denetmenAdaylari() {
   return adlar.sort((a, b) => a.localeCompare(b, "tr"));
 }
 
-// Şifreden denetmeni bulur (giriş) — hash karşılaştırmalı
-async function denetmenBySifre(sifre) {
-  if (!sifre) return null;
-  for (const d of await loadDenetmenler()) {
-    if (checkPassword(d.sifre, sifre)) return d;
-  }
-  return null;
-}
-
 // Oturumdaki denetmen kaydı (silinmiş hesabı düşürür)
 async function aktifDenetmen(session) {
   const did = session && session.denetmen_id;
@@ -54,15 +45,6 @@ async function loadYoneticiler() {
 
 async function yoneticiById(id) {
   return yoneticiRow(await tek("SELECT * FROM yoneticiler WHERE id = ?", [id]));
-}
-
-// Şifreden ek yöneticiyi bulur (giriş) — hash karşılaştırmalı
-async function yoneticiBySifre(sifre) {
-  if (!sifre) return null;
-  for (const y of await loadYoneticiler()) {
-    if (checkPassword(y.sifre, sifre)) return y;
-  }
-  return null;
 }
 
 // Oturumdaki ek yönetici kaydı (silinmiş/yetkisi güncellenmiş hesabı taze okur)
@@ -91,18 +73,93 @@ async function denetmenById(id) {
   return id ? tek("SELECT * FROM denetmenler WHERE id = ?", [id]) : null;
 }
 
-// Şifre başka bir hesapta (ana yönetici / denetmen / başka ek yönetici) kullanılıyor mu?
-// haricYoneticiId verilirse o ek yönetici kendi şifresini korurken çakışma sayılmaz.
-async function sifreCakismasi(sifre, haricYoneticiId = null) {
-  if (await adminSifreDogru(sifre)) return true;
-  if (await denetmenBySifre(sifre)) return true;
-  const y = await yoneticiBySifre(sifre);
-  if (y && y.id !== haricYoneticiId) return true;
-  return false;
+// ----- Giriş kullanıcı adları (kullanıcı adı + şifre) -----
+// Ana yöneticinin kullanıcı adı sabittir; başka hesaba verilemez.
+const ANA_YONETICI_KULLANICI = "admin";
+const _kAnahtar = I.kullaniciAdiAnahtar;
+
+// Kullanılan kullanıcı adları (küçük harf) — denetmen + ek yönetici + "admin"; haric: {tablo, id} hariç tutulur
+async function kullaniciAdlari(haric = null) {
+  const set = new Set([ANA_YONETICI_KULLANICI]);
+  for (const tablo of ["denetmenler", "yoneticiler"]) {
+    for (const r of await sorgu(`SELECT id, kullanici_adi FROM ${tablo} WHERE kullanici_adi IS NOT NULL AND kullanici_adi <> ''`)) {
+      if (haric && haric.tablo === tablo && haric.id === r.id) continue;
+      set.add(_kAnahtar(r.kullanici_adi));
+    }
+  }
+  return set;
+}
+
+// Addan benzersiz kullanıcı adı önerisi (ali.yilmaz, ali.yilmaz2, …)
+async function kullaniciAdiOner(ad, kullanilan = null) {
+  return I.kullaniciAdiSec(ad, kullanilan || await kullaniciAdlari());
+}
+
+// Kullanıcı adı doğrulama (biçim + ayrılmış + benzersiz). Döner: hata metni | null
+async function kullaniciAdiHatasi(k, haric = null) {
+  const a = _kAnahtar(k);
+  if (!I.KULLANICI_ADI_RE.test(a)) {
+    return "Kullanıcı adı 3–32 karakter olmalı: küçük harf, rakam, nokta, tire (ör. ali.yilmaz).";
+  }
+  if ((await kullaniciAdlari(haric)).has(a)) return `"${a}" kullanıcı adı kullanımda.`;
+  return null;
+}
+
+// Kullanıcı adı olmayan hesaplara addan otomatik verir (açılışta ve girişte çağrılır — eski sürümle açılmış
+// hesaplar da tamamlanır). Aynı anda iki giriş aynı adı iki hesaba vermesin diye çağrılar sıraya alınır.
+// Döner: [{ tablo, ad, kullanici_adi }]
+let _tamamlaSirasi = Promise.resolve();
+function kullaniciAdlariniTamamla() {
+  const is = _tamamlaSirasi.then(_kullaniciAdlariniTamamla);
+  _tamamlaSirasi = is.catch(() => {});
+  return is;
+}
+async function _kullaniciAdlariniTamamla() {
+  const verilen = [];
+  let set = null;
+  for (const tablo of ["denetmenler", "yoneticiler"]) {
+    const eksik = await sorgu(`SELECT id, ad FROM ${tablo} WHERE kullanici_adi IS NULL OR kullanici_adi = '' ORDER BY ad`);
+    for (const r of eksik) {
+      set = set || await kullaniciAdlari();
+      const k = await kullaniciAdiOner(r.ad, set);
+      await calistir(`UPDATE ${tablo} SET kullanici_adi = ? WHERE id = ? AND (kullanici_adi IS NULL OR kullanici_adi = '')`, [k, r.id]);
+      set.add(k);
+      verilen.push({ tablo, ad: r.ad, kullanici_adi: k });
+    }
+  }
+  return verilen;
+}
+
+// Girişte hesap bulma: kullanıcı adı + şifre — tek hash karşılaştırması (eskiden her hatalı girişte tüm hesaplar
+// taranıyordu). Bilinmeyen kullanıcı adında da bir sahte karşılaştırma yapılır: süre farkından hangi adların
+// var olduğu anlaşılmasın. Döner: { tip: "ana"|"yonetici"|"denetmen", hesap } | null
+let _sahteHash = null;
+async function girisHesabi(kullanici, sifre) {
+  const k = _kAnahtar(kullanici);
+  sifre = String(sifre || "");
+  if (!k || !sifre) return null;
+  if (k === ANA_YONETICI_KULLANICI) return (await adminSifreDogru(sifre)) ? { tip: "ana", hesap: null } : null;
+  const y = await tek("SELECT * FROM yoneticiler WHERE LOWER(kullanici_adi) = ?", [k]);
+  if (y) return checkPassword(y.sifre, sifre) ? { tip: "yonetici", hesap: yoneticiRow(y) } : null;
+  const d = await tek("SELECT * FROM denetmenler WHERE LOWER(kullanici_adi) = ?", [k]);
+  if (d) return checkPassword(d.sifre, sifre) ? { tip: "denetmen", hesap: d } : null;
+  _sahteHash = _sahteHash || hashPassword("yok-" + Date.now());
+  checkPassword(_sahteHash, sifre);
+  return null;
+}
+
+// Kullanıcı adı değiştirme (Yönetim). Döner: hata metni | null
+async function kullaniciAdiDegistir(tablo, id, yeni) {
+  if (!["denetmenler", "yoneticiler"].includes(tablo)) return "Geçersiz hesap türü.";
+  const hata = await kullaniciAdiHatasi(yeni, { tablo, id });
+  if (hata) return hata;
+  await calistir(`UPDATE ${tablo} SET kullanici_adi = ? WHERE id = ?`, [_kAnahtar(yeni), id]);
+  return null;
 }
 
 module.exports = {
-  loadDenetmenler, loadMisafirler, isimListesi, bolumLiderleri, denetmenAdaylari, denetmenBySifre,
-  aktifDenetmen, loadYoneticiler, yoneticiById, yoneticiBySifre, oturumYetkileri, denetmenById,
-  sifreCakismasi,
+  ANA_YONETICI_KULLANICI, kullaniciAdlari, kullaniciAdiOner, kullaniciAdiHatasi, kullaniciAdlariniTamamla, girisHesabi,
+  kullaniciAdiDegistir,
+  loadDenetmenler, loadMisafirler, isimListesi, bolumLiderleri, denetmenAdaylari,
+  aktifDenetmen, loadYoneticiler, yoneticiById, oturumYetkileri, denetmenById,
 };

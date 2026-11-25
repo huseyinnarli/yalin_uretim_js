@@ -17,8 +17,11 @@ fotoğraflar korunur, kullanıcıların oturumu düşmez, sorun çıkarsa dakika
 
 **Ne değişiyor?**
 - **Kod:** yaklaşık 80 dosya değişti. Uygulama aynı: Node.js + Express + MySQL. Başlatma komutu (`node server.js`) ve port düzeni aynı.
-- **Veritabanı:** aynı veritabanı kullanılır. Yeni sürüm ilk açılışta **3 boş tablo ve 39 boş kolon ekler**. Var olan
-  hiçbir satır, kolon veya isim değişmez ya da silinmez.
+- **Veritabanı:** aynı veritabanı kullanılır. Yeni sürüm ilk açılışta **3 boş tablo ve 41 boş kolon ekler**. Var olan
+  hiçbir satır, kolon veya isim değişmez ya da silinmez. Tek yazma: denetmen ve ek yönetici hesaplarının yeni
+  `kullanici_adi` kolonu aynı açılışta addan doldurulur (şifreler değişmez).
+- **Giriş:** artık **kullanıcı adı + şifre**. Ana yönetici `admin`; diğer hesapların adını ön kontrol raporu (§5) önceden
+  listeler, güncellemeden sonra Yönetim sayfasında görünür. **Kullanıcılara adlarını bildirmeniz gerekir** (Adım 8).
 - **Bağımlılıklar:** `multer` 1.4 → 2.4 (güvenlik güncellemesi). `sharp`, `mysql2` ve `express` küçük sürüm aldı. Bu
   yüzden `node_modules` **mutlaka yeniden kurulur**. Node.js **20.9 veya üstü** gerekir. Eski sürümdeki `sharp` 0.35
   de aynı şartı aradığından canlıdaki Node büyük olasılıkla zaten uygundur.
@@ -153,7 +156,7 @@ Servis ortamında `YALIN_HTTPS` / `YALIN_YEDEK_DIR` tanımlıysa prova komutunda
 cd <UYGULAMA>_yeni
 YALIN_DATA_DIR=/tmp/yalin_prova_veri YALIN_DB_DATABASE=yalin_prova PORT=5099 node server.js
 ```
-Tarayıcıda `http://<sunucu>:5099`. Eski şifrelerle girin, §2 Adım 7'deki listeyi gezin. Bitince `Ctrl+C` ile durdurun,
+Tarayıcıda `http://<sunucu>:5099`. Kullanıcı adı (`admin`, diğerleri ön kontrol raporunda) + eski şifreyle girin, §2 Adım 7'deki listeyi gezin. Bitince `Ctrl+C` ile durdurun,
 `yalin_prova` veritabanını ve kopya klasörü silin.
 
 ### Adım 5 — Geçiş (kısa kesinti)
@@ -197,7 +200,8 @@ Kesinti `npm ci` süresi kadardır (1–2 dk). Geri dönüş: `git checkout 1d67
 ```bash
 journalctl -u yalin -n 30        # Windows/NSSM: AppStdout dosyası · panel: uygulama günlüğü
 ```
-- Beklenen satır: **`Yalın Üretim Uygulamaları çalışıyor: http://127.0.0.1:<PORT> (MySQL)`**.
+- Beklenen satır: **`Yalın Üretim Uygulamaları çalışıyor: http://127.0.0.1:<PORT> (MySQL)`**. Üstünde her hesap için
+  `Kullanıcı adı verildi: <Ad> → <kullanıcı adı>` satırları görünür (yalnız ilk açılışta).
 - `Başlatma hatası — veritabanı kullanıcısının yetkisi yetersiz` görülürse §4, T2'yi uygulayın. O ana kadar oluşan
   tablolar zararsızdır. Hemen eski sürüme dönmek de mümkündür (§3).
 - Ön kontrolü canlıya tekrar çalıştırın (Adım 3). Bu sefer **oluşturulacak tablo 0, eklenecek kolon 0** olmalıdır.
@@ -210,7 +214,7 @@ Formlar ilk gerçek kayıtla takip edilir.
 | # | Kontrol | Beklenen |
 |---|---|---|
 | 1 | Ana sayfayı bilgisayarda ve telefonda açın | Yeni görünüm, düzgün stil; girişten sonra üst menüde Panel. Stil bozuksa §4, T11 |
-| 2 | Ana yönetici, bir ek yönetici ve bir denetmen **eski şifreleriyle** girsin | Giriş olur. Daha önce açık olan oturumlar da düşmez |
+| 2 | Ana yönetici (`admin`), bir ek yönetici ve bir denetmen **kullanıcı adı + eski şifreleriyle** girsin | Giriş olur. Yalnız şifreyle giriş artık olmaz. Daha önce açık olan oturumlar düşmez |
 | 3 | Öneri & Kaizen listesi, bir kaydın detayı, bir kaizen görseli | Açılır |
 | 4 | Puan Durumu: Adım 1'deki Excel ile karşılaştırın | **Toplam puan aynı.** Aynı kişinin farklı yazılışları birleştiği için kişi sayısı azalabilir; bu beklenen sonuçtur (§5) |
 | 5 | 5S › bir bölüm › Periyodik Kontrol Formu | Takvim açılır |
@@ -223,6 +227,8 @@ Formlar ilk gerçek kayıtla takip edilir.
 ### Adım 8 — Güncelleme sonrası yönetim işleri (ana yönetici)
 
 1. Ana yönetici şifresi hâlâ varsayılansa **hemen değiştirin**.
+1b. **Kullanıcı adlarını dağıtın:** Yönetim › Denetmenler ve Yöneticiler sekmelerinde her hesabın kullanıcı adı yazar
+   (istenirse orada değiştirin). Her kişiye kendi adını iletin; şifreleri aynı kaldı. Ana yöneticinin adı `admin`.
 2. Yönetim › Yöneticiler: ek yöneticilerin yetkilerini gözden geçirip **her birini bir kez kaydedin** — ama **bunu geri
    dönüş süresi (1 hafta) dolunca yapın.**
    - Eski yetki anahtarları okunurken zaten otomatik çevrilir; beklemek hiçbir şey kaybettirmez.
@@ -268,6 +274,10 @@ sürüme tekrar geçince yerindedir:
 - Kaizen ekibinin görevleri ve görev tanımları listesi: eski sürüm göstermez, öneride görev yine serbest yazılır.
 - Yeni sürümde **kaydedilmiş** ek yönetici yetkileri. Eski sürüm yalnız `odul` ve `kayit` anahtarlarını tanır; o
   yöneticilere eski Yönetici Paneli'nden yetkilerini yeniden verin. Adım 8.2'yi bir hafta bekletmenin nedeni budur.
+- Kullanıcı adları: eski sürüm onları görmez ve yine **yalnız şifreyle** girer. Yeni sürümde iki hesaba **aynı şifre**
+  verildiyse (yeni sürüm buna izin verir) eski sürüm o şifreyle öncelik sırasındaki ilk hesaba sokar (ana yönetici → ek
+  yönetici → denetmen). Geri dönmeden önce böyle hesaplara farklı şifre verin. Eski sürümde açılan hesaba yeni sürüme
+  tekrar geçince kullanıcı adı otomatik verilir.
 
 ---
 
@@ -376,12 +386,10 @@ sürüme tekrar geçince yerindedir:
 - Fark şu: `/liste`, `/detay` ve kaizen görselleri artık giriş ister. Girişsiz gelen kullanıcı giriş sayfasına
   yönlenir. `/oneri/yeni` ve `/kaizen/yeni` formları açıktır.
 
-**T13 — Giriş sırasında kısa donmalar.**
-- Giriş "şifre = kimlik" mantığıyla çalışır: bir şifre girildiğinde bütün hesapların şifre özetleri sırayla denenir.
-- Her deneme hesap başına yaklaşık 0,1–0,3 sn sürer ve bu sürede sunucu **başka hiçbir isteğe cevap vermez**.
-- 30 hesapta tek bir yanlış şifre herkes için 3–9 sn duraklama demektir.
-- Eski sürümde de aynıydı. Ancak yeni sürümde liste giriş istediği için giriş sayısı artar. Hesap sayısı artmadan
-  önce düzeltilmesi önerilir (§6, Ö10).
+**T13 — Giriş sırasında kısa donmalar (25 Kasım'da giderildi).**
+- Eski sürümde giriş "şifre = kimlik" mantığıyla çalışıyordu: bir şifre girildiğinde bütün hesapların şifre özetleri
+  sırayla deneniyor, 30 hesapta tek bir yanlış şifre herkes için 3–9 sn duraklama demekti.
+- Yeni sürümde giriş kullanıcı adı + şifre: yalnız o hesabın şifresi doğrulanır (~0,1–0,3 sn, hesap sayısından bağımsız).
 
 **T14 — Bellek.**
 - Yüklenen fotoğraflar işlenene kadar bellekte tutulur.
@@ -424,7 +432,7 @@ Formlar herkese açık olduğu için isimler serbest yazılır ve yazım farklar
 | — | Ön kontrol, veritabanı kullanıcısının CREATE/ALTER yetkisini denetlemiyordu; eksikse uygulama açılmıyor | Yüksek | ✅ **Eklendi:** `gecis-kontrol` SHOW GRANTS ile denetler, eksikse çıkış kodu 2 ve GRANT komutu önerir |
 | — | Açılışta yetki hatası "bağlantı ayarlarını kontrol edin" diye yanlış yönlendiriyordu | Düşük | ✅ **Düzeltildi:** ayrı mesaj |
 | Ö9 | Depo herkese açık; varsayılan şifre kaynakta | Yüksek | Açık: depoyu gizli yapın, şifreyi değiştirin (T10) |
-| Ö10 | Girişte bütün hesap özetleri `pbkdf2Sync` ile taranıyor; olay döngüsü bloklanıyor | Orta–Yüksek | Açık: hızlı çözüm asenkron `crypto.pbkdf2` (~1 saat); kalıcı çözüm girişte kişi seçimi/kullanıcı adı. Komite puanlaması gibi hesap artışından önce yapılmalı (T13) |
+| Ö10 | Girişte bütün hesap özetleri `pbkdf2Sync` ile taranıyor; olay döngüsü bloklanıyor | Orta–Yüksek | ✅ **Düzeltildi (25 Kasım):** kullanıcı adı + şifre girişi, tek doğrulama; şifre benzersizlik zorunluluğu kalktı (T13) |
 | Ö14 | Öneri/Kaizen Excel'lerinde isimler ham; kişi bazlı sayım bölünüyor | Orta | Açık: Excel'e "Kişi (birleştirilmiş)" sütunu ve kişi başına öneri/kaizen sayısını veren bir "Kişi Özeti" sayfası (§5) |
 | Ö11 | Aynı ad-soyadlı iki çalışan ayırt edilemiyor | Orta | Açık: personel listesi + sicil numarası |
 | Ö15 | `npm test`, `YALIN_E2E_DB` ile verilen veritabanının tablolarını koşulsuz siliyor | Orta | Açık: ad canlı veritabanıyla aynıysa veya `test/e2e` içermiyorsa test başlamasın (T8) |
@@ -463,7 +471,8 @@ yöneticiler, denetmenler, ödül defteri ve form numaraları bulunuyordu.
 | **25 Kasım — onaylı öneri havuzu:** yeni sürüm eski veritabanında | Eski onaylı öneri havuza alınıyor; havuz filtresi, panel özeti, öneri Excel'i |
 | **25 Kasım — onaylı öneri havuzu:** geri dönüş (eski sürüm) | Havuzdaki öneri normal onaylı öneri gibi açılıyor; liste, Excel, öneri gönderme, onay, puan listesi çalışıyor |
 | **25 Kasım — kaizen maliyet hesabı:** ön kontrol / yeni sürüm / geri dönüş | `CHECKSUM` aynı, 3 tablo + 39 kolon; maliyetli kaizen kaydı; eski sürümde detay, kayıt, Excel çalışıyor |
-| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **282/282** |
+| **25 Kasım — kullanıcı adı girişi:** ön kontrol / yeni sürüm / geri dönüş / tekrar geçiş | `CHECKSUM` aynı, 41 kolon, verilecek adlar raporda (aynı ad çakışması `ali.yilmaz2`, "Admin" adlı hesap `admin2`); yeni sürüm aynı adları verdi, kullanıcı adı + eski şifreyle giriş, yalnız şifreyle giriş reddedildi; eski sürüm 6 hesaba yalnız şifreyle girdi; eski sürümde açılan hesap tekrar geçişte ad aldı |
+| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **304/304** |
 
 ---
 

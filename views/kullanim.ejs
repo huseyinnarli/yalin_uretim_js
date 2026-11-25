@@ -22,7 +22,10 @@
     <ul>
         <li><strong>Herkes</strong> (giriş gerekmez): öneri/kaizen formu doldurur; puan listesini, 5S sonuçlarını ve
             kontrol formlarını görüntüler. Öneri/kaizen <em>listesi ve detayları</em> ile 5S <em>aksiyonları</em> girişe kapalıdır.</li>
-        <li><strong>Giriş</strong> tek ekrandan, tek şifre alanıyla yapılır — sistem sizi şifreden tanır.</li>
+        <li><strong>Giriş</strong> tek ekrandan <strong>kullanıcı adı + şifre</strong> ile yapılır; hesabın türünü (ana yönetici, ek yönetici,
+            denetmen) sistem kullanıcı adından bulur. Ana yöneticinin kullanıcı adı <code>admin</code>'dir; diğer hesaplara addan otomatik
+            verilir (ör. Ali Yılmaz → <code>ali.yilmaz</code>, aynısı varsa <code>ali.yilmaz2</code>). Büyük/küçük harf ve Türkçe harf farkı
+            önemsenmez (<code>Ali.Yılmaz</code> da olur). Kullanıcı adınızı bilmiyorsanız yöneticinize sorun.</li>
         <li><strong>Denetmen:</strong> kendisine planlanan 5S denetimini yapar; ekip lideri olduğu bölümün aksiyonlarını
             kapatır ve <strong>periyodik kontrol formunu</strong> doldurur; öneri/kaizenleri <em>görüntüler</em>; kendisine
             atanan <strong>düzeltmeleri</strong> ve <strong>kaizene dönüştürme görevlerini</strong> yapar
@@ -194,8 +197,10 @@
             Zamanlar arasında geçilen tek tablo, en altta sabit tüm zamanlar toplamı, son 12 ayın gelen ve puan alan
             öneri/kaizen grafiği, bölümlerin 5S trendi.</li>
         <li><strong><%- ik('settings') %> Yönetim:</strong> sekmeler halinde — Denetmenler, Misafir Denetmenler, Yöneticiler (ek yönetici
-            ve yetki kutucukları; yalnız ana yönetici görür) ve Şifre Değiştir. Her sekme yalnızca yetkisi olana görünür. İlk kurulumdaki
-            varsayılan şifre ilk girişte hemen değiştirilmelidir.</li>
+            ve yetki kutucukları; yalnız ana yönetici görür) ve Şifre Değiştir. Her sekme yalnızca yetkisi olana görünür. Hesap satırlarında
+            <strong>kullanıcı adı</strong> görünür ve değiştirilebilir (yeni şifre kutusu boş bırakılırsa şifre değişmez); yeni hesapta kullanıcı adı
+            boş bırakılırsa addan otomatik verilir. Kullanıcı adları benzersizdir, <code>admin</code> ana yöneticiye ayrılmıştır; şifrelerin farklı
+            olması gerekmez. İlk kurulumdaki varsayılan şifre ilk girişte hemen değiştirilmelidir.</li>
         <li><strong><%- ik('clipboard-list') %> Görevlerim:</strong> size atanan düzeltmeler, kaizene dönüştürme görevleri, planlanan denetimler,
             kapatmanız gereken aksiyonlar ve bugünkü kontrol formu. Menüdeki sayı bekleyen işleri gösterir.</li>
         <li><strong><%- ik('history') %> İşlem Günlüğü</strong> (ana yönetici): yöneticilerin ve denetmenlerin işlemleri (kim, ne zaman, ne yaptı).

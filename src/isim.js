@@ -78,7 +78,32 @@ function uzaklik(a, b) {
   return d[m][n];
 }
 
+// Addan giriş kullanıcı adı önerisi: "Ali Yılmaz" → "ali.yilmaz" (Türkçe harfler sadeleşir, harf/rakam dışı → nokta)
+const _TR_SADE = { ç: "c", ğ: "g", ı: "i", i: "i", ö: "o", ş: "s", ü: "u", â: "a", î: "i", û: "u" };
+function kullaniciAdiYap(ad) {
+  const s = String(ad || "").toLocaleLowerCase("tr").replace(/[çğıiöşüâîû]/g, (h) => _TR_SADE[h] || h)
+    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "").slice(0, 32).replace(/\.+$/, "");
+  return s || "kullanici";
+}
+// Biçim: 3–32 karakter; küçük harf, rakam, nokta, tire, alt çizgi; harf/rakamla başlar
+const KULLANICI_ADI_RE = /^[a-z0-9][a-z0-9._-]{2,31}$/;
+// Addan, verilen kümede olmayan kullanıcı adı (ali.yilmaz, ali.yilmaz2, …) — saf; küme küçük harf anahtar içerir
+function kullaniciAdiSec(ad, kullanilan) {
+  let kok = kullaniciAdiYap(ad).slice(0, 28).replace(/[._-]+$/, "");
+  if (kok.length < 3) kok = (kok ? kok + "." : "") + "kullanici";
+  let aday = kok;
+  for (let n = 2; kullanilan.has(aday); n++) aday = `${kok}${n}`;
+  return aday;
+}
+
+// Girişte/karşılaştırmada kullanıcı adı anahtarı: büyük/küçük harf ve Türkçe harf farkı yok
+// ("Ali.Yılmaz", "ALI.YILMAZ", "ali.yilmaz" aynı). Telefon klavyesinin ilk harfi büyütmesi sorun olmaz.
+function kullaniciAdiAnahtar(k) {
+  return String(k || "").trim().replace(/[İI]/g, "i").toLowerCase().replace(/[çğıöşüâîû]/g, (h) => _TR_SADE[h] || h);
+}
+
 module.exports = {
   adDuzelt, adSoyad, adBol, isimAnahtar, isimEsit, isimListesi, isimIcerir,
-  turkceKarakterSayisi, uzaklik,
+  turkceKarakterSayisi, uzaklik, kullaniciAdiYap, KULLANICI_ADI_RE, kullaniciAdiAnahtar, kullaniciAdiSec,
 };

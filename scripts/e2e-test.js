@@ -85,10 +85,15 @@ async function dbBaglan() {
     user: dbEnv.YALIN_DB_USER, password: dbEnv.YALIN_DB_PASSWORD, database: TEST_DB,
   });
 }
-async function girisYap(sifre) {
+// Test hesapları: şifre → kullanıcı adı (addan otomatik verilen; "Eski Yetki"/"Eski Tam" SQL ile eklenir, adı girişte tamamlanır)
+const KULLANICI = {
+  admin123: "admin", alitest99: "ali.test", kisitli123: "kisitli.yonetici", deniz123: "deniz.denetmen",
+  tamyetki1: "eski.tam", planci12: "plan.sorumlu", eskiyetki1: "eski.yetki",
+};
+async function girisYap(sifre, kullanici_adi = KULLANICI[sifre]) {
   await get("/yonetici/cikis");
   const c = csrfFrom(await getText("/yonetici/giris"));
-  await post("/yonetici/giris", { csrf_token: c, sifre });
+  await post("/yonetici/giris", { csrf_token: c, kullanici_adi, sifre });
   return csrfFrom(await getText("/oneri/yeni"));
 }
 function konum(r) { return r.headers.get("location") || ""; }
@@ -138,12 +143,23 @@ async function main() {
     ok("statik dosya adresleri sürümlü (?v=)", Boolean(sv) && html.includes(`/static/takvim.js?v=${sv}"`));
     ok("sürümlü statik dosya sunuluyor", (await fetch(`${BASE}/static/style.css?v=${sv}`)).status === 200);
 
-    await post("/yonetici/giris", { csrf_token: csrf, sifre: "yanlis-sifre" });
+    ok("giriş formunda kullanıcı adı + şifre kutusu", html.includes('name="kullanici_adi"') && html.includes('autocomplete="username"')
+      && html.includes('name="sifre"'));
+    await post("/yonetici/giris", { csrf_token: csrf, kullanici_adi: "admin", sifre: "yanlis-sifre" });
     html = await getText("/yonetici/giris");
-    ok("yanlış şifre reddedildi", html.includes("Hatalı şifre"));
-
+    ok("yanlış şifre reddedildi", html.includes("Kullanıcı adı veya şifre hatalı"));
+    ok("hatalı girişte kullanıcı adı kutuda kalır", html.includes('value="admin"'));
     csrf = csrfFrom(html);
     await post("/yonetici/giris", { csrf_token: csrf, sifre: "admin123" });
+    html = await getText("/");
+    ok("yalnız şifreyle giriş kapalı (kullanıcı adı şart)", !html.includes('href="/yonetici">'));
+    csrf = csrfFrom(await getText("/yonetici/giris"));
+    await post("/yonetici/giris", { csrf_token: csrf, kullanici_adi: "yok.boyle", sifre: "admin123" });
+    html = await getText("/");
+    ok("başka kullanıcı adıyla ana yönetici şifresi geçmez", !html.includes('href="/yonetici">'));
+
+    csrf = csrfFrom(await getText("/yonetici/giris"));
+    await post("/yonetici/giris", { csrf_token: csrf, kullanici_adi: " ADMIN ", sifre: "admin123" });
     html = await getText("/");
     ok("admin girişi", /href="\/yonetici"><svg class="ikon"[^>]*>[\s\S]*?<\/svg> Yönetim<\/a>/.test(html));
     ok("üst menü ve sayfalarda emoji yerine çizgi ikon", !/[\u{1F300}-\u{1FAFF}]/u.test(html.split("<main")[0]) && html.includes('<svg class="ikon"'));
@@ -153,15 +169,15 @@ async function main() {
     html = await getText("/yonetici/giris");
     csrf = csrfFrom(html);
     const r0 = await post("/yonetici/giris?next=" + encodeURIComponent("//kotu.example"), {
-      csrf_token: csrf, sifre: "admin123" });
+      csrf_token: csrf, kullanici_adi: "admin", sifre: "admin123" });
     ok("open redirect engellendi", (r0.headers.get("location") || "") === "/");
     await get("/yonetici/cikis");
     csrf = csrfFrom(await getText("/yonetici/giris"));
-    const r0b = await post("/yonetici/giris?next=" + encodeURIComponent("/\\kotu.example"), { csrf_token: csrf, sifre: "admin123" });
+    const r0b = await post("/yonetici/giris?next=" + encodeURIComponent("/\\kotu.example"), { csrf_token: csrf, kullanici_adi: "admin", sifre: "admin123" });
     ok("open redirect (/\\host) engellendi", (r0b.headers.get("location") || "") === "/");
     await get("/yonetici/cikis");
     csrf = csrfFrom(await getText("/yonetici/giris"));
-    const r0c = await post("/yonetici/giris?next=/a&next=/b", { csrf_token: csrf, sifre: "admin123" });
+    const r0c = await post("/yonetici/giris?next=/a&next=/b", { csrf_token: csrf, kullanici_adi: "admin", sifre: "admin123" });
     ok("dizi next parametresi hata vermiyor", r0c.status === 302 && (r0c.headers.get("location") || "") === "/");
 
     // CSRF koruması
@@ -322,21 +338,21 @@ async function main() {
     // --- Denetmen şifresi + denetmen girişi ---
     csrf = csrfFrom(await getText("/yonetici"));
     await post("/yonetici/denetmen/ekle", { csrf_token: csrf, ad: "Ali Test", sifre: "alitest99" });
+    html = await getText("/yonetici");
+    ok("yeni denetmene addan kullanıcı adı verildi (ali.test)", html.includes("kullanıcı adı: ali.test") && html.includes('value="ali.test"'));
     await get("/yonetici/cikis");
     html = await getText("/yonetici/giris");
     csrf = csrfFrom(html);
-    await post("/yonetici/giris", { csrf_token: csrf, sifre: "alitest99" });
+    await post("/yonetici/giris", { csrf_token: csrf, kullanici_adi: "Ali.Test", sifre: "alitest99" });
     html = await getText("/");
-    ok("denetmen girişi (şifreden tanıma)", html.includes("Ali Test") && html.includes("denetmen"));
+    ok("denetmen girişi (kullanıcı adı; büyük/küçük harf farkı yok)", html.includes("Ali Test") && html.includes("denetmen"));
 
     const r2 = await get("/yonetici");
     ok("denetmen yönetici paneline giremedi", r2.status === 302);
 
     // --- Ek yönetici: yetki tabanlı erişim ---
     // Ana yönetici olarak tekrar giriş
-    await get("/yonetici/cikis");
-    csrf = csrfFrom(await getText("/yonetici/giris"));
-    await post("/yonetici/giris", { csrf_token: csrf, sifre: "admin123" });
+    csrf = await girisYap("admin123");
     // Yalnızca 'degerlendirme' yetkili bir ek yönetici ekle
     csrf = csrfFrom(await getText("/yonetici"));
     await post("/yonetici/yonetici/ekle", {
@@ -345,11 +361,9 @@ async function main() {
     ok("ek yönetici panelde listelendi", html.includes("Kısıtlı Yönetici"));
 
     // Ek yönetici olarak giriş
-    await get("/yonetici/cikis");
-    csrf = csrfFrom(await getText("/yonetici/giris"));
-    await post("/yonetici/giris", { csrf_token: csrf, sifre: "kisitli123" });
+    await girisYap("kisitli123", "Kısıtlı.Yönetici"); // Türkçe harfle yazılsa da kisitli.yonetici
     html = await getText("/");
-    ok("ek yönetici girişi (şifreden tanıma)", html.includes("Kısıtlı Yönetici") && html.includes("yönetici"));
+    ok("ek yönetici girişi (kullanıcı adı, Türkçe harf farkı yok)", html.includes("Kısıtlı Yönetici") && html.includes("yönetici"));
 
     // Panele girebilir ama Yöneticiler/Denetmen bölümlerini görmez
     const dash = await getText("/yonetici");
@@ -371,9 +385,7 @@ async function main() {
     const rs = await post("/yonetici/yonetici/ekle", { csrf_token: csrf, ad: "X", sifre: "xxxxxx", yetkiler: "odul" });
     ok("ek yönetici, yönetici ekleyemez (süper değil)", (rs.headers.get("location") || "") === "/");
     // Yetkisiz eklemenin gerçekten yazılmadığını doğrula (ana yönetici olarak)
-    await get("/yonetici/cikis");
-    csrf = csrfFrom(await getText("/yonetici/giris"));
-    await post("/yonetici/giris", { csrf_token: csrf, sifre: "admin123" });
+    csrf = await girisYap("admin123");
     const bolumSayfa = await getText("/5s");
     ok("yetkisiz bölüm gerçekten eklenmedi", !bolumSayfa.includes("Yetkisiz Bölüm"));
     const dash2 = await getText("/yonetici");
@@ -475,6 +487,38 @@ async function main() {
     await post("/yonetici/denetmen/ekle", { csrf_token: csrf, ad: "deniz", soyad: "DENETMEN", sifre: "deniz123" });
     const [[dz]] = await db.query("SELECT id, ad FROM denetmenler WHERE ad = 'Deniz Denetmen'");
     ok("bölüm lideri olmayan denetmen eklendi", Boolean(dz));
+
+    // --- Kullanıcı adları: otomatik öneri, değiştirme, benzersizlik/biçim, aynı şifre serbest ---
+    ok("kullanıcı adı üretimi (Türkçe harf, çakışma, ayrılmış ad)", I.kullaniciAdiYap("Şükrü Öztürk") === "sukru.ozturk"
+      && I.kullaniciAdiSec("Ali Yılmaz", new Set(["ali.yilmaz"])) === "ali.yilmaz2"
+      && I.kullaniciAdiSec("Admin", new Set(["admin"])) === "admin2" && I.kullaniciAdiSec("Al", new Set()) === "al.kullanici"
+      && I.kullaniciAdiAnahtar(" İsmail.ŞEN ") === "ismail.sen");
+    const kAdi = async () => (await db.query("SELECT kullanici_adi FROM denetmenler WHERE id = ?", [dz.id]))[0][0].kullanici_adi;
+    ok("denetmene addan kullanıcı adı (deniz.denetmen)", (await kAdi()) === "deniz.denetmen");
+    for (const [yanlis, neden] of [["ali.test", "başka hesabın adı"], ["ADMIN", "ana yöneticiye ayrılmış"], ["a b", "boşluk"], ["ab", "çok kısa"], ["", "boş"]]) {
+      await post("/yonetici/denetmen/guncelle", { csrf_token: csrf, id: dz.id, kullanici_adi: yanlis, sifre: "" });
+      ok(`kullanıcı adı reddedildi: ${neden}`, (await kAdi()) === "deniz.denetmen");
+    }
+    await post("/yonetici/denetmen/guncelle", { csrf_token: csrf, id: dz.id, kullanici_adi: "Deniz.D", sifre: "" });
+    ok("kullanıcı adı değiştirildi (küçük harfe çevrilerek)", (await kAdi()) === "deniz.d");
+    await girisYap("deniz123", "deniz.d");
+    ok("yeni kullanıcı adıyla giriş", (await getText("/")).includes("Deniz Denetmen"));
+    await girisYap("deniz123", "deniz.denetmen");
+    ok("eski kullanıcı adı artık geçmez", !(await getText("/")).includes("Deniz Denetmen"));
+    csrf = await girisYap("admin123");
+    await post("/yonetici/denetmen/guncelle", { csrf_token: csrf, id: dz.id, kullanici_adi: "deniz.denetmen", sifre: "" });
+    // Kimlik kullanıcı adından geldiği için iki hesabın şifresi aynı olabilir
+    await post("/yonetici/denetmen/ekle", { csrf_token: csrf, ad: "Aynı", soyad: "Şifreli", kullanici_adi: "ayni.sifre", sifre: "deniz123" });
+    const [[aynı]] = await db.query("SELECT id, kullanici_adi FROM denetmenler WHERE ad = 'Aynı Şifreli'");
+    ok("aynı şifreyle ikinci hesap açılabildi (elle kullanıcı adı)", aynı && aynı.kullanici_adi === "ayni.sifre");
+    await girisYap("deniz123", "ayni.sifre");
+    const aynıSayfa = await getText("/");
+    await girisYap("deniz123");
+    ok("aynı şifreli hesaplar kullanıcı adıyla ayrılıyor", aynıSayfa.includes("Aynı Şifreli") && (await getText("/")).includes("Deniz Denetmen"));
+    csrf = await girisYap("admin123");
+    await post("/yonetici/denetmen/sil", { csrf_token: csrf, id: aynı.id });
+    html = await getText("/yonetici");
+    ok("ana yönetici kullanıcı adı Şifre sekmesinde (admin)", html.includes("Kullanıcı adınız: <code>admin</code>"));
     const revNo = "ÖNFR9901-02", digerNo = "ÖNFR9901-03";
     await post("/durum", { csrf_token: csrf, tip: "oneri", no: revNo, durum: "Düzeltme İsteniyor", revize_notu: "Maliyet yaz" });
     [[rd]] = await db.query("SELECT durum FROM oneriler WHERE `no` = ?", [revNo]);
@@ -706,6 +750,17 @@ async function main() {
     const [[tamSay]] = await db.query("SELECT COUNT(*) AS n FROM yoneticiler WHERE ad = 'Tam Yetkili'");
     ok("formdan tam yetki verilemez", tamSay.n === 0);
     await post("/yonetici/yonetici/ekle", { csrf_token: csrf, ad: "Plan", soyad: "Sorumlu", sifre: "planci12", yetkiler: "bes_plan" });
+    {
+      const yK = async () => (await db.query("SELECT id, kullanici_adi FROM yoneticiler WHERE ad = 'Plan Sorumlu'"))[0][0];
+      const py = await yK();
+      ok("ek yöneticiye addan kullanıcı adı (plan.sorumlu)", py.kullanici_adi === "plan.sorumlu");
+      await post("/yonetici/yonetici/guncelle", { csrf_token: csrf, id: py.id, yetkiler: "bes_plan", kullanici_adi: "deniz.denetmen", sifre: "" });
+      ok("ek yönetici kullanıcı adı denetmeninkiyle çakışamaz", (await yK()).kullanici_adi === "plan.sorumlu");
+      await post("/yonetici/yonetici/guncelle", { csrf_token: csrf, id: py.id, yetkiler: "bes_plan", kullanici_adi: "plan.s", sifre: "" });
+      const degisen = (await yK()).kullanici_adi;
+      await post("/yonetici/yonetici/guncelle", { csrf_token: csrf, id: py.id, yetkiler: "bes_plan", kullanici_adi: "plan.sorumlu", sifre: "" });
+      ok("ek yönetici kullanıcı adı değiştirilebilir", degisen === "plan.s" && (await yK()).kullanici_adi === "plan.sorumlu");
+    }
     const hp = require("../src/cekirdek").hashPassword;
     await db.query("INSERT INTO yoneticiler(id, ad, sifre, yetkiler, olusturma) VALUES('eskiyetk', 'Eski Yetki', ?, '[\"bes_s\"]', '')",
       [hp("eskiyetki1")]);
@@ -737,6 +792,8 @@ async function main() {
     csrf = await girisYap("eskiyetki1");
     r = await get("/5s/denetim-excel");
     ok("eski 'bes_s' yetkisi yeni 5S yetkilerine açıldı", r.status === 200);
+    const [eskiK] = await db.query("SELECT id, kullanici_adi FROM yoneticiler WHERE id IN ('eskiyetk', 'eskitam') ORDER BY id");
+    ok("eski sürümle/elle eklenmiş hesaba girişte kullanıcı adı verildi", eskiK.map((x) => x.kullanici_adi).join(",") === "eski.tam,eski.yetki");
 
     // --- 5S denetim revize ---
     csrf = await girisYap("admin123");

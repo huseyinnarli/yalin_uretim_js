@@ -238,7 +238,7 @@ sudo systemctl restart yalin
 - [ ] `YALIN_DATA_DIR` kod dizini dışında; klasör izinleri yalnız uygulama kullanıcısında
 - [ ] Güvenlik duvarı: LAN'da yalnız 5000 (veya internette yalnız 80/443) açık
 - [ ] İlk giriş yapıldı, **varsayılan `admin123` değiştirildi**
-- [ ] Denetmen şifreleri tanımlandı (Yönetici Paneli → Denetmenler)
+- [ ] Denetmen hesapları tanımlandı (Yönetim → Denetmenler; kullanıcı adı addan otomatik) ve kullanıcı adları kişilere bildirildi
 - [ ] Yedek klasörü farklı diske yönlendirildi; mysqldump cron'u kuruldu
 - [ ] Geri dönüş tatbikatı bir kez yapıldı
 - [ ] İnternet senaryosunda: `{"https":true,"proxy":true}` + reverse proxy + sertifika doğrulandı
@@ -248,7 +248,7 @@ sudo systemctl restart yalin
 Depodaki `Dockerfile` yalnızca **tasarımı çevrimiçi göstermek** içindir: uygulama, aynı kapta geçici bir
 **MariaDB** ve **örnek veri** (6 bölüm, 3 denetim turu, ~22 öneri, 5 kaizen, kontrol formu kayıtları) ile açılır.
 Harici veritabanı gerekmez. Veriler kalıcı değildir — kap her yeniden başladığında (deploy, uyku sonrası) demo
-sıfırdan kurulur. Sayfanın üstünde demo şeridi ve giriş şifreleri görünür.
+sıfırdan kurulur. Sayfanın üstünde demo şeridi ve giriş bilgileri (kullanıcı adı / şifre) görünür.
 
 **Render'da kurulum:** New → **Web Service** → `huseyinnarli/yalin_uretim_js` → **Language: Docker** →
 Instance: Free → Create. (Var olan "Node" servisi Docker'a çevrilemez; yeni servis açıp eskisini silin.)

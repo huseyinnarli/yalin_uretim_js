@@ -35,10 +35,10 @@
 <!-- Denetmenler -->
 <h2 class="bolum-baslik" id="denetmenler"><%- ik('users') %> Denetmenler</h2>
 <div class="form-card">
-    <p class="subtitle" style="margin-bottom:14px"><strong>Denetmen</strong> şifresiyle giriş yapan saha hesabıdır:
+    <p class="subtitle" style="margin-bottom:14px"><strong>Denetmen</strong> kullanıcı adı ve şifresiyle giriş yapan saha hesabıdır:
         kendisine planlanan <strong>5S denetimini</strong> yapar, ekip lideri olduğu bölümün <strong>aksiyonlarını</strong> kapatır,
         öneri ve kaizenleri <strong>görüntüler</strong>, kendisine atanan <strong>düzeltme</strong> ve <strong>kaizene dönüştürme
-        görevlerini</strong> yapar. Bölüm lideri olması gerekmez. Her şifre farklı olmalıdır.</p>
+        görevlerini</strong> yapar. Bölüm lideri olması gerekmez. Kullanıcı adı addan otomatik verilir; buradan değiştirebilirsiniz.</p>
 
     <% if (denetmenler.length) { %>
     <div class="denetmen-liste">
@@ -46,10 +46,13 @@
         <div class="denetmen-satir">
             <span class="ds-ad"><%- ik('user') %> <strong><%= d.ad %></strong>
                 <% if (d.lider) { %><span class="durum-badge onay">bölüm lideri</span><% } %></span>
-            <form method="post" action="/yonetici/denetmen/sifre" class="denetmen-form" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+            <form method="post" action="/yonetici/denetmen/guncelle" class="denetmen-form hesap-form" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="id" value="<%= d.id %>">
-                <input type="text" name="sifre" placeholder="Yeni şifre" minlength="6" required>
-                <button type="submit" class="btn-mini edit">Şifre Değiştir</button>
+                <label class="kullanici-kutu" title="Giriş kullanıcı adı"><span>Kullanıcı adı</span>
+                    <input type="text" name="kullanici_adi" value="<%= d.kullanici_adi || '' %>" required maxlength="32"
+                           autocapitalize="none" spellcheck="false"></label>
+                <input type="text" name="sifre" placeholder="Yeni şifre" minlength="6" title="Boş bırakılırsa şifre değişmez">
+                <button type="submit" class="btn-mini edit">Kaydet</button>
             </form>
             <form method="post" action="/yonetici/denetmen/sil" style="display:inline"
                   onsubmit="return confirm('Bu denetmen hesabı silinsin mi?');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
@@ -68,7 +71,7 @@
     <div class="denetmen-liste">
         <% for (const ad of lider_adaylari) { %>
         <div class="denetmen-satir">
-            <span class="ds-ad"><%- ik('user') %> <strong><%= ad %></strong> <span class="durum-badge bekle">şifre yok</span></span>
+            <span class="ds-ad"><%- ik('user') %> <strong><%= ad %></strong> <span class="durum-badge bekle">hesap yok</span></span>
             <form method="post" action="/yonetici/denetmen/ekle" class="denetmen-form" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
                 <input type="hidden" name="ad" value="<%= ad %>">
                 <input type="text" name="sifre" placeholder="Şifre belirle" minlength="6" required>
@@ -83,6 +86,8 @@
     <form method="post" action="/yonetici/denetmen/ekle" class="satir-form" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
         <input type="text" name="ad" placeholder="Ad" required>
         <input type="text" name="soyad" placeholder="Soyad" required>
+        <input type="text" name="kullanici_adi" placeholder="Kullanıcı adı (boş = otomatik)" maxlength="32"
+               autocapitalize="none" spellcheck="false">
         <input type="text" name="sifre" placeholder="Şifre (en az 6)" minlength="6" required>
         <button type="submit" class="btn primary">+ Denetmen Ekle</button>
     </form>
@@ -145,7 +150,8 @@
 <div class="form-card">
     <p class="subtitle" style="margin-bottom:14px"><strong>Ana yönetici</strong> sabittir ve tek tam yetkili hesaptır:
         ek yönetici ekleme/silme ve işlem günlüğü yalnızca ondadır. Buradan <strong>ek yönetici</strong> ekleyip yetki
-        alanlarını tek tek seçersiniz; ek yönetici yalnızca işaretlenen alanlarda işlem yapar. Her şifre farklı olmalıdır.</p>
+        alanlarını tek tek seçersiniz; ek yönetici yalnızca işaretlenen alanlarda işlem yapar. Her hesap kendi
+        <strong>kullanıcı adı</strong> ve şifresiyle girer; ana yöneticinin kullanıcı adı <code>admin</code>'dir.</p>
 
     <% if (yoneticiler.length) { %>
     <div class="denetmen-liste" style="margin-bottom:18px">
@@ -156,6 +162,9 @@
             <div class="yonetici-ust">
                 <span class="ds-ad"><%- ik('user') %> <strong><%= y.ad %></strong></span>
                 <div class="yonetici-islem">
+                    <label class="kullanici-kutu" title="Giriş kullanıcı adı"><span>Kullanıcı adı</span>
+                        <input type="text" name="kullanici_adi" value="<%= y.kullanici_adi || '' %>" required maxlength="32"
+                               autocapitalize="none" spellcheck="false"></label>
                     <input type="password" name="sifre" placeholder="Yeni şifre (boş=değişmez)" minlength="6"
                            class="yonetici-sifre" autocomplete="new-password">
                     <button type="submit" class="btn-mini edit">Kaydet</button>
@@ -179,6 +188,9 @@
         <div class="row">
             <div class="field"><label>Ad</label><input type="text" name="ad" required></div>
             <div class="field"><label>Soyad</label><input type="text" name="soyad"></div>
+            <div class="field"><label>Kullanıcı adı <small>(boş = otomatik)</small></label>
+                <input type="text" name="kullanici_adi" maxlength="32"
+                       autocapitalize="none" spellcheck="false" placeholder="ör. ayse.kaya"></div>
             <div class="field">
                 <label>Şifre <small>(en az 6 karakter)</small></label>
                 <input type="password" name="sifre" minlength="6" required autocomplete="new-password">
@@ -198,6 +210,7 @@
 <section class="ysekme" data-sekme="sifre">
 <h2 class="bolum-baslik" id="sifre"><%- ik('key-round') %> Şifre Değiştir <small class="bos-not">(ana yönetici)</small></h2>
 <form class="form-card sifre-form" method="post" action="/yonetici/sifre" autocomplete="off"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <p class="subtitle" style="margin-bottom:14px">Kullanıcı adınız: <code>admin</code> (sabit, değiştirilemez).</p>
     <div class="row">
         <div class="field"><label>Mevcut Şifre</label><input type="password" name="eski" required></div>
         <div class="field"><label>Yeni Şifre</label><input type="password" name="yeni" required></div>

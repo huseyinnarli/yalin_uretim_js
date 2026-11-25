@@ -3,14 +3,22 @@
     <div class="login-card">
         <div class="login-icon"><%- ik('lock') %></div>
         <h1>Giriş</h1>
-        <p class="subtitle">Yönetici veya denetmen şifrenizi girin — sistem sizi otomatik tanır.</p>
+        <p class="subtitle">Yönetici, denetmen ve bölüm liderleri kullanıcı adı ve şifreyle girer.</p>
         <form method="post"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <div class="field">
-                <label>Şifre</label>
-                <input type="password" name="sifre" required autofocus placeholder="••••••••">
+                <label for="g-kullanici">Kullanıcı adı</label>
+                <input type="text" id="g-kullanici" name="kullanici_adi" required maxlength="64"
+                       autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"
+                       placeholder="ör. ali.yilmaz" value="<%= kullanici_adi %>"<%= kullanici_adi ? '' : ' autofocus' %>>
+            </div>
+            <div class="field">
+                <label for="g-sifre">Şifre</label>
+                <input type="password" id="g-sifre" name="sifre" required autocomplete="current-password"
+                       placeholder="••••••••"<%= kullanici_adi ? ' autofocus' : '' %>>
             </div>
             <button type="submit" class="btn primary block">Giriş Yap</button>
         </form>
+        <p class="login-ipucu">Kullanıcı adınızı bilmiyorsanız yöneticinize sorun — Yönetim sayfasında listelidir.</p>
         <a class="back-link" href="/">← Anasayfaya dön</a>
     </div>
 </div>

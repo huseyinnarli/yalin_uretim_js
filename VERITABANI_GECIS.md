@@ -7,7 +7,7 @@ var. Yeni sürümü bu veritabanını bozmadan nasıl devreye alırım?
 > **[GUNCELLEME_REHBERI.md](GUNCELLEME_REHBERI.md)**. Bu belge veritabanı tarafının ayrıntısıdır.
 
 **Kısa cevap:** Mevcut veritabanı **olduğu gibi** kullanılır. Dışa aktarma, dönüştürme veya elle SQL gerekmez.
-Yeni sürüm ilk açılışta yalnızca **3 boş tablo ve 39 boş kolon ekler**; var olan hiçbir satır, kolon ya da isim
+Yeni sürüm ilk açılışta yalnızca **3 boş tablo ve 41 boş kolon ekler**; var olan hiçbir satır, kolon ya da isim
 değişmez, silinmez, yeniden adlandırılmaz. İsimler veritabanında yine tek alanda durur; ad/soyad ayrımı yalnız
 formdadır. Geri dönmek gerekirse eski kodu çalıştırmak yeterlidir. Bunların hepsi, eski sürümle üretilmiş bir
 veritabanı üzerinde denendi (§6).
@@ -27,6 +27,7 @@ Sunucu her açılışta `src/db.js:init()` çalıştırır. Bu fonksiyon iki şe
 | `bolumler` | `bes_dahil` (bölüm 5S'e dahil mi) | **1** — bütün eski bölümler 5S'e dahil kalır |
 | `kaizenler` | `red_nedeni`, 6 adet `revize_*` kolonu, `kaynak_oneri_no`, `onay_zamani`, `lider_gorevi`, `uye_gorevleri`, `onceki_maliyet`, `sonraki_maliyet` (maliyet hesabı, €) | boş (NULL) — eski kaizende maliyet "girilmemiş" görünür, düzenlerken istenir |
 | `denetimler` | `revize_eden`, `revize_zamani` | boş (NULL) |
+| `denetmenler`, `yoneticiler` | `kullanici_adi` (giriş kullanıcı adı) | boş gelir, **aynı açılışta addan doldurulur** (`ali.yilmaz`, çakışırsa `ali.yilmaz2`) — eklenen kolona yapılan tek yazma budur; şifreler değişmez |
 | yeni tablo | `isim_eslestirme` — elle isim birleştirmeleri | boş |
 | yeni tablo | `kontrol_kayitlari`, `kontrol_onaylari` — periyodik kontrol formu | boş |
 
@@ -168,10 +169,13 @@ nssm start YalinUretim
 
 ### Adım 5 — Açılış sonrası kontrol
 - Ön kontrolü canlıya bir daha çalıştırın: oluşturulacak tablo ve eklenecek kolon **0** olmalı.
-- Eski şifrelerle giriş, Liste, Puan Durumu, 5S sayfaları açılıyor mu bakın.
+- **Kullanıcı adı + eski şifre** ile giriş (ana yönetici `admin`; diğerleri Yönetim › Denetmenler / Yöneticiler'de listeli,
+  sunucu günlüğünde de "Kullanıcı adı verildi" satırları var), Liste, Puan Durumu, 5S sayfaları açılıyor mu bakın.
 
 ### Adım 6 — Canlı sonrası yapılacaklar
 1. Ana yönetici şifresi varsayılansa **hemen değiştirin** (Yönetim › Şifre Değiştir).
+1b. **Kullanıcı adlarını bildirin:** giriş artık kullanıcı adı + şifre. Her denetmene / ek yöneticiye kullanıcı adını iletin
+   (Yönetim'de listeli; istenirse orada değiştirilebilir). Şifreler aynı kaldı.
 2. Yönetim › Yöneticiler: ek yöneticilerin yetkilerini gözden geçirip **bir kez kaydedin** — geri dönüş süresi (ör. 1 hafta)
    dolunca. Eski anahtarlar okunurken zaten çevrilir; kaydedilen yeni anahtarları eski sürüm tanımaz (§5).
 3. Yönetim › Denetmenler: görev/düzeltme atanacak kişilere ve hesabı olmayan bölüm liderlerine **denetmen hesabı** açın.
@@ -189,7 +193,7 @@ nssm start YalinUretim
 
 | Durum | Yapılacak | Veri kaybı |
 |---|---|---|
-| Yeni sürümde sorun çıktı, eskiye dönülecek | `git checkout 1d67cea` (veya eski klasör) → `npm ci` → servisi yeniden başlat | **Yok.** Eklenen tablo/kolonlar eski kodu bozmaz (denendi, §6). Yeni sürümde girilen red gerekçesi, görev, kontrol formu vb. veritabanında kalır, eski sürümde görünmez; tekrar yeni sürüme geçince yerindedir. Yeni sürümde **kaydedilmiş** ek yönetici yetkilerini eski sürüm tanımaz (yalnız `odul`, `kayit`); o yöneticilere yetkileri eski panelden yeniden verilir. İsim birleştirmeleri ve puan ayarı değişiklikleri eski sürümde işlemez. |
+| Yeni sürümde sorun çıktı, eskiye dönülecek | `git checkout 1d67cea` (veya eski klasör) → `npm ci` → servisi yeniden başlat | **Yok.** Eklenen tablo/kolonlar eski kodu bozmaz (denendi, §6). Yeni sürümde girilen red gerekçesi, görev, kontrol formu vb. veritabanında kalır, eski sürümde görünmez; tekrar yeni sürüme geçince yerindedir. Yeni sürümde **kaydedilmiş** ek yönetici yetkilerini eski sürüm tanımaz (yalnız `odul`, `kayit`); o yöneticilere yetkileri eski panelden yeniden verilir. İsim birleştirmeleri ve puan ayarı değişiklikleri eski sürümde işlemez. Eski sürüm yine **yalnız şifreyle** girer (kullanıcı adı kolonunu görmez); yeni sürümde iki hesaba **aynı şifre** verildiyse eski sürüm bu şifreyle öncelik sırasındaki ilk hesaba (ana yönetici → ek yönetici → denetmen) sokar — geri dönmeden önce böyle hesaplara farklı şifre verin. |
 | Veritabanı gerçekten bozuldu (beklenmez) | Adım 1'deki dump'ı geri yükleyin | Güncellemeden sonra girilen veriler |
 
 ---
@@ -253,6 +257,9 @@ Ek yönetici: Kalite Müdürü — kayıtlı: degerlendirme, odul → Değerlend
 | **Geri dönüş:** eski sürümde havuzdaki öneri normal onaylı öneri gibi açılıyor; liste, Excel, öneri gönderme, onay, puan listesi çalışıyor | ✔ |
 | **Kaizen maliyet hesabı (25 Kasım):** ön kontrol `CHECKSUM` aynı; rapor 3 tablo + **39 kolon** (`kaizenler.onceki_maliyet`, `sonraki_maliyet` dahil); yeni sürümde eski kaizen "maliyet girilmemiş" notuyla açılıyor, maliyetli kaizen kaydı ve Excel | ✔ |
 | **Geri dönüş:** eski sürümde maliyetli kaizenin detayı, kaizen kaydı (maliyet boş kalır), kaizen Excel'i, puan listesi | ✔ |
+| **Kullanıcı adı girişi (25 Kasım):** eski sürümün şemasına eski düzende 3 denetmen + 2 ek yönetici ("Ali Yılmaz" hem denetmen hem ek yönetici, bir de "Admin" adlı ek yönetici); ön kontrol `CHECKSUM` aynı, rapor **41 kolon** ve verilecek adları listeliyor (`ali.yilmaz`, `ali.yilmaz2`, `sukru.ozturk`, `admin2`…) | ✔ |
+| Yeni sürüm: açılışta 5 hesaba ön kontroldeki adlar verildi; kullanıcı adı + eski şifre ile giriş (büyük/küçük ve Türkçe harf farkı yok); yalnız şifreyle ve başka kullanıcı adıyla giriş reddedildi | ✔ |
+| **Geri dönüş:** eski sürüm aynı veritabanında 6 hesabın hepsine yalnız şifreyle giriyor; eski sürümle açılan yeni denetmen, tekrar yeni sürüme geçişte açılışta kullanıcı adı alıp giriş yapabildi | ✔ |
 
 ---
 

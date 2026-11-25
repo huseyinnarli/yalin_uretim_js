@@ -70,7 +70,7 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | 1 | `servis/kayitlar.js` | `getRecord`, `updateRecord`, `combinedRecords`, `filtrele`, `sayfala`, `mevcutAylar`, `kayitDuzenleyebilir`, `kaizeneDonusturebilir`, `kaizenKaydetGorsel` |
 | 1 | `servis/bolumler.js` | **Ortak bölüm listesi** (öneri/kaizen açılır listesi + 5S): `loadBolumler`, `bolumById`, `bolumMap`, `besBolumleri` (yalnız 5S'e dahil), `bolumAdlari`, `bolumSecimi` (form doğrulama, saf), `bolumEkle` (toplu, mükerrer atlar), `bolumleriGuncelle` (ad + 5S'e dahil, çakışmada hiçbirini kaydetmez), `bolumKullanim`, `bolumAnahtar`, `bolumKisiEkle` (toplu "Ad Soyad", başka bölümde olanı bildirir), `bolumKisiSil`, `bolumLiderKaydet` |
 | 2 | `servis/bes.js` | denetim/aksiyon okuma, `besSTur*`, `besSIsle`, `besSPlanSatirlari`, `besSTrendTablo` (5S dışı bölüm yalnız geçmişi varsa), `turIslendi`, `denetimKriterPuanlari`, `saveDenetimFotolar`, `bolumSil` (denetimler + fotoğraflar dahil) |
-| 2 | `servis/hesaplar.js` | denetmen/misafir/yönetici okuma, `denetmenBySifre`, `yoneticiBySifre`, `aktifDenetmen`, `oturumYetkileri`, `sifreCakismasi`, `bolumLiderleri`, `denetmenAdaylari` |
+| 2 | `servis/hesaplar.js` | denetmen/misafir/yönetici okuma, **giriş**: `girisHesabi` (kullanıcı adı + şifre, tek doğrulama), `kullaniciAdlariniTamamla` (açılışta + girişte; adı olmayan hesaplara addan), `kullaniciAdiOner`, `kullaniciAdiHatasi`, `kullaniciAdiDegistir`, `ANA_YONETICI_KULLANICI` (`admin`); `aktifDenetmen`, `oturumYetkileri`, `bolumLiderleri`, `denetmenAdaylari` |
 | 2 | `servis/kontrolFormu.js` | `kontrolDoldurabilir`, `kontrolImzalayabilir`, `kontrolAy`, `kontrolAylari`, `kontrolKaydet`, `kontrolImzala`, `kontrolOzet`, `bugunkuKontroller` |
 | 3 | `servis/isimler.js` | `isimCozucu`, `gorunenAd`, `isimGruplari`, `isimBirlestir`, `isimAyir` |
 | 3 | `servis/aksiyon.js` | `aksiyonAtanan`, `aksiyonKapatabilir`, `aksiyonGruplari`, `aksiyonFotolari`, `syncDenetimAksiyonlari`, `saveAksiyonFotolar` |
@@ -150,9 +150,9 @@ JSON** olarak saklanır; okurken `db.js`'teki satır dönüştürücüler nesney
 | `odul_kayitlari` | otomatik | tur tarihi/adı, bölüm, sıra (1-3), puan (100/75/50), `kisiler` (JSON) — **kişi 5S puanlarının tek kaynağı** |
 | `odul_arsiv` | otomatik | verilen 300'lük ödüller (ad, puan, tarih, zaman) |
 | `silinen_kisiler` | `ad` | puan listesinden gizlenenler (puanlar silinmez) |
-| `denetmenler` | `id` | ad, `sifre` (hash), oluşturma |
+| `denetmenler` | `id` | ad, `sifre` (hash), oluşturma, `kullanici_adi` (giriş; iki tabloda birlikte benzersiz, boşsa açılışta addan) |
 | `misafirler` | `id` | ad, oluşturma |
-| `yoneticiler` | `id` | ek yönetici: ad, `sifre` (hash), `yetkiler` (JSON — `src/yetkiler.js` alanları; eski `degerlendirme`/`bes_s`/`tam` okunurken alanlara açılır), oluşturma |
+| `yoneticiler` | `id` | ek yönetici: ad, `sifre` (hash), `kullanici_adi` (giriş), `yetkiler` (JSON — `src/yetkiler.js` alanları; eski `degerlendirme`/`bes_s`/`tam` okunurken alanlara açılır), oluşturma |
 | `isim_eslestirme` | `kaynak` | elle isim birleştirme: kaynak isim anahtarı → hedef anahtar (zincir izlenir, döngü engellenir) |
 | `kontrol_kayitlari` | otomatik (`bolum_id, ay, gun, madde` tekil) | Kontrol formu işaretleri: durum (uygun/uygunsuz), açıklama, işaretleyen, zaman |
 | `kontrol_onaylari` | otomatik (`bolum_id, ay, tip, sira` tekil) | haftalık (`tip=hafta`, `sira`=ay haftası) ve aylık (`tip=ay`) kontrol imzaları |
@@ -314,10 +314,15 @@ onaylandı, puan alan, reddedildi) + `trend` (son 12 ay: gelen ve onaylanıp pua
 Grafikler sunucu tarafında SVG olarak çizilir (dış kütüphane yok); her grafiğin tablo görünümü vardır.
 
 ### Kimlik doğrulama ve yetkilendirme
-- Tek şifre alanı: sırayla ana yönetici hash'i → ek yönetici hash'leri → denetmen hash'leri
-  denenir; eşleşen kimlik oturuma yazılır. Bu nedenle **şifreler benzersiz olmalıdır** — yeni
-  şifre belirlenirken ana yönetici + tüm denetmen + tüm ek yöneticilerle çakışma kontrol edilir
-  (`servis/hesaplar.js:sifreCakismasi`, min 6 karakter).
+- **Kullanıcı adı + şifre** (`servis/hesaplar.js:girisHesabi`): `admin` → ana yönetici şifresi (config); diğer adlar önce
+  `yoneticiler`, sonra `denetmenler` tablosunda `LOWER(kullanici_adi)` ile aranır ve **yalnız o hesabın** hash'i doğrulanır
+  (bilinmeyen adda sahte bir doğrulama yapılır — süre farkından ad anlaşılmasın). Anahtar `isim.js:kullaniciAdiAnahtar`:
+  büyük/küçük ve Türkçe harf farkı yok (`Ali.Yılmaz` = `ali.yilmaz`). Kullanıcı adları iki tabloda birlikte benzersizdir,
+  biçim `isim.js:KULLANICI_ADI_RE` (3–32: a-z 0-9 . _ -), `admin` ayrılmış. Öneri `isim.js:kullaniciAdiSec` (saf; addan,
+  çakışmada `ali.yilmaz2`); `gecis-kontrol` aynı fonksiyonla açılışta verilecek adları önceden listeler. Şifrelerin farklı
+  olması gerekmez (eski "şifre = kimlik" taraması ve `sifreCakismasi` kaldırıldı); şifre en az 6 karakter.
+- `kullaniciAdlariniTamamla()` açılışta (`server.js`) ve her giriş denemesinde çalışır: eski sürümle ya da elle (SQL)
+  eklenmiş, kullanıcı adı boş hesaplar da giriş yapabilir.
 - **Roller ve oturum:** ana yönetici → `session.super = true` (tüm yetkiler); ek yönetici →
   `session.yonetici_id` (yetkiler her istekte veritabanından taze okunur, `web.js:ortakLocals`);
   denetmen → `session.denetmen_id`.
@@ -424,5 +429,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 282 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 304 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

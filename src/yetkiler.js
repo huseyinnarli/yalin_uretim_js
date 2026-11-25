@@ -29,7 +29,7 @@ const YETKI_GRUPLARI = [
   ]},
   { grup: "Hesaplar", yetkiler: [
     { k: "kullanici", ad: "Denetmen hesapları",
-      aciklama: "Denetmen ekleme, şifre belirleme ve silme" },
+      aciklama: "Denetmen ekleme, kullanıcı adı ve şifre belirleme, silme" },
   ]},
 ];
 

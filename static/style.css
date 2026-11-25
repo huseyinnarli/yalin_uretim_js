@@ -149,10 +149,23 @@ legend { font-weight: 700; padding: 0 8px; color: var(--primary); }
 .yonetici-ust { display: flex; justify-content: space-between; align-items: center;
     flex-wrap: wrap; gap: 10px; }
 .yonetici-islem { display: flex; gap: 8px; align-items: center; }
-.yonetici-sifre { max-width: 220px; }
+.yonetici-sifre { max-width: 220px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 7px; font-size: .85rem; }
 .yonetici-alt { display: flex; justify-content: space-between; align-items: center;
     margin-top: 8px; gap: 10px; }
 .yeni-yonetici { border-top: 1px dashed var(--line); padding-top: 14px; }
+/* Hesap satırında kullanıcı adı kutusu: küçük etiket + kutu tek parça */
+.kullanici-kutu { display: inline-flex; align-items: stretch; gap: 0; margin: 0; font-weight: 400; }
+.kullanici-kutu span { display: flex; align-items: center; font-size: .74rem; color: var(--muted); background: #eef1f6;
+    border: 1px solid var(--line); border-right: 0; border-radius: 7px 0 0 7px; padding: 0 7px; white-space: nowrap; }
+.kullanici-kutu input[type=text] { border-radius: 0 7px 7px 0 !important; font-family: ui-monospace, Consolas, monospace;
+    font-size: .84rem !important; width: 150px; max-width: 150px; padding: 6px 8px; border: 1px solid var(--line); }
+.yonetici-islem { flex-wrap: wrap; }
+@media (max-width: 700px) {
+    .denetmen-satir .hesap-form { flex-wrap: wrap; width: 100%; }
+    .denetmen-satir .hesap-form .kullanici-kutu { flex: 1 1 100%; }
+    .denetmen-satir .hesap-form .kullanici-kutu input[type=text] { flex: 1 1 auto; max-width: none; width: auto; }
+    .denetmen-satir .hesap-form > input[type=text] { flex: 1 1 auto; max-width: none; }
+}
 
 .form-actions { display: flex; gap: 10px; margin-top: 8px; }
 
@@ -303,6 +316,7 @@ tr.benim-satirim td { background: var(--primary-tint) !important; }
 .login-card .field { text-align: left; }
 .btn.block { width: 100%; }
 .back-link { display: inline-block; margin-top: 16px; color: var(--muted); }
+.login-ipucu { color: var(--muted); font-size: .85rem; margin: 14px 0 0; line-height: 1.4; }
 
 /* Anasayfa kutuları */
 .hub-boxes { display: grid; grid-template-columns: repeat(auto-fit,minmax(260px,1fr)); gap: 22px; margin-top: 10px; }

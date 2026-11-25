@@ -45,6 +45,16 @@ function oturumuTemizle(session) {
   delete session.yonetici_ad;
   delete session.denetmen_id;
   delete session.denetmen_ad;
+  delete session.son_kullanici;
+}
+
+// Formdaki kullanıcı adı: boşsa addan otomatik önerilir, doluysa biçim + benzersizlik denetlenir.
+// haric: {tablo, id} — güncellenen hesabın kendi adı çakışma sayılmaz. Döner: { k } | { hata }
+async function kullaniciAdiAl(req, ad, haric = null) {
+  const girilen = String(req.body.kullanici_adi || "").trim();
+  if (!girilen) return { k: await C.kullaniciAdiOner(ad) };
+  const hata = await C.kullaniciAdiHatasi(girilen, haric);
+  return hata ? { hata } : { k: I.kullaniciAdiAnahtar(girilen) };
 }
 
 module.exports = function register(app) {
@@ -72,10 +82,12 @@ module.exports = function register(app) {
     } };
   }
 
-  // Tek giriş: şifre ana yöneticininkiyse ana yönetici (tam yetki), bir ek
-  // yöneticininkiyse o yönetici (kısıtlı yetki), bir denetmeninkiyse o denetmen.
+  // Tek giriş: kullanıcı adı + şifre. "admin" ana yönetici (tam yetki); diğer adlar ek yönetici (kısıtlı yetki)
+  // ya da denetmen hesabıdır — hangisi olduğunu sistem kullanıcı adından bulur.
   app.get("/yonetici/giris", (req, res) => {
-    res.render("yonetici_giris", { title: "Yönetici Girişi" });
+    const kullanici_adi = typeof req.session.son_kullanici === "string" ? req.session.son_kullanici : "";
+    delete req.session.son_kullanici;
+    res.render("yonetici_giris", { title: "Giriş", kullanici_adi });
   });
 
   app.post("/yonetici/giris", sar(async (req, res) => {
@@ -84,41 +96,37 @@ module.exports = function register(app) {
       flash(req, "error", "Çok fazla hatalı deneme — 10 dakika sonra tekrar deneyin.");
       return res.redirect("/yonetici/giris");
     }
+    const kullanici = String(req.body.kullanici_adi || "").trim().slice(0, 64);
     const sifre = String(req.body.sifre || "");
     // Yalnızca site içi yol: '//host' ve '/\host' adresleri ile dizi parametresi reddedilir (open redirect)
     const hedef = guvenliYol(typeof req.query.next === "string" ? req.query.next : "/");
 
-    if (await C.adminSifreDogru(sifre)) {
+    await C.kullaniciAdlariniTamamla(); // eski sürümle / elle eklenmiş hesaplar da giriş yapabilsin
+    const g = await C.girisHesabi(kullanici, sifre);
+    if (g) {
       oturumuTemizle(req.session);
-      req.session.admin = true;
-      req.session.super = true; // ana yönetici — tüm yetkiler
       _girisDenemeleri.delete(ip);
-      if (sifre === S.ADMIN_PASSWORD) {
-        flash(req, "error", "⚠ Varsayılan yönetici şifresini kullanıyorsunuz — panelden hemen değiştirin!");
+      if (g.tip === "ana") {
+        req.session.admin = true;
+        req.session.super = true; // ana yönetici — tüm yetkiler
+        if (sifre === S.ADMIN_PASSWORD) {
+          flash(req, "error", "⚠ Varsayılan yönetici şifresini kullanıyorsunuz — panelden hemen değiştirin!");
+        }
+      } else if (g.tip === "yonetici") {
+        req.session.admin = true;
+        req.session.yonetici_id = g.hesap.id;
+        req.session.yonetici_ad = g.hesap.ad;
+        flash(req, "success", `Hoş geldiniz, ${g.hesap.ad} (yönetici).`);
+      } else {
+        req.session.denetmen_id = g.hesap.id;
+        req.session.denetmen_ad = g.hesap.ad;
+        flash(req, "success", `Hoş geldiniz, ${g.hesap.ad} (denetmen).`);
       }
       return res.redirect(hedef);
     }
-    const y = await C.yoneticiBySifre(sifre);
-    if (y) {
-      oturumuTemizle(req.session);
-      req.session.admin = true;
-      req.session.yonetici_id = y.id;
-      req.session.yonetici_ad = y.ad;
-      _girisDenemeleri.delete(ip);
-      flash(req, "success", `Hoş geldiniz, ${y.ad} (yönetici).`);
-      return res.redirect(hedef);
-    }
-    const d = await C.denetmenBySifre(sifre);
-    if (d) {
-      oturumuTemizle(req.session);
-      req.session.denetmen_id = d.id;
-      req.session.denetmen_ad = d.ad;
-      _girisDenemeleri.delete(ip);
-      flash(req, "success", `Hoş geldiniz, ${d.ad} (denetmen).`);
-      return res.redirect(hedef);
-    }
     (_girisDenemeleri.get(ip) || _girisDenemeleri.set(ip, []).get(ip)).push(Date.now() / 1000);
-    flash(req, "error", "Hatalı şifre.");
+    flash(req, "error", kullanici ? "Kullanıcı adı veya şifre hatalı." : "Kullanıcı adınızı ve şifrenizi girin.");
+    req.session.son_kullanici = kullanici; // giriş kutusu tekrar dolu gelsin (şifre değil)
     res.redirect("/yonetici/giris" + (hedef !== "/" ? "?next=" + encodeURIComponent(hedef) : ""));
   }));
 
@@ -163,14 +171,15 @@ module.exports = function register(app) {
       flash(req, "error", "En az bir yetki alanı seçmelisiniz.");
       return res.redirect("/yonetici#yoneticiler");
     }
-    // Şifre kimliği belirlediği için benzersiz olmalı (ana yönetici + denetmen + diğer yöneticiler)
-    if (await C.sifreCakismasi(sifre)) {
-      flash(req, "error", "Bu şifre kullanımda — her hesabın şifresi farklı olmalı.");
+    // Kimlik kullanıcı adından belirlenir; şifrelerin farklı olması gerekmez (eskiden şifre = kimlikti)
+    const ka = await kullaniciAdiAl(req, ad);
+    if (ka.hata) {
+      flash(req, "error", ka.hata);
       return res.redirect("/yonetici#yoneticiler");
     }
-    await calistir("INSERT INTO yoneticiler(id, ad, sifre, yetkiler, olusturma) VALUES(?,?,?,?,?)",
-      [C.uid(), ad, C.hashPassword(sifre), js(yetkiler), S.zamanTr()]);
-    flash(req, "success", `${ad} yöneticisi eklendi.`);
+    await calistir("INSERT INTO yoneticiler(id, ad, sifre, yetkiler, olusturma, kullanici_adi) VALUES(?,?,?,?,?,?)",
+      [C.uid(), ad, C.hashPassword(sifre), js(yetkiler), S.zamanTr(), ka.k]);
+    flash(req, "success", `${ad} yöneticisi eklendi — kullanıcı adı: ${ka.k}`);
     res.redirect("/yonetici#yoneticiler");
   }));
 
@@ -188,22 +197,22 @@ module.exports = function register(app) {
       return res.redirect("/yonetici#yoneticiler");
     }
     const yeniSifre = String(req.body.sifre || "").trim();
-    if (yeniSifre) {
-      if (yeniSifre.length < 6) {
-        flash(req, "error", "Yönetici şifresi en az 6 karakter olmalı.");
-        return res.redirect("/yonetici#yoneticiler");
-      }
-      if (await C.sifreCakismasi(yeniSifre, id)) {
-        flash(req, "error", "Bu şifre kullanımda — her hesabın şifresi farklı olmalı.");
-        return res.redirect("/yonetici#yoneticiler");
-      }
-      await calistir("UPDATE yoneticiler SET yetkiler = ?, sifre = ? WHERE id = ?",
-        [js(yetkiler), C.hashPassword(yeniSifre), id]);
-      flash(req, "success", `${y.ad} yetkileri ve şifresi güncellendi.`);
-    } else {
-      await calistir("UPDATE yoneticiler SET yetkiler = ? WHERE id = ?", [js(yetkiler), id]);
-      flash(req, "success", `${y.ad} yetkileri güncellendi.`);
+    if (yeniSifre && yeniSifre.length < 6) {
+      flash(req, "error", "Yönetici şifresi en az 6 karakter olmalı.");
+      return res.redirect("/yonetici#yoneticiler");
     }
+    // Kullanıcı adı alanı formda varsa ve değiştiyse güncellenir (alan yoksa/boşsa dokunulmaz)
+    const yeniK = I.kullaniciAdiAnahtar(req.body.kullanici_adi);
+    const kDegisti = !!yeniK && yeniK !== I.kullaniciAdiAnahtar(y.kullanici_adi);
+    if (kDegisti) {
+      const hata = await C.kullaniciAdiHatasi(yeniK, { tablo: "yoneticiler", id });
+      if (hata) { flash(req, "error", hata); return res.redirect("/yonetici#yoneticiler"); }
+    }
+    await calistir("UPDATE yoneticiler SET yetkiler = ? WHERE id = ?", [js(yetkiler), id]);
+    if (yeniSifre) await calistir("UPDATE yoneticiler SET sifre = ? WHERE id = ?", [C.hashPassword(yeniSifre), id]);
+    if (kDegisti) await calistir("UPDATE yoneticiler SET kullanici_adi = ? WHERE id = ?", [yeniK, id]);
+    const ekler = [yeniSifre && "şifresi", kDegisti && `kullanıcı adı (${yeniK})`].filter(Boolean);
+    flash(req, "success", `${y.ad} yetkileri${ekler.length ? " ve " + ekler.join(", ") : ""} güncellendi.`);
     res.redirect("/yonetici#yoneticiler");
   }));
 
@@ -250,21 +259,20 @@ module.exports = function register(app) {
       flash(req, "error", "Denetmen şifresi en az 6 karakter olmalı.");
       return res.redirect("/yonetici#denetmenler");
     }
-    // Şifre kimliği belirlediği için benzersiz olmalı; bu denetmenin mevcut kaydı hariç
+    // Kimlik kullanıcı adından belirlenir; şifrelerin farklı olması gerekmez (eskiden şifre = kimlikti)
     const kayit = (await C.loadDenetmenler()).find((d) => I.isimEsit(d.ad, ad.tam));
-    const mevcutSahip = await C.denetmenBySifre(sifre);
-    if ((await C.adminSifreDogru(sifre)) || (await C.yoneticiBySifre(sifre))
-        || (mevcutSahip && (!kayit || mevcutSahip.id !== kayit.id))) {
-      flash(req, "error", "Bu şifre kullanımda — her hesabın şifresi farklı olmalı.");
-      return res.redirect("/yonetici#denetmenler");
-    }
     if (kayit) {
       await calistir("UPDATE denetmenler SET sifre = ? WHERE id = ?", [C.hashPassword(sifre), kayit.id]);
-      flash(req, "success", `${kayit.ad} şifresi güncellendi.`);
+      flash(req, "success", `${kayit.ad} şifresi güncellendi (kullanıcı adı: ${kayit.kullanici_adi || "-"}).`);
     } else {
-      await calistir("INSERT INTO denetmenler(id, ad, sifre, olusturma) VALUES(?,?,?,?)",
-        [C.uid(), ad.tam, C.hashPassword(sifre), S.zamanTr()]);
-      flash(req, "success", `${ad.tam} denetmen olarak eklendi.`);
+      const ka = await kullaniciAdiAl(req, ad.tam);
+      if (ka.hata) {
+        flash(req, "error", ka.hata);
+        return res.redirect("/yonetici#denetmenler");
+      }
+      await calistir("INSERT INTO denetmenler(id, ad, sifre, olusturma, kullanici_adi) VALUES(?,?,?,?,?)",
+        [C.uid(), ad.tam, C.hashPassword(sifre), S.zamanTr(), ka.k]);
+      flash(req, "success", `${ad.tam} denetmen olarak eklendi — kullanıcı adı: ${ka.k}`);
     }
     res.redirect("/yonetici#denetmenler");
   }));
@@ -277,13 +285,34 @@ module.exports = function register(app) {
       flash(req, "error", "Denetmen şifresi en az 6 karakter olmalı.");
       return res.redirect("/yonetici#denetmenler");
     }
-    const sahip = await C.denetmenBySifre(sifre);
-    if ((await C.adminSifreDogru(sifre)) || (await C.yoneticiBySifre(sifre)) || (sahip && sahip.id !== d.id)) {
-      flash(req, "error", "Bu şifre kullanımda — her hesabın şifresi farklı olmalı.");
-      return res.redirect("/yonetici#denetmenler");
-    }
     await calistir("UPDATE denetmenler SET sifre = ? WHERE id = ?", [C.hashPassword(sifre), d.id]);
     flash(req, "success", `${d.ad} şifresi güncellendi.`);
+    res.redirect("/yonetici#denetmenler");
+  }));
+
+  // Denetmen hesabı: kullanıcı adı (zorunlu) + isteğe bağlı yeni şifre — Yönetim'deki hesap satırı
+  app.post("/yonetici/denetmen/guncelle", yetkiGerek("kullanici"), sar(async (req, res) => {
+    const d = await C.denetmenById(req.body.id || "");
+    if (!d) { flash(req, "error", "Denetmen bulunamadı."); return res.redirect("/yonetici#denetmenler"); }
+    const sifre = String(req.body.sifre || "").trim();
+    if (sifre && sifre.length < 6) {
+      flash(req, "error", "Denetmen şifresi en az 6 karakter olmalı.");
+      return res.redirect("/yonetici#denetmenler");
+    }
+    const yeniK = I.kullaniciAdiAnahtar(req.body.kullanici_adi);
+    const kDegisti = yeniK !== I.kullaniciAdiAnahtar(d.kullanici_adi);
+    if (kDegisti) {
+      const hata = await C.kullaniciAdiHatasi(yeniK, { tablo: "denetmenler", id: d.id });
+      if (hata) { flash(req, "error", hata); return res.redirect("/yonetici#denetmenler"); }
+    }
+    if (!kDegisti && !sifre) {
+      flash(req, "uyari", `${d.ad}: değişiklik yok (yeni şifre boş, kullanıcı adı aynı).`);
+      return res.redirect("/yonetici#denetmenler");
+    }
+    if (kDegisti) await calistir("UPDATE denetmenler SET kullanici_adi = ? WHERE id = ?", [yeniK, d.id]);
+    if (sifre) await calistir("UPDATE denetmenler SET sifre = ? WHERE id = ?", [C.hashPassword(sifre), d.id]);
+    const ne = [kDegisti && `kullanıcı adı (${yeniK})`, sifre && "şifresi"].filter(Boolean).join(" ve ");
+    flash(req, "success", `${d.ad} ${ne} güncellendi.`);
     res.redirect("/yonetici#denetmenler");
   }));
 
@@ -324,7 +353,6 @@ module.exports = function register(app) {
     if (!(await C.adminSifreDogru(eski))) flash(req, "error", "Mevcut şifre hatalı.");
     else if (!yeni) flash(req, "error", "Yeni şifre boş olamaz.");
     else if (yeni !== yeni2) flash(req, "error", "Yeni şifreler eşleşmiyor.");
-    else if (await C.sifreCakismasi(yeni)) flash(req, "error", "Bu şifre başka bir hesapta kullanımda.");
     else {
       await C.setAdminPassword(yeni);
       flash(req, "success", "Şifre güncellendi.");

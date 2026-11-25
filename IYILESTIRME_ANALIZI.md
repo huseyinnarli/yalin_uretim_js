@@ -19,7 +19,6 @@ Canlıya almadan önce veya hemen sonra yapılması gerekenler:
 | Öncelik | Konu | Neden | Efor |
 |---|---|---|---|
 | 🔴 | GitHub deposunu **gizli** yapın; canlıda varsayılan yönetici şifresinin değiştirildiğini doğrulayın (Ö9) | Depo şu an **herkese açık**: kod, varsayılan şifre ve iç yapı herkes tarafından okunabilir. Eski sürümün herkese açık kılavuz sayfası da varsayılan şifreyi yazıyordu. | 5 dk |
-| 🟠 | Giriş sırasında tüm hesap şifrelerinin taranması (Ö10) | Her hatalı girişte hesap başına ~0,28 sn işlemci; bu sırada sunucu başka isteğe cevap veremez. 15 kişilik komite hesabı eklenirse belirginleşir. | ~1 saat (hızlı çözüm) |
 | 🟠 | Oturum: çıkışın GET ile yapılması, şifre değişince eski oturumların düşmemesi (Ö12) | Düşük etkili ama ucuz düzeltmeler | ~2 saat |
 
 ---
@@ -109,7 +108,7 @@ reddedilir; böylece CSRF denetimi gövde çözümleme sırası üzerinden atlat
 | SQL enjeksiyonu | ✅ Parametreli sorgular. Dinamik tanımlayıcılar yalnız koddaki sabit listelerden; arşivden geri yüklemede kolonlar tablonun gerçek kolonlarıyla sınırlı |
 | XSS | ✅ EJS otomatik kaçış. `<%-` yalnız `include` ve koddan üretilen sayısal içerikte; kullanıcı verisi geçen ham HTML üretimi kaldırıldı |
 | CSRF | ✅ Oturum belirteci tüm POST'larda, sabit zamanlı karşılaştırma; multipart atlatma kapısı kapalı. ⚠ Çıkış GET ile (Ö12) |
-| Kimlik doğrulama | ✅ pbkdf2-sha256 600.000 tur (werkzeug uyumlu), `timingSafeEqual`, IP başına 10 dakikada 8 hatalı deneme sınırı. ⚠ Şifre=kimlik taraması (Ö10) |
+| Kimlik doğrulama | ✅ pbkdf2-sha256 600.000 tur (werkzeug uyumlu), `timingSafeEqual`, IP başına 10 dakikada 8 hatalı deneme sınırı. ✅ Kullanıcı adı + şifre (25 Kasım): girişte yalnız o hesabın şifresi doğrulanır, bilinmeyen kullanıcı adında da bir sahte doğrulama yapılır (süre farkından ad tahmini yok) |
 | Yetkilendirme | ✅ 10 ayrıntılı alan; ek yönetici hesapları ve işlem günlüğü yalnız ana yöneticide; rota + şablon çift katman; e2e'de yetki matrisi testli |
 | Oturum | ✅ İmzalı çerez, HttpOnly, SameSite=Lax, 12 saat; `https` bayrağıyla Secure + HSTS. Silinen hesabın oturumu bir sonraki istekte düşer. ⚠ Şifre değişiminde diğer oturumlar düşmez (Ö12) |
 | Açık yönlendirme | ✅ `//host`, `/\host` ve dizi parametresi reddedilir (testli) |
@@ -138,6 +137,7 @@ reddedilir; böylece CSRF denetimi gövde çözümleme sırası üzerinden atlat
 | B7 | `npm audit`: 2 yüksek (sharp/libheif, brace-expansion) + 4 orta (express, body-parser, qs, mysql2) | `npm audit fix` (kırıcı değişiklik yok): sharp 0.35.5, express 4.22.3, mysql2 3.24.5; ayrıca multer 1.x → 2.4.0 (1.x dalının bilinen çok parçalı form DoS düzeltmeleri) |
 | B8 | Ek yöneticiye "tam yetki" ile yönetici yönetimi verilebiliyordu | Kaldırıldı; yalnız ana yönetici |
 | B9 | Üst menü her istekte `static/` klasörünü tarıyordu | 5 dakikalık önbellek |
+| B11 | Giriş "şifre = kimlik": her girişte tüm hesap özetleri `pbkdf2Sync` ile taranıyor, sunucu hesap başına ~0,28 sn kilitleniyordu; "bu şifre kullanımda" uyarısı başka hesabın şifresini deneme yanılmayla bulmaya açıktı (Ö10) | Kullanıcı adı + şifre girişi (25 Kasım): tek doğrulama; şifre benzersizlik zorunluluğu ve uyarısı kaldırıldı; mevcut hesaplara açılışta addan kullanıcı adı; test |
 | B10 | Puan listesi, ödül alanlar ve 5S sonuç satırlarında kişi/bölüm adı `onsubmit="confirm('…ad…')"` içine yazılıyordu: herkese açık öneri formundan tırnaklı bir isim girilirse, yönetici "Ödül Ver"e bastığında tarayıcısında kod çalışabilirdi (saklı XSS) | Ad `data-onay` özniteliğine taşındı, `confirm(this.dataset.onay)`; test (9 Ekim) |
 
 **Önceki incelemelerde:** R1 açık yönlendirme · R2 yükleme bellek DoS'u · R3 HTTPS/proxy bayrakları · R4 görsel
@@ -157,8 +157,10 @@ dokümanda yazıyor; eski sürümün herkese açık "Kullanım Kılavuzu" sayfas
 (2) Canlıda `npm run gecis-kontrol` çalıştırın; "VARSAYILAN ŞİFRE" uyarısı varsa hemen değiştirin.
 (3) Kalıcı çözüm: varsayılan şifreyle girişte şifre değiştirmeden başka sayfaya geçilememesi (zorunlu değişim). Efor: ~1 saat.
 
-### 🟠 Ö10 — Giriş: "şifre = kimlik" taraması
-Kullanıcı adı olmadığı için giriş, şifreyi sırayla ana yönetici → tüm ek yöneticiler → tüm denetmenlerin hash'iyle
+### ✅ Ö10 — Giriş: "şifre = kimlik" taraması (25 Kasım'da kapandı — önerilen kalıcı çözüm b uygulandı)
+Giriş artık kullanıcı adı + şifre; aşağıdaki tarama kalktı (B11). Kalan küçük not: tek doğrulama hâlâ `pbkdf2Sync`
+(~0,28 sn); istenirse asenkron `crypto.pbkdf2`'ye geçilebilir (~30 dk). Hesap bazlı kilit artık mümkün (Ö18).
+Eski açıklama: Kullanıcı adı olmadığı için giriş, şifreyi sırayla ana yönetici → tüm ek yöneticiler → tüm denetmenlerin hash'iyle
 dener. Bir doğrulama ~0,28 sn sürer ve `pbkdf2Sync` olduğu için **o sırada sunucu başka hiçbir isteğe cevap
 vermez**. 20 hesapta hatalı bir giriş ~5,5 sn kilitlenme demektir; farklı IP'lerden gelen denemeler sunucuyu
 yavaşlatabilir. Komite için 15 hesap eklenmesi bu durumu belirginleştirir.
@@ -222,7 +224,7 @@ yetkisi (CREATE/ALTER) denetimi, açılışta yetki hatasının ayrı mesajı.
 - **🟡 Ö17 — Bellekte yükleme:** `multer.memoryStorage`, denetimde 69 dosyaya kadar. **Öneri:** disk depolama
   veya toplam boyut sınırı.
 - **🟡 Ö18 — IP'ye bağlı hız sınırları:** fabrika tek IP'den çıkıyorsa 8 hatalı şifre herkesi 10 dk kilitler.
-  **Öneri:** giriş kilidini IP + hesap birlikte tutmak (Ö10-b ile doğal olarak gelir).
+  **Öneri:** giriş kilidini IP + hesap birlikte tutmak (kullanıcı adı geldiği için artık mümkün — 25 Kasım).
 
 ### ⚪ Ö8 — Küçük kalemler
 - exceljs → uuid orta uyarısı: exceljs yeni sürüm çıkınca güncelleyin; `npm audit fix --force` **çalıştırmayın**
@@ -239,12 +241,12 @@ yetkisi (CREATE/ALTER) denetimi, açılışta yetki hatasının ayrı mesajı.
 | Sıra | İş | Efor | Ne zaman |
 |---|---|---|---|
 | 1 | Ö9 depoyu gizli yapma + varsayılan şifre kontrolü | 5 dk | Canlıya almadan önce |
-| 2 | Ö10-a asenkron şifre doğrulama | ~1 saat | Komite hesapları açılmadan önce |
+| 2 | ~~Ö10 giriş taraması~~ — kapandı (25 Kasım, kullanıcı adı + şifre); isteğe bağlı: asenkron doğrulama | ~30 dk | Fırsat buldukça |
 | 3 | Ö12 oturum düzeltmeleri · Ö9-3 zorunlu şifre değişimi | ~3 saat | İlk ay |
 | 4 | Ö5 CI | ~2 saat | İlk ay |
 | 5 | Ö1 inline script → dosya + CSP | ~yarım gün | Orta vade |
 | 6 | Ö13 rota dosyalarının bölünmesi, lint, birim testleri | 1–2 gün | Fırsat buldukça |
-| 7 | Ö10-b kullanıcı seçimli giriş · Ö11 sicil no | ~1 gün | Hesap/kişi sayısı arttıkça |
+| 7 | Ö11 sicil no | ~1 gün | Hesap/kişi sayısı arttıkça |
 | 7b | Ö14 Excel'de birleştirilmiş isim + kişi özeti · Ö15 test koruması | ~2,5 saat | Kişi bazlı rapor alınmaya başlanmadan önce |
 | 7c | Ö16 yedek geri yükleme/artımlı foto · Ö17 disk depolama · Ö18 hesap bazlı kilit | değişken | Fotoğraf arşivi büyüdükçe |
 | 8 | Ö4 FK · Ö2 Excel worker · Ö3 log + sağlık ucu | değişken | İhtiyaç oldukça |
