@@ -1,5 +1,10 @@
 # Sürüm Notları
 
+## 26 Kasım 2026 — Üst menü sırası
+
+- Girişli üst menü artık **Panel · Puan Listesi · Öneri & Kaizen · 5S** sırasıyla (ardından Görevlerim ve Kılavuz).
+  Veritabanı değişmedi. e2e testi: **305/305**.
+
 ## 25 Kasım 2026 (devam) — Giriş: kullanıcı adı + şifre
 
 - **Giriş artık kullanıcı adı ve şifreyle.** Yalnız şifreyle giriş kapandı (eskiden sistem kişiyi şifreden tanıyordu).

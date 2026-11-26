@@ -16,9 +16,9 @@
         <nav>
             <% if (girisli) { %>
                 <a href="/panel"><%- ik('layout-dashboard') %> Panel</a>
+                <a href="/puan-durumu"><%- ik('trophy') %> Puan Listesi</a>
                 <a href="/liste"><%- ik('lightbulb') %> Öneri &amp; Kaizen</a>
                 <a href="/5s"><%- ik('brush-cleaning') %> 5S</a>
-                <a href="/puan-durumu"><%- ik('trophy') %> Puan Listesi</a>
             <% } %>
             <% if (girisli && (denetmen_adi || yetki('degerlendir'))) { %>
                 <a href="/gorevlerim"><%- ik('clipboard-list') %> Görevlerim<% if (gorev_sayisi) { %> <span class="nav-rozet"><%= gorev_sayisi %></span><% } %></a>

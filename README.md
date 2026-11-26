@@ -33,7 +33,7 @@ Sürüm değişiklikleri için: **[DEGISIKLIKLER.md](DEGISIKLIKLER.md)**.
 ```
 
 Anasayfada 3 kutu: **🏆 Puan Listesi · 💡🔧 Öneri & Kaizen · 🧹 5S**. Girişli kullanıcı üst menüde
-**📊 Panel · 💡🔧 Öneri & Kaizen · 📋 Görevlerim** görür; yöneticiler ayrıca **🛠 Yönetim**.
+**Panel · Puan Listesi · Öneri & Kaizen · 5S** (atanmış işi olana ayrıca **Görevlerim**) görür; yöneticiler ayrıca **Yönetim**.
 
 ---
 

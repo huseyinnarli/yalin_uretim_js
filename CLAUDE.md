@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 304 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 305 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -244,6 +244,7 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     sekmesinde "Kullanıcı adınız: admin". Giriş formu `kullanici_adi` + `sifre`; hatalı girişte ad kutuda kalır (`session.son_kullanici`).
     `gecis-kontrol` §5 verilecek adları önceden listeler. Demo şeridi ad/şifre çiftleri. Eski DB ile geçiş + geri dönüş + tekrar geçiş
     denendi (eski sürüm yine yalnız şifreyle girer; aynı şifreli iki hesap geri dönüşte ilk hesaba girer — rehberde). e2e 304/304.
+35. **Üst menü sırası** (26 Kasım): Panel · Puan Listesi · Öneri & Kaizen · 5S (sonra Görevlerim, Kılavuz); e2e sırayı denetler. e2e 305/305.
 
 ## Açık konular
 

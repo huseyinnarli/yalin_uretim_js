@@ -1066,6 +1066,11 @@ async function main() {
     const menu5S = /<a href="\/5s"><svg class="ikon"[^>]*>[\s\S]*?<\/svg> 5S<\/a>/;
     const menuPuan = /<a href="\/puan-durumu"><svg class="ikon"[^>]*>[\s\S]*?<\/svg> Puan Listesi<\/a>/;
     ok("girişli üst menüde 5S ve Puan Listesi var", menu5S.test(html) && menuPuan.test(html));
+    {
+      const nav = (html.match(/<nav>([\s\S]*?)<\/nav>/) || [, ""])[1];
+      const sira = ["/panel", "/puan-durumu", "/liste", "/5s"].map((h) => nav.indexOf(`href="${h}"`));
+      ok("üst menü sırası: Panel · Puan Listesi · Öneri & Kaizen · 5S", sira.every((x, i) => x >= 0 && (i === 0 || x > sira[i - 1])));
+    }
     // Öneri formu: açılır liste + sunucu doğrulaması (girişsiz)
     await get("/yonetici/cikis");
     html = await getText("/");
