@@ -252,13 +252,11 @@ sıfırdan kurulur. Sayfanın üstünde demo şeridi ve örnek hesapların giri�
 
 **Render'da kurulum:** New → **Web Service** → `huseyinnarli/yalin_uretim_js` → **Language: Docker** →
 Instance: Free → Create. (Var olan "Node" servisi Docker'a çevrilemez; yeni servis açıp eskisini silin.)
-`PORT`'u Render verir. Ana yönetici şifresi için **Environment** sekmesine `YALIN_DEMO_ADMIN_SIFRE` ekleyin (önerilir);
-eklenmezse her açılışta rastgele bir şifre üretilir ve yalnız **Logs**'ta görünür
-(`Demo ana yönetici şifresi (rastgele…): …`). Varsayılan `admin123` demoda geçmez.
+Ortam değişkeni girmeye gerek yoktur; `PORT`'u Render verir.
 
 **Demo girişleri** (kullanıcı adı / şifre; demo şeridinde de yazar): ek yönetici `zeynep.aydin` / `zeynep1234` ·
 denetmen `ali.yilmaz` / `ali1234` (Abkant Pres lideri), `mehmet.kaya` / `mehmet1234`, `ayse.celik` / `ayse1234`,
-`murat.sahin` / `murat1234`. Ana yönetici `admin` — şifresi şeritte **gösterilmez** (yukarıdaki ortam değişkeni).
+`murat.sahin` / `murat1234`. Ana yönetici `admin` / `admin123` — çalışır ama şeritte **gösterilmez**.
 
 **Bellek:** MariaDB düşük bellek ayarlarıyla açılır (`scripts/demo-baslat.sh`); uygulama + veritabanı ≈ 210 MB.
 

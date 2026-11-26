@@ -36,7 +36,7 @@ npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
 # Demo (Render, tasarım önizleme): Dockerfile → scripts/demo-baslat.sh (geçici MariaDB) → scripts/demo-veri.js
 # (yalnız BOŞ veritabanına örnek veri). YALIN_DEMO=1 üstte demo şeridi gösterir. Canlıda kullanılmaz.
-# Demo ana yönetici şifresi şeritte YOK: YALIN_DEMO_ADMIN_SIFRE (Render › Environment) ya da açılışta rastgele (Logs'ta).
+# Demo şeridinde ana yönetici bilgisi GÖSTERİLMEZ (kullanıcı isteği); demoda admin / admin123 yine çalışır.
 ```
 
 Sözdizimi hızlı kontrol: `node --check <dosya>`. Önizleme: kök `Projeler/.claude/launch.json`
@@ -247,8 +247,8 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     `gecis-kontrol` §5 verilecek adları önceden listeler. Demo şeridi ad/şifre çiftleri. Eski DB ile geçiş + geri dönüş + tekrar geçiş
     denendi (eski sürüm yine yalnız şifreyle girer; aynı şifreli iki hesap geri dönüşte ilk hesaba girer — rehberde). e2e 304/304.
 35. **Üst menü sırası** (26 Kasım): Panel · Puan Listesi · Öneri & Kaizen · 5S (sonra Görevlerim, Kılavuz); e2e sırayı denetler. e2e 305/305.
-36. **Demo ana yönetici şifresi gizli** (26 Kasım): şeritte yok; `demo-veri.js` `YALIN_DEMO_ADMIN_SIFRE` ya da rastgele (Logs) ile
-    `setAdminPassword` (boş DB denetiminden SONRA). `d663575`.
+36. **Demo şeridinde ana yönetici bilgisi yok** (26 Kasım): yalnız şeritten kaldırıldı; demoda `admin` / `admin123` çalışır
+    (rastgele şifre denemesi kullanıcı isteğiyle geri alındı).
 37. **Ekip/personel tek yerde: Bölümler ve Görevler** (26 Kasım): 5S › Bölümler sekmesindeki "Bölüm listesini düzenle" kutusu kaldırıldı
     (yerine "N bölüm 5S dışında" notu); 5S bölüm sayfasında ekip salt gösterim + yetkiliye "Ekibi düzenle →" (`/yonetici/bolumler/:bid`);
     Bölümler sayfasında **Ekibe personel ekle** kartı (`#personel`, `POST /yonetici/bolumler/personel`, `secili_bolum`), sütun

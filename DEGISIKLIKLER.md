@@ -10,11 +10,10 @@
 - **5S bölüm sayfası** ekibi artık yalnız gösterir (lider/personel formları kaldırıldı); yetkili kullanıcıya "Ekibi düzenle →" bağlantısı.
 - Veritabanı değişmedi. e2e testi: **312/312**.
 
-## 26 Kasım 2026 — Demo: ana yönetici şifresi gizlendi
+## 26 Kasım 2026 — Demo: ana yönetici bilgisi şeritte gösterilmiyor
 
-- Demo şeridinde artık ana yönetici giriş bilgisi yok (yalnız örnek ek yönetici ve denetmen hesapları).
-- Demoda varsayılan `admin123` geçmez: ana yönetici şifresi Render'daki `YALIN_DEMO_ADMIN_SIFRE` ortam değişkeninden
-  alınır; yoksa her açılışta rastgele üretilip yalnız sunucu günlüğüne (Logs) yazılır. Canlı kurulumu etkilemez.
+- Demo şeridinde artık ana yönetici kullanıcı adı ve şifresi yazmıyor (yalnız örnek ek yönetici ve denetmen hesapları).
+  Demoda ana yönetici girişi (`admin` / `admin123`) aynen çalışır. Canlı kurulumu etkilemez.
 
 ## 26 Kasım 2026 — Üst menü sırası
 
