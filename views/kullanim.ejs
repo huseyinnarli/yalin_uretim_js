@@ -95,13 +95,18 @@
         <li><strong>Tek bölüm listesi:</strong> öneri ve kaizen formlarındaki açılır liste ile 5S aynı listeyi kullanır.
             Liste <strong>Yönetim › <%- ik('factory') %> Bölümler ve Görevler</strong>'de tutulur (yetki: Bölüm/görev listeleri &amp; denetim planı):
             her satıra bir ad yazarak toplu ekleme, ad değiştirme ve her bölüm için <strong>5S'e dahil</strong> kutusu.
-            <strong><%- ik('users') %></strong> düğmesi bölüm sayfasını açar: ekip lideri ve personel (her satıra Ad Soyad, toplu).
+            <strong>Ekibe personel ekle</strong> kartında bölüm seçilir ve personel her satıra Ad Soyad yazılarak toplu eklenir
+            (Excel'den yapıştırılabilir; eklemeden sonra aynı bölüm seçili kalır). Tablodaki <strong><%- ik('users') %> kişi</strong>
+            düğmesi bölüm sayfasını açar: ekip lideri (en fazla 2), personel listesi ve çıkarma. Ekip ve personel
+            <strong>yalnız burada</strong> düzenlenir; 5S'teki bölüm sayfası ekibi yalnız gösterir.
             Aynı sayfada öneri ve kaizen formları için ortak <strong>görev tanımları</strong> listesi tutulur. 5S'e dahil
             olmayan bölüm (ör. ofis birimleri) yalnız formlarda seçilir; denetim planına ve kontrol formuna girmez.
             5S'ten çıkarmak için bölümü silmeyin, kutuyu kaldırın — geçmiş denetimler korunur.</li>
         <li><strong>Bölümler</strong> sekmesi tablo hâlindedir: ekip lideri, personel sayısı, son skor, açık aksiyon ve
-            bu ayki kontrol formu doluluğu. Her bölüme <strong>ekip lideri</strong> (1 veya 2 kişi) ve üye listesi tanımlanır.</li>
-        <li><strong>Bölüm sayfası:</strong> skor trend grafiği ve her denetimin <strong>S1–S5 kırılımı</strong>.</li>
+            bu ayki kontrol formu doluluğu. Her bölümün <strong>ekip lideri</strong> (1 veya 2 kişi) ve üye listesi
+            Bölümler ve Görevler'de tanımlanır.</li>
+        <li><strong>Bölüm sayfası:</strong> ekip (yalnız gösterim; yetkiliye "Ekibi düzenle" bağlantısı), skor trend grafiği ve
+            her denetimin <strong>S1–S5 kırılımı</strong>.</li>
     </ul>
 
     <h2 class="bolum-baslik"><%- ik('circle-check') %> 5S — Periyodik Kontrol Formu</h2>

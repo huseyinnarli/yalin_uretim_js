@@ -1061,6 +1061,7 @@ async function main() {
     ok("bölüm adı sayfada kaçışlı", html.includes("&lt;b&gt;Xss&lt;/b&gt;") && !html.includes("<b>Xss</b>"));
     html = await getText("/5s");
     ok("5S bölüm tablosunda 5S dışı bölüm yok", !html.includes("İdari İşler") && html.includes("3 bölüm 5S dışında"));
+    ok("5S sayfasında bölüm düzenleme düğmesi yok (düzenleme Bölümler ve Görevler'de)", !html.includes("Bölüm listesini düzenle"));
     // Üst menüde 5S yalnız girişliye; girişsiz ziyaretçi ana sayfadaki kutudan ulaşır
     html = await getText("/");
     const menu5S = /<a href="\/5s"><svg class="ikon"[^>]*>[\s\S]*?<\/svg> 5S<\/a>/;
@@ -1200,9 +1201,31 @@ async function main() {
     ok("personel bölümden çıkarıldı", !(await kisileriOku(satinId)).includes("Deniz Kaya"));
     html = await getText(BOL);
     ok("bölüm listesinde personel sayısı ve bağlantısı", html.includes(`href="/yonetici/bolumler/${satinId}"`) && /<\/svg> 2 kişi/.test(html));
+    // Bölümler ve Görevler › "Ekibe personel ekle" kartı: bölüm açılır listeden seçilir, dönüşte seçili kalır
+    ok("Bölümler sayfasında ekibe personel ekleme kartı", html.includes('action="/yonetici/bolumler/personel"')
+      && html.includes(`<option value="${montajId}">Montaj (`) && html.includes('href="#personel"'));
+    r = await post(`${BOL}/personel`, { csrf_token: csrf, bid: montajId, kisiler: "kart deneme\r\nİkinci KİŞİ" });
+    ok("karttan personel eklendi, dönüşte aynı bölüm seçili", (await kisileriOku(montajId)).includes("Kart Deneme")
+      && (await kisileriOku(montajId)).includes("İkinci Kişi") && r.headers.get("location") === `${BOL}?bolum=${montajId}#personel`);
+    html = await getText(r.headers.get("location"));
+    ok("kart: başarı mesajında bölüm adı, seçim korunur", html.includes("2 kişi eklendi (Montaj): Kart Deneme, İkinci Kişi")
+      && html.includes(`<option value="${montajId}" selected>`));
+    const montajOnce = (await kisileriOku(montajId)).length;
+    await post(`${BOL}/personel`, { csrf_token: csrf, bid: "", kisiler: "Bölümsüz Kişi" });
+    ok("kart: bölüm seçilmeden eklenmez", (await kisileriOku(montajId)).length === montajOnce
+      && (await getText(BOL)).includes("Personel eklenecek bölümü seçin"));
+    for (const k of ["Kart Deneme", "İkinci Kişi"]) await post(`${BOL}/${montajId}/personel/sil`, { csrf_token: csrf, ad: k });
+    // 5S bölüm sayfası: ekip yalnız görüntülenir; düzenleme bağlantısı yetkiliye
+    html = await getText(`/5s/bolum/${montajId}`);
+    ok("5S bölüm sayfasında ekip formu yok, 'Ekibi düzenle' bağlantısı var", !html.includes("/kisi/ekle") && !html.includes('name="lider1_ad"')
+      && html.includes(`href="/yonetici/bolumler/${montajId}"`) && html.includes("Ekibi düzenle"));
     csrf = await girisYap("kisitli123");
     await post(`${BOL}/${satinId}/personel`, { csrf_token: csrf, kisiler: "Yetkisiz Kişi" });
-    ok("yetkisiz kullanıcı personel ekleyemez", !(await kisileriOku(satinId)).includes("Yetkisiz Kişi"));
+    await post(`${BOL}/personel`, { csrf_token: csrf, bid: satinId, kisiler: "Yetkisiz Kart" });
+    ok("yetkisiz kullanıcı personel ekleyemez (bölüm sayfası ve kart)", !(await kisileriOku(satinId)).includes("Yetkisiz Kişi")
+      && !(await kisileriOku(satinId)).includes("Yetkisiz Kart"));
+    html = await getText(`/5s/bolum/${satinId}`);
+    ok("yetkisiz kullanıcıya 'Ekibi düzenle' bağlantısı gösterilmez", !html.includes("Ekibi düzenle"));
 
     // --- Görev tanımları: ortak liste; öneri ve kaizen ekibinde açılır liste ---
     const gorevListe = async () => {

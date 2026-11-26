@@ -54,7 +54,8 @@ form öneriden doldurulur ve kaizen öneriye bağlanır.
 Öneri ve kaizen formlarındaki açılır listeler ile 5S **aynı verileri** kullanır. Sayfa, **Bölüm/görev listeleri & denetim
 planı** yetkili yönetici tarafından kullanılır:
 - **Bölümler:** her satıra bir ad yazarak toplu ekleme, ad değiştirme ve her bölüm için **5S'e dahil** kutusu;
-  **👥** ile bölüm sayfası: ekip lideri (en fazla 2) ve personel (her satıra Ad Soyad — Excel'den yapıştırılabilir).
+  **Ekibe personel ekle** kartı: bölüm seç → her satıra Ad Soyad (Excel'den yapıştırılabilir); tablodaki **kişi** düğmesiyle
+  bölüm sayfası: ekip lideri (en fazla 2), personel listesi ve çıkarma. Ekip/personel yalnız burada düzenlenir.
 - **Görev tanımları:** tüm bölümler için tek liste; öneri sahibinin ve kaizen ekibindeki her kişinin görevi buradan
   seçilir. Kayıtlarda serbest yazılmış görevler, işaretlenip listeye eklenmek üzere önerilir. Liste boşken öneride
   görev serbest yazılır, kaizende sorulmaz.
@@ -91,8 +92,8 @@ saklar; ad değişikliği eski kayıtları değiştirmez, düzenlemede listeden 
 5S sonuçları, aksiyonlar ve kontrol formları **herkese açıktır**.
 
 - **Bölümler** (tablo, yalnız 5S'e dahil olanlar): ekip lideri, personel sayısı, son skor ve tarih, açık aksiyon, bu ayki
-  kontrol doluluğu. Bölüm ekleme/ad/5S'e dahil etme Yönetim › 🏭 Bölümler'dedir.
-- **Bölüm sayfası:** özet kutuları, ekip (1–2 lider + üyeler, ad/soyad ayrı), denetim geçmişi,
+  kontrol doluluğu. Bölüm ekleme/ad/5S'e dahil etme, ekip lideri ve personel Yönetim › Bölümler ve Görevler'dedir.
+- **Bölüm sayfası:** özet kutuları, ekip (1–2 lider + üyeler; yalnız gösterim, yetkiliye "Ekibi düzenle" bağlantısı), denetim geçmişi,
   **skor trend grafiği** ve her denetimin **S1–S5 kırılımı**.
 - **Denetim Planı:** tarih aralığı seçilince tüm bölümler için denetim açılır; gün/saat/denetmen atanır;
   toplu dağıtım *Herkes kendi bölümüne* veya *Çapraz*; misafir denetmenler dengeli dağıtılır.

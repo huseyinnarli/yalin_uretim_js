@@ -1,5 +1,15 @@
 # Sürüm Notları
 
+## 26 Kasım 2026 — Ekip ve personel tek yerde: Bölümler ve Görevler
+
+- **5S › Bölümler** sekmesindeki "Bölüm listesini düzenle" düğmesi kaldırıldı (yerine kısa bir not). Bölüm, ekip lideri ve
+  personel düzenleme **Yönetim › Bölümler ve Görevler**'de.
+- **Bölümler ve Görevler**'e **Ekibe personel ekle** kartı: bölüm açılır listeden seçilir, personel her satıra Ad Soyad yazılarak
+  (Excel'den yapıştırılabilir) toplu eklenir; eklemeden sonra aynı bölüm seçili kalır, mesajda bölüm adı yazar. Ekip lideri ve
+  personel çıkarma tablodaki **kişi** düğmesiyle açılan bölüm sayfasında (değişmedi). Sayfa başında "Ekibe personel ekle" kısayolu.
+- **5S bölüm sayfası** ekibi artık yalnız gösterir (lider/personel formları kaldırıldı); yetkili kullanıcıya "Ekibi düzenle →" bağlantısı.
+- Veritabanı değişmedi. e2e testi: **312/312**.
+
 ## 26 Kasım 2026 — Demo: ana yönetici şifresi gizlendi
 
 - Demo şeridinde artık ana yönetici giriş bilgisi yok (yalnız örnek ek yönetici ve denetmen hesapları).

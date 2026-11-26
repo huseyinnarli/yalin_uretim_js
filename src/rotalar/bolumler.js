@@ -22,6 +22,7 @@ module.exports = function register(app) {
       title: "Bölümler ve Görevler", bolumler, kullanim: await C.bolumKullanim(), gorev: await C.gorevOzeti(),
       ciftler: [...new Set(bolumler.filter((b) => sayac.get(C.bolumAnahtar(b.ad)) > 1).map((b) => b.ad))],
       ad_uzunluk: C.BOLUM_AD_UZUNLUK,
+      secili_bolum: typeof req.query.bolum === "string" ? req.query.bolum : "",
     });
   }));
 
@@ -63,11 +64,13 @@ module.exports = function register(app) {
     });
   }));
 
-  app.post(SAYFA + "/:bid/personel", yetkiGerek("bes_plan"), sar(async (req, res) => {
-    const yol = SAYFA + "/" + encodeURIComponent(req.params.bid);
-    const r = await C.bolumKisiEkle(req.params.bid, String((req.body || {}).kisiler || "").split(/\r?\n/));
-    if (!r) return res.status(404).send("Bölüm bulunamadı.");
-    if (r.eklenen.length) flash(req, "success", `${r.eklenen.length} kişi eklendi: ${r.eklenen.join(", ")}`);
+  // Toplu personel ekleme (her satıra Ad Soyad) — bölüm sayfasından ve Bölümler listesindeki "Ekibe personel ekle"
+  // kartından ortak. Döner: false (bölüm yok) | true
+  async function personelEkle(req, bid, bolumAdi = "") {
+    const r = await C.bolumKisiEkle(bid, String((req.body || {}).kisiler || "").split(/\r?\n/));
+    if (!r) return false;
+    const yer = bolumAdi ? ` (${bolumAdi})` : "";
+    if (r.eklenen.length) flash(req, "success", `${r.eklenen.length} kişi eklendi${yer}: ${r.eklenen.join(", ")}`);
     if (r.atlanan.length) flash(req, "uyari", `Zaten bu bölümde: ${r.atlanan.join(", ")}`);
     if (r.hatali.length) flash(req, "error", `Ad ve soyad birlikte yazılmalı, eklenmedi: ${r.hatali.join(", ")}`);
     if (r.baskaBolumde.length) {
@@ -75,7 +78,24 @@ module.exports = function register(app) {
         r.baskaBolumde.map((x) => `${x.ad} (${x.bolum})`).join(", "));
     }
     if (!r.eklenen.length && !r.atlanan.length && !r.hatali.length) flash(req, "error", "Eklenecek kişiyi yazın (her satıra Ad Soyad).");
-    res.redirect(yol);
+    return true;
+  }
+
+  // Bölümler listesindeki kart: bölüm açılır listeden seçilir; dönüşte aynı bölüm seçili kalır (art arda ekleme için)
+  app.post(SAYFA + "/personel", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    const bid = String((req.body || {}).bid || "");
+    const bolum = bid ? await C.bolumById(bid) : null;
+    if (!bolum) {
+      flash(req, "error", "Personel eklenecek bölümü seçin.");
+      return res.redirect(SAYFA + "#personel");
+    }
+    await personelEkle(req, bolum.id, bolum.ad);
+    res.redirect(`${SAYFA}?bolum=${encodeURIComponent(bolum.id)}#personel`);
+  }));
+
+  app.post(SAYFA + "/:bid/personel", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    if (!(await personelEkle(req, req.params.bid))) return res.status(404).send("Bölüm bulunamadı.");
+    res.redirect(SAYFA + "/" + encodeURIComponent(req.params.bid));
   }));
 
   app.post(SAYFA + "/:bid/personel/sil", yetkiGerek("bes_plan"), sar(async (req, res) => {

@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 305 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 312 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -115,7 +115,8 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
    günlük kontrol formları) `C.besBolumleri()` (yalnız `bes_dahil`) kullanır; ad çözümü/geçmiş için `bolumMap()` (hepsi).
    Yeni bir 5S listesi yazarken `loadBolumler()` değil `besBolumleri()` kullan. Formdan gelen bölüm `C.bolumSecimi(girilen,
    await C.bolumAdlari(), mevcut)` ile doğrulanır; kayıt bölümü ADIYLA saklar. Personel (`kisiler`) ve ekip lideri için
-   `C.bolumKisiEkle/bolumKisiSil/bolumLiderKaydet` kullan (5S ve Bölümler sayfası ortak).
+   `C.bolumKisiEkle/bolumKisiSil/bolumLiderKaydet` kullan. Ekip/personel düzenleme ARAYÜZÜ yalnız Bölümler ve Görevler'de
+   (liste sayfasındaki "Ekibe personel ekle" kartı + bölüm sayfası); 5S bölüm sayfası ekibi yalnız gösterir — oraya form koyma.
 8c3. **Görev tanımları** tek ortak listedir (`config.gorev_tanimlari`, `servis/gorevTanimlari.js`): öneri `gorevi`, kaizen
    `lider_gorevi` + `uye_gorevleri` (JSON, `uyeler` ile AYNI SIRADA) `C.gorevSecimi(...)` ile doğrulanır. Liste boşken öneride
    serbest metin, kaizende görev alanı yoktur. Bölüm ve görev alanları aynı şablonla çizilir: `partials/liste_secimi.ejs`
@@ -246,6 +247,12 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     `gecis-kontrol` §5 verilecek adları önceden listeler. Demo şeridi ad/şifre çiftleri. Eski DB ile geçiş + geri dönüş + tekrar geçiş
     denendi (eski sürüm yine yalnız şifreyle girer; aynı şifreli iki hesap geri dönüşte ilk hesaba girer — rehberde). e2e 304/304.
 35. **Üst menü sırası** (26 Kasım): Panel · Puan Listesi · Öneri & Kaizen · 5S (sonra Görevlerim, Kılavuz); e2e sırayı denetler. e2e 305/305.
+36. **Demo ana yönetici şifresi gizli** (26 Kasım): şeritte yok; `demo-veri.js` `YALIN_DEMO_ADMIN_SIFRE` ya da rastgele (Logs) ile
+    `setAdminPassword` (boş DB denetiminden SONRA). `d663575`.
+37. **Ekip/personel tek yerde: Bölümler ve Görevler** (26 Kasım): 5S › Bölümler sekmesindeki "Bölüm listesini düzenle" kutusu kaldırıldı
+    (yerine "N bölüm 5S dışında" notu); 5S bölüm sayfasında ekip salt gösterim + yetkiliye "Ekibi düzenle →" (`/yonetici/bolumler/:bid`);
+    Bölümler sayfasında **Ekibe personel ekle** kartı (`#personel`, `POST /yonetici/bolumler/personel`, `secili_bolum`), sütun
+    "Ekip & personel"; `bolumler.js:personelEkle` ortak. Eski 5S ekip uçları formsuz duruyor. e2e 312/312.
 
 ## Açık konular
 

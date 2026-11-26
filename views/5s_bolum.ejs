@@ -1,6 +1,5 @@
 <%- include('partials/header') %>
-<% const son = trend.length ? trend[trend.length - 1] : null;
-   const l1 = adBol(lider1), l2 = adBol(lider2); %>
+<% const son = trend.length ? trend[trend.length - 1] : null; %>
 
 <div class="list-head">
     <h1 class="page-title"><%- ik('brush-cleaning') %> <%= b.ad %></h1>
@@ -35,38 +34,13 @@
         <div class="kisi-satir lider">
             <span><%- ik('user') %> <strong><%= b.sorumlu || '—' %></strong> <span class="rol">ekip lideri</span></span>
         </div>
-        <% if (yetki('bes_plan')) { %>
-        <form method="post" action="/5s/bolum/<%= b.id %>/lider" class="satir-form lider-form"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-            <input type="text" name="lider1_ad" value="<%= l1.ad %>" placeholder="1. Ekip Lideri — Ad">
-            <input type="text" name="lider1_soyad" value="<%= l1.soyad %>" placeholder="Soyad">
-            <span class="lider2-alan"<%= !lider2 ? ' hidden' : '' %>>
-                <input type="text" name="lider2_ad" value="<%= l2.ad %>" placeholder="2. Ekip Lideri — Ad">
-                <input type="text" name="lider2_soyad" value="<%= l2.soyad %>" placeholder="Soyad">
-            </span>
-            <button type="button" class="btn-mini ekle-lider2"<%= lider2 ? ' hidden' : '' %>>+ 2. Ekip Lideri</button>
-            <button type="submit" class="btn-mini edit">Kaydet</button>
-        </form>
-        <% } %>
         <% for (const k of b.kisiler) { %>
-        <div class="kisi-satir">
-            <span><%= k %></span>
-            <% if (yetki('bes_plan')) { %>
-            <form method="post" action="/5s/bolum/<%= b.id %>/kisi/sil" style="display:inline"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-                <input type="hidden" name="ad" value="<%= k %>">
-                <button type="submit" class="btn-mini del" title="Sil">×</button>
-            </form>
-            <% } %>
-        </div>
+        <div class="kisi-satir"><span><%= k %></span></div>
         <% } %>
         <% if (!b.kisiler.length) { %><p class="bos-not">Henüz üye eklenmemiş.</p><% } %>
-
         <% if (yetki('bes_plan')) { %>
-        <form method="post" action="/5s/bolum/<%= b.id %>/kisi/ekle" class="satir-form mt"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-            <input type="text" name="kisi_ad" placeholder="Ad" required>
-            <input type="text" name="kisi_soyad" placeholder="Soyad" required>
-            <button type="submit" class="btn primary">+ Ekle</button>
-        </form>
-        <p class="bos-not"><a href="/yonetici/bolumler/<%= b.id %>"><%- ik('users') %> Toplu personel ekleme (her satıra Ad Soyad) →</a></p>
+        <p class="bos-not mt">Ekip lideri ve personel Yönetim › Bölümler ve Görevler'de düzenlenir:
+            <a href="/yonetici/bolumler/<%= b.id %>"><%- ik('users') %> Ekibi düzenle →</a></p>
         <% } %>
     </div>
 
@@ -134,13 +108,4 @@
 <div class="empty">Bu bölüm için henüz tamamlanmış denetim yok.</div>
 <% } %>
 
-<script>
-document.querySelectorAll('.ekle-lider2').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        var alan = btn.parentElement.querySelector('.lider2-alan');
-        if (alan) { alan.hidden = false; var i = alan.querySelector('input'); if (i) i.focus(); }
-        btn.hidden = true;
-    });
-});
-</script>
 <%- include('partials/footer') %>

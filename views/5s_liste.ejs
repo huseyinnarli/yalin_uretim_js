@@ -73,13 +73,9 @@
 
 <!-- ===== BÖLÜMLER (liste) ===== -->
 <div class="tab-panel" id="tab-bolumler" style="display:none">
-    <% if (yetki('bes_plan')) { %>
-    <div class="yonetim-kutu bolum-yonlendir">
-        <a class="btn primary" href="/yonetici/bolumler"><%- ik('factory') %> Bölüm listesini düzenle</a>
-        <small>Bölüm ekleme, ad değiştirme ve 5S'e dahil etme Yönetim › Bölümler'dedir; liste öneri ve kaizen
-            formlarıyla ortaktır. Ekip lideri ve personel bölümün Detay sayfasından girilir.
-            <% if (bes_disi_sayi) { %><strong><%= bes_disi_sayi %> bölüm 5S dışında</strong> (burada görünmez).<% } %></small>
-    </div>
+    <% if (yetki('bes_plan') && bes_disi_sayi) { %>
+    <p class="bos-not"><%= bes_disi_sayi %> bölüm 5S dışında (burada görünmez). Bölüm, ekip lideri ve personel
+        Yönetim › Bölümler ve Görevler'de düzenlenir.</p>
     <% } %>
 
     <% if (bolumler.length) { %>

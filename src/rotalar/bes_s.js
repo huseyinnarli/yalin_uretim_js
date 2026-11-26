@@ -394,7 +394,6 @@ module.exports = function register(app) {
   app.get("/5s/bolum/:bid", sar(async (req, res) => {
     const b = await C.bolumById(req.params.bid);
     if (!b) return res.status(404).send("Bölüm bulunamadı.");
-    const liderler = C.bolumLiderleri(b);
     const denetimler = await C.bolumDenetimleri(b.id);
     // Trend: tamamlanan denetimler eskiden yeniye; toplam skor + S1–S5 kırılımı
     const trend = denetimler.filter((d) => d.puan !== null).map((d) => ({
@@ -406,11 +405,11 @@ module.exports = function register(app) {
     res.render("5s_bolum", {
       title: `${b.ad} · 5S`, b, denetimler, trend, bess: P.BESS,
       acik_aksiyon: Number(acikAksiyon), personel_sayisi: bolumPersonelSayisi(b),
-      lider1: liderler[0] || "", lider2: liderler[1] || "",
     });
   }));
 
-  // Personel ve ekip lideri (iş kuralları servis/bolumler.js; toplu ekleme Yönetim › Bölümler › bölüm sayfasında)
+  // Personel ve ekip lideri: 5S sayfasında artık form yok — düzenleme Yönetim › Bölümler ve Görevler'de.
+  // Bu uçlar eski sürümden açık kalmış sayfalar / yer imleri için duruyor (iş kuralları servis/bolumler.js).
   app.post("/5s/bolum/:bid/kisi/ekle", yetkiGerek("bes_plan"), sar(async (req, res) => {
     const k = kisiOku(req, "kisi");
     if (k.eksik) flash(req, "error", "Kişinin adını ve soyadını yazın.");

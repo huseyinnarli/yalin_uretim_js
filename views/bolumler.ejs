@@ -4,6 +4,7 @@
     <h1 class="page-title"><%- ik('factory') %> Bölümler ve Görevler</h1>
     <div class="list-actions">
         <a class="btn ghost" href="/yonetici">← Yönetim</a>
+        <a class="btn ghost" href="#personel"><%- ik('users') %> Ekibe personel ekle</a>
         <a class="btn ghost" href="#gorevler"><%- ik('briefcase') %> Görev tanımları</a>
         <a class="btn ghost" href="/5s#bolumler"><%- ik('brush-cleaning') %> 5S</a>
     </div>
@@ -30,12 +31,37 @@
 </form>
 
 <% if (bolumler.length) { %>
+<form method="post" action="/yonetici/bolumler/personel" class="form-card ayar-form" id="personel" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <h3 class="ayar-baslik"><%- ik('users') %> Ekibe personel ekle</h3>
+    <div class="personel-ekle">
+        <div class="field">
+            <label for="pe-bolum">Bölüm</label>
+            <select id="pe-bolum" name="bid" required>
+                <option value="">— Bölüm seçin —</option>
+                <% for (const b of bolumler) { %>
+                <option value="<%= b.id %>"<%= b.id === secili_bolum ? ' selected' : '' %>><%= b.ad %> (<%= (b.kisiler || []).length %> kişi<%= b.bes_dahil ? '' : ', 5S dışı' %>)</option>
+                <% } %>
+            </select>
+        </div>
+        <div class="field">
+            <label for="pe-kisiler">Personel — her satıra bir kişi: Ad Soyad</label>
+            <textarea id="pe-kisiler" name="kisiler" rows="4" required
+                      placeholder="Örn. Ahmet Yılmaz&#10;Ayşe Nur Çelik&#10;(Excel'den ad-soyad sütunu kopyalanıp yapıştırılabilir)"<%= secili_bolum ? ' autofocus' : '' %>></textarea>
+        </div>
+        <div class="bolum-ekle-yan"><button type="submit" class="btn primary"><%- ik('plus') %> Ekle</button></div>
+    </div>
+    <p class="bolum-not">Son kelime soyad sayılır; büyük/küçük harf kendiliğinden düzeltilir. Bölümde zaten olan kişi atlanır,
+        başka bölümde de kayıtlıysa uyarılır. <strong>Ekip lideri</strong> atamak ve personeli görmek / çıkarmak için aşağıdaki
+        listede bölümün <strong><%- ik('users') %> kişi</strong> düğmesine basın.</p>
+</form>
+
 <form method="post" action="/yonetici/bolumler/kaydet" class="form-card ayar-form" autocomplete="off">
     <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
     <h3 class="ayar-baslik"><%- ik('clipboard-list') %> Liste — <%= bolumler.length %> bölüm, <%= bolumler.filter((b) => b.bes_dahil).length %> tanesi 5S'te</h3>
     <div class="table-wrap">
     <table class="data-table mini-tablo bolum-yonetim">
-        <thead><tr><th>Bölüm adı</th><th class="orta">5S'e dahil</th><th>Ekip lideri</th><th>Personel</th>
+        <thead><tr><th>Bölüm adı</th><th class="orta">5S'e dahil</th><th>Ekip lideri</th><th>Ekip &amp; personel</th>
             <th class="sayi">Öneri</th><th class="sayi">Kaizen</th><th class="sayi">5S denetimi</th><th></th></tr></thead>
         <tbody>
         <% for (const b of bolumler) { const k = kullanim[b.id] || { oneri: 0, kaizen: 0, denetim: 0 }; %>
@@ -45,7 +71,7 @@
                 <td data-label="5S'e dahil" class="orta">
                     <input type="checkbox" name="bes_<%= b.id %>" value="1" <%= b.bes_dahil ? 'checked' : '' %> aria-label="<%= b.ad %> 5S'e dahil"></td>
                 <td data-label="Ekip lideri"><%= b.sorumlu || '—' %></td>
-                <td data-label="Personel" class="nowrap"><a class="btn-mini edit" href="/yonetici/bolumler/<%= b.id %>"
+                <td data-label="Ekip & personel" class="nowrap"><a class="btn-mini edit" href="/yonetici/bolumler/<%= b.id %>"
                     title="Ekip lideri ve personeli düzenle"><%- ik('users') %> <%= (b.kisiler || []).length %> kişi</a></td>
                 <td data-label="Öneri" class="sayi"><%= k.oneri %></td>
                 <td data-label="Kaizen" class="sayi"><%= k.kaizen %></td>
