@@ -149,6 +149,12 @@ module.exports = function register(app) {
       flash(req, "error", "Bölüm bulunamadı.");
       return res.redirect(SAYFA);
     }
+    // Bölüm silme 5S denetimlerini de siler → geçmişi olan bölümü yalnız ana yönetici silebilir
+    if (!req.anaYonetici && (await C.bolumDenetimleri(bolum.id)).length) {
+      flash(req, "error", `“${bolum.ad}” bölümünün 5S denetim geçmişi var; yalnız ana yönetici silebilir. ` +
+        "5S'ten çıkarmak için “5S'e dahil” işaretini kaldırın.");
+      return res.redirect(SAYFA);
+    }
     await C.bolumSil(bolum.id);
     flash(req, "success", `Bölüm silindi: ${bolum.ad}`);
     res.redirect(SAYFA);

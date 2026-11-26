@@ -1,5 +1,16 @@
 # Sürüm Notları
 
+## 26 Kasım 2026 — 5S denetim silme yalnız ana yöneticide
+
+- **Yapılmış 5S denetimini yalnız ana yönetici silebilir.** Ek yöneticide "Denetim revize" yetkisi olsa da "Denetimi Sil"
+  ve sıralamadaki "Sil" düğmeleri görünmez; doğrudan istek de reddedilir. Revize (düzeltme) yetkisi aynen kalır.
+- Bölüm silmek o bölümün denetimlerini de sildiği için **geçmiş denetimi olan bölümü** de yalnız ana yönetici silebilir;
+  ek yönetici listede "silinemez" görür (5S'ten çıkarmak için "5S'e dahil" işaretini kaldırabilir).
+- Yetki kutucuğunun adı "Denetim revize & silme" → **"Denetim revize"**. Veritabanı değişmedi; mevcut ek yöneticilerin
+  kayıtlı yetkileri elle düzeltilmeden geçerli olur.
+- Denetim planındaki **Planı Sil** (yalnız henüz yapılmamış denetimleri kaldırır, tamamlananlara dokunmaz) plan yetkisinde kaldı.
+- e2e testi: **321/321**.
+
 ## 26 Kasım 2026 — Bölümler ve Görevler sekmeli
 
 - **Bölümler ve Görevler** sayfası 5S sayfası gibi sekmelere ayrıldı: **Bölümler** (ekleme + liste) · **Ekip & Personel**

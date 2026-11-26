@@ -472,7 +472,7 @@ yöneticiler, denetmenler, ödül defteri ve form numaraları bulunuyordu.
 | **25 Kasım — onaylı öneri havuzu:** geri dönüş (eski sürüm) | Havuzdaki öneri normal onaylı öneri gibi açılıyor; liste, Excel, öneri gönderme, onay, puan listesi çalışıyor |
 | **25 Kasım — kaizen maliyet hesabı:** ön kontrol / yeni sürüm / geri dönüş | `CHECKSUM` aynı, 3 tablo + 39 kolon; maliyetli kaizen kaydı; eski sürümde detay, kayıt, Excel çalışıyor |
 | **25 Kasım — kullanıcı adı girişi:** ön kontrol / yeni sürüm / geri dönüş / tekrar geçiş | `CHECKSUM` aynı, 41 kolon, verilecek adlar raporda (aynı ad çakışması `ali.yilmaz2`, "Admin" adlı hesap `admin2`); yeni sürüm aynı adları verdi, kullanıcı adı + eski şifreyle giriş, yalnız şifreyle giriş reddedildi; eski sürüm 6 hesaba yalnız şifreyle girdi; eski sürümde açılan hesap tekrar geçişte ad aldı |
-| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **314/314** |
+| Uçtan uca test paketi (`npm test`, ayrı test veritabanı) | **321/321** |
 
 ---
 

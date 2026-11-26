@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 314 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 321 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -97,7 +97,8 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
    (`session.yonetici_id`, `yoneticiler.yetkiler` JSON — alanlar `src/yetkiler.js`: `degerlendir`, `puanla`,
    `kayit`, `bes_plan`, `bes_denetim`, `bes_revize`, `bes_aksiyon`, `bes_odul`, `odul`, `kullanici`;
    tam yetki YOK — ek yönetici hesapları + işlem günlüğü yalnız ana yönetici; eski `["tam"]` kaydı 10 alana açılır),
-   denetmen (`session.denetmen_id`). Yetkiler her istekte `cekirdek.js:oturumYetkileri` ile çözülür (`req.yetkiler`,
+   denetmen (`session.denetmen_id`). **5S denetim silme yalnız ana yönetici** (`anaYoneticiRequired`, düğme `ana_yonetici`; geçmiş
+   denetimi olan bölümü silmek de) — `bes_revize` yalnız revizedir. Yetkiler her istekte `cekirdek.js:oturumYetkileri` ile çözülür (`req.yetkiler`,
    `req.anaYonetici`, `req.denetmen`). Rotayı `yetkiGerek(alan)` / `girisRequired` / `anaYoneticiRequired` ile
    kapıla; şablonda `yetki('alan')` ile gizle — HER İKİSİNİ de yap. Eski kayıtlı `degerlendirme`/`bes_s`
    anahtarları okurken açılır (`ESKI_YETKILER`) — veritabanını elle güncellemeye gerek yok.
@@ -257,6 +258,10 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     `#tab-personel` (Ekibe personel ekle kartı + Ekipler tablosu: lider, kişi sayısı, Düzenle → bölüm sayfası), `#tab-gorevler`;
     sekmede sayı rozeti `.sekme-sayi`; mevcut `#personel`/`#gorevler` dönüşleri sekmeyi açar; bölüm sayfasının geri bağlantısı
     `#personel`. Ekip lideri/personel sütunları Bölümler listesinden Ekip sekmesine taşındı. e2e 314/314.
+39. **5S denetim silme yalnız ana yönetici** (26 Kasım): `POST /5s/denetim/:did/sil` → `anaYoneticiRequired`; "Denetimi Sil" (denetim
+    sayfası) ve sıralamadaki "Sil" (`odul_siralama.ejs`) `ana_yonetici` ile; geçmiş denetimi olan bölümü ek yönetici silemez
+    (`bolumler.js` + eski `/5s/bolum/sil`; şablonda "silinemez", gizli sil formu basılmaz). Yetki adı "Denetim revize & silme" →
+    "Denetim revize". Planı Sil (yapılmamış denetimler) `bes_plan`'da kaldı. e2e 321/321.
 
 ## Açık konular
 

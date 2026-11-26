@@ -8,7 +8,7 @@ const X = require("../excel");
 const { sorgu, tek, calistir, transaction, js, aksiyonRow } = require("../db");
 const I = require("../isim");
 const {
-  sar, flash, xlsxGonder, zipGonder, yetkiGerek, denetciRequired, girisRequired, alan, kisiOku, guvenliYol, hizLimitAsildi, dosyaYukleyici,
+  sar, flash, xlsxGonder, zipGonder, yetkiGerek, denetciRequired, girisRequired, anaYoneticiRequired, alan, kisiOku, guvenliYol, hizLimitAsildi, dosyaYukleyici,
 } = require("../web");
 
 // Bölümdeki benzersiz kişi sayısı (ekip liderleri + üyeler; aynı isim bir kez sayılır)
@@ -126,6 +126,11 @@ module.exports = function register(app) {
   }));
 
   app.post("/5s/bolum/sil", yetkiGerek("bes_plan"), sar(async (req, res) => {
+    // Eski uç (formu yok). Geçmiş denetimi olan bölümü yalnız ana yönetici silebilir — Bölümler ve Görevler ile aynı kural
+    if (!req.anaYonetici && (await C.bolumDenetimleri(req.body.id || "")).length) {
+      flash(req, "error", "Bu bölümün 5S denetim geçmişi var; yalnız ana yönetici silebilir.");
+      return res.redirect("/5s#bolumler");
+    }
     await C.bolumSil(req.body.id || "");
     flash(req, "success", "Bölüm silindi.");
     res.redirect("/5s#bolumler");
@@ -615,8 +620,9 @@ module.exports = function register(app) {
     res.redirect("/5s/denetim/" + d.id);
   }));
 
-  // Denetimi sil — işlenmiş ödül turundaysa bölümün 5S ödül kaydı da geri alınır
-  app.post("/5s/denetim/:did/sil", yetkiGerek("bes_revize"), sar(async (req, res) => {
+  // Denetimi sil — YALNIZ ana yönetici (ek yöneticide "Denetim revize" yetkisi olsa da silemez).
+  // İşlenmiş ödül turundaysa bölümün 5S ödül kaydı da geri alınır.
+  app.post("/5s/denetim/:did/sil", anaYoneticiRequired, sar(async (req, res) => {
     const d = await C.denetimById(req.params.did);
     if (!d) return res.status(404).send("Denetim bulunamadı.");
     const { tarih, bolum_id } = d;

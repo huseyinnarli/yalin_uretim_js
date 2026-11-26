@@ -794,6 +794,23 @@ async function main() {
     ok("eski 'bes_s' yetkisi yeni 5S yetkilerine açıldı", r.status === 200);
     const [eskiK] = await db.query("SELECT id, kullanici_adi FROM yoneticiler WHERE id IN ('eskiyetk', 'eskitam') ORDER BY id");
     ok("eski sürümle/elle eklenmiş hesaba girişte kullanıcı adı verildi", eskiK.map((x) => x.kullanici_adi).join(",") === "eski.tam,eski.yetki");
+    // Denetim silme yalnız ana yöneticide: ek yöneticide 5S yetkilerinin hepsi olsa da (revize dahil) silemez
+    html = await getText(`/5s/denetim/${birDenetim.id}`);
+    ok("ek yöneticiye 'Denetimi Sil' gösterilmez (revize yetkisi olsa da)", !html.includes("Denetimi Sil") && !html.includes(`/5s/denetim/${birDenetim.id}/sil`));
+    r = await post(`/5s/denetim/${birDenetim.id}/sil`, { csrf_token: csrf, geri: "/5s" });
+    ok("ek yönetici denetim silemez", konum(r) === "/"
+      && (await db.query("SELECT COUNT(*) AS n FROM denetimler WHERE id = ?", [birDenetim.id]))[0][0].n === 1);
+    html = await getText("/5s");
+    ok("ek yöneticide 5S sıralamasında denetim Sil düğmesi yok", html.includes("Formu Gör") && !/\/5s\/denetim\/[a-f0-9]+\/sil/.test(html));
+    {
+      const [[gecmisli]] = await db.query("SELECT bolum_id AS id, COUNT(*) AS n FROM denetimler GROUP BY bolum_id ORDER BY n DESC LIMIT 1");
+      await post("/yonetici/bolumler/sil", { csrf_token: csrf, id: gecmisli.id });
+      ok("ek yönetici denetim geçmişi olan bölümü silemez (denetimler korunur)",
+        (await db.query("SELECT COUNT(*) AS n FROM bolumler WHERE id = ?", [gecmisli.id]))[0][0].n === 1
+        && (await db.query("SELECT COUNT(*) AS n FROM denetimler WHERE bolum_id = ?", [gecmisli.id]))[0][0].n === gecmisli.n);
+      html = await getText("/yonetici/bolumler");
+      ok("geçmişli bölümde ek yöneticiye Sil yerine 'silinemez'", html.includes("silinemez") && !html.includes(`id="sil-${gecmisli.id}"`));
+    }
 
     // --- 5S denetim revize ---
     csrf = await girisYap("admin123");
@@ -812,6 +829,14 @@ async function main() {
     const [[bd2]] = await db.query("SELECT puan, revize_eden, fotolar FROM denetimler WHERE id = ?", [bd.id]);
     ok("revize skoru yeniden hesapladı (100 → 94)", bd2.puan === 94 && bd2.revize_eden === "Ana Yönetici", JSON.stringify(bd2));
     ok("revizede fotoğraf eklendi", (bd2.fotolar || "").includes("s1_1"));
+    // Ana yönetici denetim silebilir (düğme görünür, kayıt gider)
+    const silinecek = { ...bagimsiz, tarih: "2025-11-03", not: "silinecek" };
+    await post(`/5s/bolum/${bidler[0]}/denetim`, silinecek);
+    const [[sd]] = await db.query("SELECT id FROM denetimler WHERE tarih = '2025-11-03'");
+    html = await getText(`/5s/denetim/${sd.id}`);
+    ok("ana yöneticiye 'Denetimi Sil' görünür", html.includes("Denetimi Sil"));
+    await post(`/5s/denetim/${sd.id}/sil`, { csrf_token: csrf, geri: "/5s" });
+    ok("ana yönetici denetimi sildi", (await db.query("SELECT COUNT(*) AS n FROM denetimler WHERE id = ?", [sd.id]))[0][0].n === 0);
 
     // --- 5S bölümler listesi + bölüm trendi ---
     html = await getText("/5s");

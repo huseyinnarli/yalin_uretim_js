@@ -57,7 +57,8 @@
                 <td data-label="5S denetimi" class="sayi"><%= k.denetim %></td>
                 <td data-label="" class="nowrap">
                     <% if (b.bes_dahil || k.denetim) { %><a class="btn-mini eval" href="/5s/bolum/<%= b.id %>">5S detay</a><% } %>
-                    <button type="submit" class="btn-mini del" form="sil-<%= b.id %>">Sil</button>
+                    <% if (ana_yonetici || !k.denetim) { %><button type="submit" class="btn-mini del" form="sil-<%= b.id %>">Sil</button>
+                    <% } else { %><span class="bos-not" title="5S denetim geçmişi olan bölümü yalnız ana yönetici silebilir">silinemez</span><% } %>
                 </td>
             </tr>
         <% } %>
@@ -70,7 +71,7 @@
         geçmiş denetimleri korunur. Ekip lideri ve personel <strong>Ekip &amp; Personel</strong> sekmesindedir.</p>
 </form>
 
-<% for (const b of bolumler) { const k = kullanim[b.id] || { denetim: 0 }; %>
+<% for (const b of bolumler) { const k = kullanim[b.id] || { denetim: 0 }; if (!ana_yonetici && k.denetim) continue; %>
 <form id="sil-<%= b.id %>" method="post" action="/yonetici/bolumler/sil" hidden onsubmit="return confirm(this.dataset.onay)"
       data-onay="<%= k.denetim
         ? `“${b.ad}” silinsin mi? 5S geçmişindeki ${k.denetim} denetim ve fotoğrafları da KALICI olarak silinir. Yalnız 5S'ten çıkarmak istiyorsanız iptal edip “5S'e dahil” işaretini kaldırın.`

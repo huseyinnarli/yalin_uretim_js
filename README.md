@@ -160,7 +160,7 @@ saklar; ad değişikliği eski kayıtları değiştirmez, düzenlemede listeden 
 | | **Kayıt düzenle-sil & raporlar** | Düzenleme, silme, silinenleri geri yükleme, Excel |
 | 5S | **Bölüm/görev listeleri & denetim planı** | Ortak bölüm listesi (5S'e dahil), bölüm personeli ve ekip liderleri, görev tanımları, denetim tarihi planlama, denetmen/misafir dağıtımı |
 | | **Denetim yapma** | Her bölümün denetimini yapabilir, kontrol formunu doldurabilir |
-| | **Denetim revize & silme** | Yapılmış denetimi düzeltme (ödülü işlenmemiş turda), silme |
+| | **Denetim revize** | Yapılmış denetimi düzeltme (ödülü işlenmemiş turda). **Denetim silme yalnız ana yöneticide** (geçmiş denetimi olan bölümü silmek de) |
 | | **Aksiyon yönetimi** | Her aksiyonu kapatma/silme, aksiyon Excel/ZIP |
 | | **5S ödül & raporlar** | Tur ödüllerini işleme, denetim Excel/ZIP, trend Excel |
 | Puan & Ödül | **Ödül verme & isim birleştirme** | Ödül ver/sil, kişi gizleme, isim birleştirme, puan raporları |

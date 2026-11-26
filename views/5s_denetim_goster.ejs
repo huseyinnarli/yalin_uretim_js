@@ -20,7 +20,7 @@
         <% } %>
         <a class="btn ghost" href="/5s/denetim/<%= d.id %>/excel"><%- ik('download') %> Form Excel</a>
         <% } %>
-        <% if (yetki('bes_revize')) { %>
+        <% if (ana_yonetici) { %>
         <form method="post" action="/5s/denetim/<%= d.id %>/sil" style="display:inline"
               onsubmit="return confirm('Bu denetim kalıcı olarak silinsin mi? Dağıtılmış 5S ödül puanı varsa geri alınır.');"><input type="hidden" name="csrf_token" value="<%= csrf_token %>">
             <input type="hidden" name="geri" value="/5s">
