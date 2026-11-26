@@ -1,5 +1,14 @@
 # Sürüm Notları
 
+## 26 Kasım 2026 — Bölümler ve Görevler sekmeli
+
+- **Bölümler ve Görevler** sayfası 5S sayfası gibi sekmelere ayrıldı: **Bölümler** (ekleme + liste) · **Ekip & Personel**
+  (Ekibe personel ekle kartı + Ekipler tablosu) · **Görev Tanımları**. Sekmeye tıklayınca sayfa yenilenmeden geçer; seçili
+  sekme adreste kalır (yenileyince / işlemden dönünce aynı sekme açılır). Sekmelerde bölüm ve görev sayısı yazar.
+- Ekip lideri ve personel sayısı Bölümler listesinden **Ekip & Personel** sekmesindeki Ekipler tablosuna taşındı;
+  **Düzenle** bölüm sayfasını açar, oradaki geri düğmesi Ekip & Personel sekmesine döner.
+- Veritabanı değişmedi. e2e testi: **314/314**.
+
 ## 26 Kasım 2026 — Ekip ve personel tek yerde: Bölümler ve Görevler
 
 - **5S › Bölümler** sekmesindeki "Bölüm listesini düzenle" düğmesi kaldırıldı (yerine kısa bir not). Bölüm, ekip lideri ve

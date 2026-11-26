@@ -4,11 +4,18 @@
     <h1 class="page-title"><%- ik('factory') %> Bölümler ve Görevler</h1>
     <div class="list-actions">
         <a class="btn ghost" href="/yonetici">← Yönetim</a>
-        <a class="btn ghost" href="#personel"><%- ik('users') %> Ekibe personel ekle</a>
-        <a class="btn ghost" href="#gorevler"><%- ik('briefcase') %> Görev tanımları</a>
         <a class="btn ghost" href="/5s#bolumler"><%- ik('brush-cleaning') %> 5S</a>
     </div>
 </div>
+
+<nav class="sekme-cubugu" role="tablist" aria-label="Bölümler ve Görevler">
+    <button type="button" class="tab-btn active" data-tab="bolumler"><%- ik('factory') %> Bölümler <small class="sekme-sayi"><%= bolumler.length %></small></button>
+    <button type="button" class="tab-btn" data-tab="personel"><%- ik('users') %> Ekip &amp; Personel</button>
+    <button type="button" class="tab-btn" data-tab="gorevler"><%- ik('briefcase') %> Görev Tanımları <small class="sekme-sayi"><%= gorev.liste.length %></small></button>
+</nav>
+
+<!-- ===== BÖLÜMLER ===== -->
+<div class="tab-panel" id="tab-bolumler">
 <p class="subtitle">Bu liste <strong>öneri ve kaizen formlarındaki açılır listede</strong> çıkar. <strong>5S'e dahil</strong>
     işaretli bölümler ayrıca 5S denetim planına, periyodik kontrol formuna ve 5S tablolarına girer.</p>
 
@@ -31,7 +38,58 @@
 </form>
 
 <% if (bolumler.length) { %>
-<form method="post" action="/yonetici/bolumler/personel" class="form-card ayar-form" id="personel" autocomplete="off">
+<form method="post" action="/yonetici/bolumler/kaydet" class="form-card ayar-form" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <h3 class="ayar-baslik"><%- ik('clipboard-list') %> Liste — <%= bolumler.length %> bölüm, <%= bolumler.filter((b) => b.bes_dahil).length %> tanesi 5S'te</h3>
+    <div class="table-wrap">
+    <table class="data-table mini-tablo bolum-yonetim">
+        <thead><tr><th>Bölüm adı</th><th class="orta">5S'e dahil</th>
+            <th class="sayi">Öneri</th><th class="sayi">Kaizen</th><th class="sayi">5S denetimi</th><th></th></tr></thead>
+        <tbody>
+        <% for (const b of bolumler) { const k = kullanim[b.id] || { oneri: 0, kaizen: 0, denetim: 0 }; %>
+            <tr>
+                <td data-label="Bölüm adı"><input type="hidden" name="id" value="<%= b.id %>">
+                    <input type="text" name="ad_<%= b.id %>" value="<%= b.ad %>" maxlength="<%= ad_uzunluk %>" required aria-label="Bölüm adı"></td>
+                <td data-label="5S'e dahil" class="orta">
+                    <input type="checkbox" name="bes_<%= b.id %>" value="1" <%= b.bes_dahil ? 'checked' : '' %> aria-label="<%= b.ad %> 5S'e dahil"></td>
+                <td data-label="Öneri" class="sayi"><%= k.oneri %></td>
+                <td data-label="Kaizen" class="sayi"><%= k.kaizen %></td>
+                <td data-label="5S denetimi" class="sayi"><%= k.denetim %></td>
+                <td data-label="" class="nowrap">
+                    <% if (b.bes_dahil || k.denetim) { %><a class="btn-mini eval" href="/5s/bolum/<%= b.id %>">5S detay</a><% } %>
+                    <button type="submit" class="btn-mini del" form="sil-<%= b.id %>">Sil</button>
+                </td>
+            </tr>
+        <% } %>
+        </tbody>
+    </table>
+    </div>
+    <div class="ayar-butonlar"><button type="submit" class="btn primary"><%- ik('save') %> Değişiklikleri kaydet</button></div>
+    <p class="bolum-not">Ad değişikliği eski öneri/kaizen kayıtlarındaki bölüm adını değiştirmez; öneri ve kaizen sayıları adı
+        eşleşen kayıtları gösterir. Bir bölümü 5S'ten çıkarmak için silmeyin, <strong>5S'e dahil</strong> işaretini kaldırın:
+        geçmiş denetimleri korunur. Ekip lideri ve personel <strong>Ekip &amp; Personel</strong> sekmesindedir.</p>
+</form>
+
+<% for (const b of bolumler) { const k = kullanim[b.id] || { denetim: 0 }; %>
+<form id="sil-<%= b.id %>" method="post" action="/yonetici/bolumler/sil" hidden onsubmit="return confirm(this.dataset.onay)"
+      data-onay="<%= k.denetim
+        ? `“${b.ad}” silinsin mi? 5S geçmişindeki ${k.denetim} denetim ve fotoğrafları da KALICI olarak silinir. Yalnız 5S'ten çıkarmak istiyorsanız iptal edip “5S'e dahil” işaretini kaldırın.`
+        : `“${b.ad}” listeden silinsin mi? Öneri/kaizen kayıtlarındaki bölüm adı değişmez.` %>">
+    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
+    <input type="hidden" name="id" value="<%= b.id %>">
+</form>
+<% } %>
+<% } else { %>
+<div class="empty">Henüz bölüm yok. Yukarıdan ekleyin. Liste tanımlanana kadar öneri ve kaizen formları serbest metin bölüm alanı gösterir.</div>
+<% } %>
+</div>
+
+<!-- ===== EKİP & PERSONEL ===== -->
+<div class="tab-panel" id="tab-personel" style="display:none">
+<p class="subtitle">Personel listesi 5S tur ödülünün kişilere dağıtımında ve isim birleştirmede kullanılır; ekip lideri
+    periyodik kontrol formunu doldurur ve denetmen adayıdır. 5S'teki bölüm sayfası ekibi yalnız gösterir.</p>
+<% if (bolumler.length) { %>
+<form method="post" action="/yonetici/bolumler/personel" class="form-card ayar-form" autocomplete="off">
     <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
     <h3 class="ayar-baslik"><%- ik('users') %> Ekibe personel ekle</h3>
     <div class="personel-ekle">
@@ -53,59 +111,36 @@
     </div>
     <p class="bolum-not">Son kelime soyad sayılır; büyük/küçük harf kendiliğinden düzeltilir. Bölümde zaten olan kişi atlanır,
         başka bölümde de kayıtlıysa uyarılır. <strong>Ekip lideri</strong> atamak ve personeli görmek / çıkarmak için aşağıdaki
-        listede bölümün <strong><%- ik('users') %> kişi</strong> düğmesine basın.</p>
+        tabloda bölümün <strong>Düzenle</strong> düğmesine basın.</p>
 </form>
 
-<form method="post" action="/yonetici/bolumler/kaydet" class="form-card ayar-form" autocomplete="off">
-    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-    <h3 class="ayar-baslik"><%- ik('clipboard-list') %> Liste — <%= bolumler.length %> bölüm, <%= bolumler.filter((b) => b.bes_dahil).length %> tanesi 5S'te</h3>
+<div class="form-card ayar-form">
+    <h3 class="ayar-baslik"><%- ik('clipboard-list') %> Ekipler — <%= bolumler.reduce((t, b) => t + (b.kisiler || []).length, 0) %> kişi</h3>
     <div class="table-wrap">
-    <table class="data-table mini-tablo bolum-yonetim">
-        <thead><tr><th>Bölüm adı</th><th class="orta">5S'e dahil</th><th>Ekip lideri</th><th>Ekip &amp; personel</th>
-            <th class="sayi">Öneri</th><th class="sayi">Kaizen</th><th class="sayi">5S denetimi</th><th></th></tr></thead>
+    <table class="data-table mini-tablo bolum-yonetim ekip-tablo">
+        <thead><tr><th>Bölüm</th><th>Ekip lideri</th><th>Personel</th><th></th></tr></thead>
         <tbody>
-        <% for (const b of bolumler) { const k = kullanim[b.id] || { oneri: 0, kaizen: 0, denetim: 0 }; %>
+        <% for (const b of bolumler) { const n = (b.kisiler || []).length; %>
             <tr>
-                <td data-label="Bölüm adı"><input type="hidden" name="id" value="<%= b.id %>">
-                    <input type="text" name="ad_<%= b.id %>" value="<%= b.ad %>" maxlength="<%= ad_uzunluk %>" required aria-label="Bölüm adı"></td>
-                <td data-label="5S'e dahil" class="orta">
-                    <input type="checkbox" name="bes_<%= b.id %>" value="1" <%= b.bes_dahil ? 'checked' : '' %> aria-label="<%= b.ad %> 5S'e dahil"></td>
+                <td data-label="Bölüm"><strong><%= b.ad %></strong><% if (!b.bes_dahil) { %> <span class="bos-not">· 5S dışı</span><% } %></td>
                 <td data-label="Ekip lideri"><%= b.sorumlu || '—' %></td>
-                <td data-label="Ekip & personel" class="nowrap"><a class="btn-mini edit" href="/yonetici/bolumler/<%= b.id %>"
-                    title="Ekip lideri ve personeli düzenle"><%- ik('users') %> <%= (b.kisiler || []).length %> kişi</a></td>
-                <td data-label="Öneri" class="sayi"><%= k.oneri %></td>
-                <td data-label="Kaizen" class="sayi"><%= k.kaizen %></td>
-                <td data-label="5S denetimi" class="sayi"><%= k.denetim %></td>
-                <td data-label="" class="nowrap">
-                    <% if (b.bes_dahil || k.denetim) { %><a class="btn-mini eval" href="/5s/bolum/<%= b.id %>">5S detay</a><% } %>
-                    <button type="submit" class="btn-mini del" form="sil-<%= b.id %>">Sil</button>
-                </td>
+                <td data-label="Personel" class="sayi nowrap"><%- ik('users') %> <%= n %> kişi</td>
+                <td data-label="" class="nowrap"><a class="btn-mini edit" href="/yonetici/bolumler/<%= b.id %>"
+                    title="Ekip lideri ve personeli düzenle">Düzenle →</a></td>
             </tr>
         <% } %>
         </tbody>
     </table>
     </div>
-    <div class="ayar-butonlar"><button type="submit" class="btn primary"><%- ik('save') %> Değişiklikleri kaydet</button></div>
-    <p class="bolum-not">Ad değişikliği eski öneri/kaizen kayıtlarındaki bölüm adını değiştirmez; öneri ve kaizen sayıları adı
-        eşleşen kayıtları gösterir. Bir bölümü 5S'ten çıkarmak için silmeyin, <strong>5S'e dahil</strong> işaretini kaldırın:
-        geçmiş denetimleri korunur. Ekip lideri ve personel <strong><%- ik('users') %></strong> düğmesiyle açılan bölüm sayfasından girilir.</p>
-</form>
-
-<% for (const b of bolumler) { const k = kullanim[b.id] || { denetim: 0 }; %>
-<form id="sil-<%= b.id %>" method="post" action="/yonetici/bolumler/sil" hidden onsubmit="return confirm(this.dataset.onay)"
-      data-onay="<%= k.denetim
-        ? `“${b.ad}” silinsin mi? 5S geçmişindeki ${k.denetim} denetim ve fotoğrafları da KALICI olarak silinir. Yalnız 5S'ten çıkarmak istiyorsanız iptal edip “5S'e dahil” işaretini kaldırın.`
-        : `“${b.ad}” listeden silinsin mi? Öneri/kaizen kayıtlarındaki bölüm adı değişmez.` %>">
-    <input type="hidden" name="csrf_token" value="<%= csrf_token %>">
-    <input type="hidden" name="id" value="<%= b.id %>">
-</form>
-<% } %>
+    <p class="bolum-not"><strong>Düzenle</strong> bölüm sayfasını açar: ekip lideri (en fazla 2), personel listesi ve çıkarma.</p>
+</div>
 <% } else { %>
-<div class="empty">Henüz bölüm yok. Yukarıdan ekleyin. Liste tanımlanana kadar öneri ve kaizen formları serbest metin bölüm alanı gösterir.</div>
+<div class="empty">Önce <strong>Bölümler</strong> sekmesinden bölüm ekleyin.</div>
 <% } %>
+</div>
 
 <!-- ===== GÖREV TANIMLARI ===== -->
-<h2 class="bolum-baslik" id="gorevler"><%- ik('briefcase') %> Görev tanımları</h2>
+<div class="tab-panel" id="tab-gorevler" style="display:none">
 <p class="subtitle">Öneri formundaki <strong>Görevi</strong> ve kaizen ekibindeki her kişinin görevi bu listeden seçilir
     (tüm bölümler için ortak). Liste boşken öneri formunda görev serbest yazılır, kaizende görev sorulmaz.</p>
 
@@ -166,4 +201,24 @@
 <% } %>
 <% } %>
 </div>
+</div>
+<script>
+(function () {
+    var btns = document.querySelectorAll('.tab-btn');
+    function show(tab) {
+        btns.forEach(function (b) { b.classList.toggle('active', b.dataset.tab === tab); });
+        document.querySelectorAll('.tab-panel').forEach(function (p) { p.style.display = 'none'; });
+        var el = document.getElementById('tab-' + tab);
+        if (el) el.style.display = '';
+    }
+    btns.forEach(function (b) {
+        b.addEventListener('click', function () {
+            show(b.dataset.tab);
+            history.replaceState(null, '', location.pathname + '#' + b.dataset.tab); // yenileyince aynı sekme
+        });
+    });
+    var ilk = (location.hash || '').slice(1);
+    if (document.getElementById('tab-' + ilk)) show(ilk);
+})();
+</script>
 <%- include('partials/footer') %>

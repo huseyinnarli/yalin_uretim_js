@@ -1203,7 +1203,21 @@ async function main() {
     ok("bölüm listesinde personel sayısı ve bağlantısı", html.includes(`href="/yonetici/bolumler/${satinId}"`) && /<\/svg> 2 kişi/.test(html));
     // Bölümler ve Görevler › "Ekibe personel ekle" kartı: bölüm açılır listeden seçilir, dönüşte seçili kalır
     ok("Bölümler sayfasında ekibe personel ekleme kartı", html.includes('action="/yonetici/bolumler/personel"')
-      && html.includes(`<option value="${montajId}">Montaj (`) && html.includes('href="#personel"'));
+      && html.includes(`<option value="${montajId}">Montaj (`));
+    ok("Bölümler ve Görevler sekmeli (Bölümler · Ekip & Personel · Görev Tanımları)",
+      ['data-tab="bolumler"', 'data-tab="personel"', 'data-tab="gorevler"', 'id="tab-bolumler"', 'id="tab-personel"', 'id="tab-gorevler"']
+        .every((x) => html.includes(x)));
+    {
+      // Sekme paneli: kendi açılışından bir sonraki "<!-- =====" bölüm yorumuna (ya da sayfa sonuna) kadar
+      const panel = (id) => {
+        const bas = html.indexOf(`id="tab-${id}"`), son = html.indexOf("<!-- =====", bas);
+        return html.slice(bas, son < 0 ? undefined : son);
+      };
+      ok("sekme içerikleri doğru yerde (kart Ekip sekmesinde, görev formu Görev sekmesinde)",
+        panel("personel").includes('action="/yonetici/bolumler/personel"') && !panel("bolumler").includes('action="/yonetici/bolumler/personel"')
+        && html.slice(html.indexOf('id="tab-gorevler"')).includes('action="/yonetici/gorevler/ekle"')
+        && panel("personel").includes(`href="/yonetici/bolumler/${satinId}"`));
+    }
     r = await post(`${BOL}/personel`, { csrf_token: csrf, bid: montajId, kisiler: "kart deneme\r\nİkinci KİŞİ" });
     ok("karttan personel eklendi, dönüşte aynı bölüm seçili", (await kisileriOku(montajId)).includes("Kart Deneme")
       && (await kisileriOku(montajId)).includes("İkinci Kişi") && r.headers.get("location") === `${BOL}?bolum=${montajId}#personel`);

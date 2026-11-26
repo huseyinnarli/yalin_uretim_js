@@ -100,7 +100,7 @@ uygun modüle eklenir ve `module.exports` listesine yazılır; rotalar değişme
 | `src/rotalar/kaizen.js` | Kaizen yeni / **öneriden dönüştür** / düzenle / Excel / görsel servisi (girişli) |
 | `src/rotalar/bes_s.js` | 5S: bölümler (liste + trend), plan, denetim (yap/göster/**revize**/sil/Excel/ZIP), aksiyonlar (girişli; denetmen / bölüm lideri yalnız kendi aksiyonları: `aksiyonGruplari(durum, session, kisiAd)` — kapatabileceği ya da sorumlusu olduğu), ödül işleme, geçmiş, görsel servisleri. **Excel/ZIP uçlarının hepsi yönetici yetkisi ister** (kontrol formu Excel'i dahil: `adminRequired`); denetmen hiçbir dosya indiremez |
 | `src/rotalar/ayarlar.js` | **Puan ve Ödül Ayarları** (yalnız ana yönetici): görüntüle, önizle (`islem=onizle`), kaydet, kural sürümü kaldır |
-| `src/rotalar/bolumler.js` | **Yönetim › Bölümler ve Görevler** (`/yonetici/bolumler`, yetki `bes_plan`): bölüm toplu ekleme, tek "Kaydet" ile ad + 5S'e dahil, silme (geçmişli bölümde denetim sayısı uyarısı); "Ekibe personel ekle" kartı `POST /yonetici/bolumler/personel` (body `bid` + `kisiler`; dönüş `?bolum=<id>#personel`, seçim korunur); bölüm sayfası `/yonetici/bolumler/:bid` (ekip lideri, personel toplu ekleme/çıkarma; iki ekleme ucu ortak `personelEkle` yardımcısı); görev tanımları `/yonetici/gorevler/ekle\|kaydet\|sil` |
+| `src/rotalar/bolumler.js` | **Yönetim › Bölümler ve Görevler** (`/yonetici/bolumler`, yetki `bes_plan`; üç sekme `#bolumler` · `#personel` · `#gorevler`, 5S sayfasıyla aynı `.sekme-cubugu` + `button.tab-btn` + `.tab-panel` kalıbı, seçili sekme adreste): bölüm toplu ekleme, tek "Kaydet" ile ad + 5S'e dahil, silme (geçmişli bölümde denetim sayısı uyarısı); "Ekibe personel ekle" kartı `POST /yonetici/bolumler/personel` (body `bid` + `kisiler`; dönüş `?bolum=<id>#personel`, seçim korunur); bölüm sayfası `/yonetici/bolumler/:bid` (ekip lideri, personel toplu ekleme/çıkarma; iki ekleme ucu ortak `personelEkle` yardımcısı); görev tanımları `/yonetici/gorevler/ekle\|kaydet\|sil` |
 | `src/rotalar/kontrol.js` | **Periyodik kontrol formu**: görüntüle (`?tarih=`), doldur, haftalık/aylık imza, Excel (`?ay=` — yalnız o ay) |
 | `src/rotalar/admin.js` | Giriş/çıkış, **Yönetim** sayfası, ek yönetici (yalnız ana yönetici) ve denetmen/misafir yönetimi, şifre, durum değişikliği (onay / gerekçeli red / düzeltme ataması), **görev ataması**, puanlama, kayıt silme, trend Excel |
 | `scripts/import-json.js` | Eski JSON tabanlı sürümden veri + görsel aktarımı (kaynağa salt-okunur, tek transaction, hata durumunda tam geri alma) |
@@ -430,5 +430,5 @@ Bu, uygulama içi bir güvence katmanıdır — tam sunucu yedeği için `mysqld
 - **Yeni rota/yetki:** rotayı `yetkiGerek(alan)` / `girisRequired` ile kapıla, şablonda `yetki('alan')` ile
   butonu gizle (ikisi birden). Dosya kabul eden rotada yetki middleware'i `dosyaYukleyici`'den ÖNCE gelir ve
   yol `web.js:DOSYA_YOLLARI`'na eklenir.
-- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 312 kontrollü uçtan uca
+- **Test:** `npm test` — ayrı veritabanı (`yalin_e2e`) ve geçici veri klasörüyle 314 kontrollü uçtan uca
   senaryo; canlı veriye dokunmaz.

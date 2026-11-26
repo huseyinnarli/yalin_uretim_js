@@ -54,8 +54,9 @@ form öneriden doldurulur ve kaizen öneriye bağlanır.
 Öneri ve kaizen formlarındaki açılır listeler ile 5S **aynı verileri** kullanır. Sayfa, **Bölüm/görev listeleri & denetim
 planı** yetkili yönetici tarafından kullanılır:
 - **Bölümler:** her satıra bir ad yazarak toplu ekleme, ad değiştirme ve her bölüm için **5S'e dahil** kutusu;
-  **Ekibe personel ekle** kartı: bölüm seç → her satıra Ad Soyad (Excel'den yapıştırılabilir); tablodaki **kişi** düğmesiyle
-  bölüm sayfası: ekip lideri (en fazla 2), personel listesi ve çıkarma. Ekip/personel yalnız burada düzenlenir.
+  sayfa üç sekme: **Bölümler · Ekip & Personel · Görev Tanımları**. Ekip & Personel sekmesinde **Ekibe personel ekle** kartı
+  (bölüm seç → her satıra Ad Soyad, Excel'den yapıştırılabilir) ve Ekipler tablosu; **Düzenle** ile bölüm sayfası: ekip lideri
+  (en fazla 2), personel listesi ve çıkarma. Ekip/personel yalnız burada düzenlenir.
 - **Görev tanımları:** tüm bölümler için tek liste; öneri sahibinin ve kaizen ekibindeki her kişinin görevi buradan
   seçilir. Kayıtlarda serbest yazılmış görevler, işaretlenip listeye eklenmek üzere önerilir. Liste boşken öneride
   görev serbest yazılır, kaizende sorulmaz.

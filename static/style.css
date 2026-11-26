@@ -1115,7 +1115,9 @@ div.hub-box { cursor: default; }
 .bolum-ekle textarea:focus, .bolum-yonetim input[type=text]:focus {
     outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(107,158,47,.18);
 }
-.ayar-sayfa > .form-card { margin-bottom: 18px; }
+.ayar-sayfa > .form-card, .ayar-sayfa > .tab-panel > .form-card { margin-bottom: 18px; }
+.sekme-sayi { font-size: .72rem; font-weight: 700; color: var(--muted); background: #eef1f6; border-radius: 999px; padding: 1px 7px; }
+.tab-btn.active .sekme-sayi { color: var(--primary); background: #eef6e2; }
 .bolum-ekle-yan { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 .kutu-secim { display: flex; gap: 8px; align-items: center; font-weight: 600; white-space: nowrap; cursor: pointer; }
 .kutu-secim input, .bolum-yonetim input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--primary); }

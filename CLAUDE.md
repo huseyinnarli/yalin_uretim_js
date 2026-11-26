@@ -30,7 +30,7 @@ yazılmış hâli; önce SQLite'la yazıldı, sonra **MySQL 8**'e taşındı.
 
 ```bash
 npm start        # sunucu → http://127.0.0.1:5000 (0.0.0.0 dinler)
-npm test         # 312 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
+npm test         # 314 kontrollü e2e — AYRI veritabanı (yalin_e2e) + geçici veri klasörü; canlıya dokunmaz
 npm run gecis-kontrol  # canlıya almadan önce SALT-OKUNUR veritabanı ön kontrolü (şema farkı, isimler, yetkiler)
 npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
@@ -253,6 +253,10 @@ ilgili servis modülüne yazıp `module.exports`'a ekle — cephe aynı adın ik
     (yerine "N bölüm 5S dışında" notu); 5S bölüm sayfasında ekip salt gösterim + yetkiliye "Ekibi düzenle →" (`/yonetici/bolumler/:bid`);
     Bölümler sayfasında **Ekibe personel ekle** kartı (`#personel`, `POST /yonetici/bolumler/personel`, `secili_bolum`), sütun
     "Ekip & personel"; `bolumler.js:personelEkle` ortak. Eski 5S ekip uçları formsuz duruyor. e2e 312/312.
+38. **Bölümler ve Görevler sekmeli** (26 Kasım): 5S sayfasıyla aynı kalıp — `#tab-bolumler` (ekle + liste: ad, 5S'e dahil, kullanım),
+    `#tab-personel` (Ekibe personel ekle kartı + Ekipler tablosu: lider, kişi sayısı, Düzenle → bölüm sayfası), `#tab-gorevler`;
+    sekmede sayı rozeti `.sekme-sayi`; mevcut `#personel`/`#gorevler` dönüşleri sekmeyi açar; bölüm sayfasının geri bağlantısı
+    `#personel`. Ekip lideri/personel sütunları Bölümler listesinden Ekip sekmesine taşındı. e2e 314/314.
 
 ## Açık konular
 
