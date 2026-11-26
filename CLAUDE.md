@@ -36,6 +36,7 @@ npm run migrate  # eski SQLite verisini (data/yalin.db) MySQL'e taşır
 npm run import   # eski Flask/JSON verisini aktarır: node scripts/import-json.js "<eski>/data"
 # Demo (Render, tasarım önizleme): Dockerfile → scripts/demo-baslat.sh (geçici MariaDB) → scripts/demo-veri.js
 # (yalnız BOŞ veritabanına örnek veri). YALIN_DEMO=1 üstte demo şeridi gösterir. Canlıda kullanılmaz.
+# Demo ana yönetici şifresi şeritte YOK: YALIN_DEMO_ADMIN_SIFRE (Render › Environment) ya da açılışta rastgele (Logs'ta).
 ```
 
 Sözdizimi hızlı kontrol: `node --check <dosya>`. Önizleme: kök `Projeler/.claude/launch.json`

@@ -248,14 +248,17 @@ sudo systemctl restart yalin
 Depodaki `Dockerfile` yalnızca **tasarımı çevrimiçi göstermek** içindir: uygulama, aynı kapta geçici bir
 **MariaDB** ve **örnek veri** (6 bölüm, 3 denetim turu, ~22 öneri, 5 kaizen, kontrol formu kayıtları) ile açılır.
 Harici veritabanı gerekmez. Veriler kalıcı değildir — kap her yeniden başladığında (deploy, uyku sonrası) demo
-sıfırdan kurulur. Sayfanın üstünde demo şeridi ve giriş bilgileri (kullanıcı adı / şifre) görünür.
+sıfırdan kurulur. Sayfanın üstünde demo şeridi ve örnek hesapların giriş bilgileri görünür (ana yönetici hariç).
 
 **Render'da kurulum:** New → **Web Service** → `huseyinnarli/yalin_uretim_js` → **Language: Docker** →
 Instance: Free → Create. (Var olan "Node" servisi Docker'a çevrilemez; yeni servis açıp eskisini silin.)
-Ortam değişkeni girmeye gerek yoktur; `PORT`'u Render verir.
+`PORT`'u Render verir. Ana yönetici şifresi için **Environment** sekmesine `YALIN_DEMO_ADMIN_SIFRE` ekleyin (önerilir);
+eklenmezse her açılışta rastgele bir şifre üretilir ve yalnız **Logs**'ta görünür
+(`Demo ana yönetici şifresi (rastgele…): …`). Varsayılan `admin123` demoda geçmez.
 
-**Demo girişleri:** ana yönetici `admin123` · ek yönetici `zeynep1234` · denetmen `ali1234` (Abkant Pres lideri),
-`mehmet1234`, `ayse1234`, `murat1234`.
+**Demo girişleri** (kullanıcı adı / şifre; demo şeridinde de yazar): ek yönetici `zeynep.aydin` / `zeynep1234` ·
+denetmen `ali.yilmaz` / `ali1234` (Abkant Pres lideri), `mehmet.kaya` / `mehmet1234`, `ayse.celik` / `ayse1234`,
+`murat.sahin` / `murat1234`. Ana yönetici `admin` — şifresi şeritte **gösterilmez** (yukarıdaki ortam değişkeni).
 
 **Bellek:** MariaDB düşük bellek ayarlarıyla açılır (`scripts/demo-baslat.sh`); uygulama + veritabanı ≈ 210 MB.
 

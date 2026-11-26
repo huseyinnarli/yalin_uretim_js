@@ -1,5 +1,11 @@
 # Sürüm Notları
 
+## 26 Kasım 2026 — Demo: ana yönetici şifresi gizlendi
+
+- Demo şeridinde artık ana yönetici giriş bilgisi yok (yalnız örnek ek yönetici ve denetmen hesapları).
+- Demoda varsayılan `admin123` geçmez: ana yönetici şifresi Render'daki `YALIN_DEMO_ADMIN_SIFRE` ortam değişkeninden
+  alınır; yoksa her açılışta rastgele üretilip yalnız sunucu günlüğüne (Logs) yazılır. Canlı kurulumu etkilemez.
+
 ## 26 Kasım 2026 — Üst menü sırası
 
 - Girişli üst menü artık **Panel · Puan Listesi · Öneri & Kaizen · 5S** sırasıyla (ardından Görevlerim ve Kılavuz).

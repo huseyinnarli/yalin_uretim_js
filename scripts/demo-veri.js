@@ -77,6 +77,16 @@ async function main() {
   }
   console.log("Demo verisi yükleniyor…");
 
+  // Ana yönetici şifresi demoda herkese açık DEĞİL (varsayılan admin123 de geçmez): Render'da
+  // YALIN_DEMO_ADMIN_SIFRE ortam değişkeni varsa o kullanılır; yoksa her açılışta rastgele üretilip
+  // yalnız sunucu günlüğüne yazılır. (Boş veritabanı denetiminden SONRA — dolu veritabanına dokunmaz.)
+  const adminSifre = String(process.env.YALIN_DEMO_ADMIN_SIFRE || "").trim()
+    || require("crypto").randomBytes(9).toString("base64url");
+  await C.setAdminPassword(adminSifre);
+  console.log(process.env.YALIN_DEMO_ADMIN_SIFRE
+    ? "Demo ana yönetici şifresi: YALIN_DEMO_ADMIN_SIFRE ortam değişkenindeki değer."
+    : `Demo ana yönetici şifresi (rastgele, bu açılışa özel): ${adminSifre}`);
+
   // --- Bölümler, denetmenler, ek yönetici ---
   const bolumler = [];
   for (const [ad, sorumlu, kisiler] of BOLUMLER) {
